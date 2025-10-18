@@ -1,0 +1,56 @@
+FGA Project To-Do Checklist
+===========================
+
+1. Organize File System
+   1.1. Create folders for each layer
+        - FGA/Models
+        - FGA/Controllers
+        - FGA/Views
+   1.2. Move respective scripts into their folders
+        - Models: FloorModel.cs, GridModel.cs, CellModel.cs, RoomModel.cs, CorridorModel.cs, PartitionModel.cs
+        - Controllers: FloorController.cs, BSPController.cs, CorridorController.cs (or similar)
+        - Views: FloorView.cs, DebugGizmoSettings.cs
+   1.3. Ensure each file contains only one class with matching file name
+   1.4. Maintain consistent namespaces
+        - Models → namespace FGA.Models
+        - Controllers → namespace FGA.Controllers
+        - Views → namespace FGA.Views
+
+2. Verify Class Definitions
+   2.1. Ensure all models, controllers, and views have proper public class declaration
+   2.2. Confirm that MonoBehaviour scripts match file names exactly
+   2.3. Remove any duplicate or conflicting using directives
+
+3. Setup References Between Layers
+   3.1. In FloorView.cs, reference FloorModel from FGA.Models
+   3.2. In FloorController.cs, reference FloorModel and RoomModel as needed
+   3.3. Check that all using statements correctly reference namespaces
+
+4. Implement and Test Models
+   4.1. Verify FloorModel properties and methods
+   4.2. Verify GridModel, CellModel, PartitionModel, RoomModel, CorridorModel
+   4.3. Confirm that BSP tree generation logic is separate and modular
+
+5. Implement and Test Controllers
+   5.1. Confirm floor generation methods
+   5.2. Ensure partitions, rooms, and corridors are correctly generated
+   5.3. Verify any recursive BSP logic
+   5.4. Debug any pathfinding or corridor connections
+
+6. Implement and Test Views
+   6.1. Verify Gizmos rendering for partitions, rooms, and corridors
+   6.2. Test toggles (drawPartitions, drawRooms, drawCorridors)
+   6.3. Ensure runtime prefab instantiation plan is prepared but optional for now
+   6.4. Verify DebugGizmoSettings works and is editable in the inspector
+
+7. Verification and Validation
+   7.1. Check that all scripts compile without errors
+   7.2. Attach FloorModel to FloorView in Scene and verify Gizmos appear
+   7.3. Trigger FloorController generation and observe floor layout
+   7.4. Debug any missing or overlapping tiles
+
+8. Optional Enhancements
+   8.1. Add runtime prefab rendering for tiles, walls, and floors
+   8.2. Optimize data structures for memory/performance
+   8.3. Implement multiple room types and corridors with path merging
+   8.4. Add level-based grid size and floor progression logic

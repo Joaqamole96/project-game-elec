@@ -1,87 +1,140 @@
-// ================================= //
-// FloorModel.cs
-// 
-// A data model representing a floor in the game.
-// Contains properties relevant to floor data management.
-// ================================= //
+// ============================================================================
+// Models for BSP Dungeon Generation
+// Each section (FloorModel, GridModel, etc.) should be in its own file under FGA/Models
+// ============================================================================
 
-// ---------- Imports ---------- //
-
-using UnityEngine;
 using System.Collections.Generic;
+using UnityEngine;
 
-// ---------- Data Structures ---------- //
-
-[System.Serializable]
-public enum SplitType { Horizontal, Vertical }
-
-// ------- 1. Partition ------- //
-
-// Represents an area of the grid.
-[System.Serializable]
-public class Partition
+namespace FGA.Models
 {
-    // ----- Attributes ----- //
-    
-    // The rectangular bounds of the partition in grid coordinates.
-    public RectInt Area { get; private set; } 
-
-    // The depth of the partition in the BSP tree.
-    public int Depth { get; private set; }
-
-    // Child partitions resulting from a split.
-    public Partition LeftChild { get; set; }
-    public Partition RightChild { get; set; }
-
-    // Indicates if the partition is a leaf node (ready for a room).
-    public bool IsLeaf { get; set; } = false;
-
-    // The rectangular bounds of the room contained within this partition (only for leaf nodes).
-    public RectInt? Room { get; set; } // Nullable RectInt
-
-    // List of edge points within the partition.
-    public List<Vector2Int> EdgePoints { get; private set; } = new List<Vector2Int>();
-
-    // ----- Methods ----- //
-
-    // --- Constructor -- //
-    // Initializes a new partition with the specified area and depth.
-    public Partition(RectInt area, int depth)
+    // ============================================================================
+    // FloorModel.cs
+    // Represents the entire floor layout, composed of partitions, rooms, corridors, and cells
+    // ============================================================================
+    public class FloorModel
     {
-        Area = area;
-        Depth = depth;
+        public int Width { get; private set; }
+        public int Height { get; private set; }
+        public GridModel Grid { get; private set; }
+        public PartitionModel RootPartition { get; set; }
+        public List<RoomModel> Rooms { get; set; } = new();
+        public List<CorridorModel> Corridors { get; set; } = new();
+
+        public FloorModel(int width, int height)
+        {
+            Width = width;
+            Height = height;
+            Grid = new GridModel(width, height);
+        }
+
+        public void PrintToConsole() // Debugging only
+        {
+            Debug.Log($"Floor ({Width}x{Height}) contains {Rooms.Count} rooms and {Corridors.Count} corridors.");
+        }
     }
-}
 
-// ------- 2. Path ------- //
-
-// Functionally represents a Corridor, or an edge between nodes.
-[System.Serializable]
-public struct Path
-{
-    public Partition PartitionA { get; private set; }
-    public Partition PartitionB { get; private set; }
-
-    // NEW: List of discrete tile coordinates that make up the corridor.
-    public List<Vector2Int> PathTiles { get; private set; }
-
-    public Path(Partition a, Partition b, List<Vector2Int> pathTiles)
+    // ============================================================================
+    // GridModel.cs
+    // Represents a grid of cells used for occupancy and connectivity tracking
+    // ============================================================================
+    public class GridModel
     {
-        PartitionA = a;
-        PartitionB = b;
-        PathTiles = pathTiles;
+        public int Width { get; private set; }
+        public int Height { get; private set; }
+        public CellModel[,] Cells { get; private set; }
+
+        public GridModel(int width, int height)
+        {
+            Width = width;
+            Height = height;
+            Cells = new CellModel[width, height];
+
+            for (int x = 0; x < width; x++)
+            {
+                for (int y = 0; y < height; y++)
+                {
+                    Cells[x, y] = new CellModel(x, y);
+                }
+            }
+        }
     }
-}
 
-// ------- 3. Floor Model ------- //
+    // ============================================================================
+    // CellModel.cs
+    // Represents a single tile or unit of space in the grid
+    // ============================================================================
+    public class CellModel
+    {
+        public int X { get; private set; }
+        public int Y { get; private set; }
+        public bool IsOccupied { get; set; }
 
-// Represents the data model for a floor in the game.
-public class FloorModel
-{
-    public Partition RootPartition;
-    // The root partition of the BSP tree.
-    public List<Partition> Partitions { get; private set; } = new List<Partition>();
-    // List of all leaf partitions in the BSP tree.
-    public List<Path> Paths { get; private set; } = new List<Path>();
-    // List of paths (corridors) connecting partitions.
+        public CellModel(int x, int y)
+        {
+            X = x;
+            Y = y;
+            IsOccupied = false;
+        }
+    }
+
+    // ============================================================================
+    // PartitionModel.cs
+    // Represents a rectangular partition in the BSP tree structure
+    // ============================================================================
+    public class PartitionModel
+    {
+        public RectInt Bounds { get; private set; }
+        public int Depth { get; private set; }
+        public bool IsLeaf => LeftChild == null && RightChild == null;
+        public PartitionModel LeftChild { get; set; }
+        public PartitionModel RightChild { get; set; }
+        public SplitOrientation Orientation { get; private set; }
+        public RoomModel Room { get; set; }
+
+        public PartitionModel(RectInt bounds, int depth, SplitOrientation orientation)
+        {
+            Bounds = bounds;
+            Depth = depth;
+            Orientation = orientation;
+        }
+    }
+
+    // ============================================================================
+    // SplitOrientation.cs
+    // Enum for indicating BSP split direction
+    // ============================================================================
+    public enum SplitOrientation { Horizontal, Vertical }
+
+    // ============================================================================
+    // RoomModel.cs
+    // Represents a rectangular room assigned to a leaf partition
+    // ============================================================================
+    public class RoomModel
+    {
+        public RectInt Bounds { get; private set; }
+
+        public RoomModel(RectInt bounds)
+        {
+            Bounds = bounds;
+        }
+    }
+
+    // ============================================================================
+    // CorridorModel.cs
+    // Represents a corridor connecting two rooms
+    // ============================================================================
+    public class CorridorModel
+    {
+        public Vector2Int Start { get; private set; }
+        public Vector2Int End { get; private set; }
+        public List<Vector2Int> Path { get; private set; }
+
+        public CorridorModel(Vector2Int start, Vector2Int end, List<Vector2Int> path)
+        {
+            Start = start;
+            End = end;
+            Path = path;
+        }
+    }
 }
