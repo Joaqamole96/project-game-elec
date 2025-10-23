@@ -9,7 +9,7 @@ using UnityEngine;
 using System;
 using System.Collections.Generic;
 
-namespace Models.FGA
+namespace FGA.Models
 {
     public enum RoomType
     {
@@ -41,8 +41,7 @@ namespace Models.FGA
         public RoomType Type { get; private set; } = RoomType.Empty;
 
         // Outfitted Variables
-        public List<DoorModel> Doors { get; private set; }
-
+        public List<Vector2Int> Openings { get; private set; }
         // State Flags
         public bool IsInitialized { get; private set; } = false;
         public bool IsOutfitted { get; private set; } = false;
@@ -87,25 +86,13 @@ namespace Models.FGA
 
         #region Outfitting
 
-        public void Outfit(List<DoorModel> doors)
+        public void AddOpening(Vector2Int point)
         {
-            ValidateOutfit(doors);
-
-            Doors = doors;
-            IsOutfitted = true;
-            Debug.Log($"RoomModel: Outfitted (Doors: {Doors.Count}).");
-        }
-
-        private void ValidateOutfit(List<DoorModel> doors)
-        {
-            if (doors == null)
+            if (Openings == null)
             {
-                throw new ArgumentNullException(nameof(doors), "RoomModel: Declared doors list is null.");
+                Openings = new List<Vector2Int>();
             }
-            if (doors.Count == 0)
-            {
-                throw new ArgumentException("RoomModel: Declared doors list is empty.");
-            }
+            Openings.Add(point);
         }
 
         #endregion
@@ -118,9 +105,13 @@ namespace Models.FGA
         {
             Debug.Log("RoomModel: Describing this instance:\n" +
                 $"Bounds: {Bounds}\n" +
-                $"Type: {Type}\n" +
-                $"Doors: {(Doors != null ? Doors.Count : 0)}"
+                $"Type: {Type}"
             );
+        }
+
+        public void Illustrate()
+        {
+            // Code to illustrate in the console
         }
 
         #endregion
