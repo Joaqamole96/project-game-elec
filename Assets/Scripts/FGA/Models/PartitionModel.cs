@@ -4,12 +4,11 @@
 // A data model representing a Partition.
 // ==================================================
 
-using System;
 using UnityEngine;
 using URandom = UnityEngine.Random;
-using static FGA.Configs.FloorConfig;
 using static FGA.Configs.PartitionConfig;
 using FGA.Configs;
+using static Helpers.LogHelper;
 
 namespace FGA.Models
 {
@@ -18,25 +17,20 @@ namespace FGA.Models
         // Initialized Variables
         public RectInt Bounds { get; private set; }
         public int Depth { get; private set; }
-        public FloorModel Floor { get; private set; }
 
         // Outfitted Variables
         public RoomModel Room { get; private set; }
 
         // Configured Variables
-        public SplitOrientation SplitOrientation { get; private set; }
-        public int SplitAxis { get; private set; }
         public NodeLevel NodeLevel { get; private set; }
         public NodeExposure NodeExposure { get; private set; }
 
         // Cached Variables
-        public PartitionModel ChildA { get; private set; }
-        public PartitionModel ChildB { get; private set; }
+        public (PartitionModel LeftChild, PartitionModel RightChild) Children { get; private set; }
 
         // State Flags
         public bool IsInitialized { get; private set; } = false;
         public bool IsOutfitted { get; private set; } = false;
-        public bool CanBeSplit => Width >= MIN_PARTITION_SPLIT_SIZE && Height >= MIN_PARTITION_SPLIT_SIZE;
 
         // Accessor Variables
         public Vector2Int Position => Bounds.position;
@@ -46,281 +40,209 @@ namespace FGA.Models
         public int Width => Bounds.width;
         public int Height => Bounds.height;
         public Vector2Int Center => Vector2Int.RoundToInt(Bounds.center);
+        public PartitionModel LeftChild => Children.LeftChild;
+        public PartitionModel RightChild => Children.RightChild;
 
         //----------------------------------------------------------------------------------
 
-        private bool ValidateInitialize(RectInt bounds, int depth, FloorModel floor)
+        public PartitionModel(RectInt bounds, int depth)
+        {
+            ValidateInitialize(bounds, depth);
+
+            Bounds = bounds;
+            Declare(this, Bounds);
+            Depth = depth;
+            Declare(this, Depth);
+
+            IsInitialized = true; 
+            Success(this, "This Partition has been initialized.");
+        }
+
+        public PartitionModel(Vector2Int position, Vector2Int size, int depth)
+            : this(new RectInt(position, size), depth) { }
+
+        public PartitionModel(int x, int y, int width, int height, int depth)
+            : this(new RectInt(x, y, width, height), depth) { }
+
+        private void ValidateInitialize(RectInt bounds, int depth)
         {
             if (IsInitialized)
             {
-                throw new InvalidOperationException("This object is already initialized.");
+                throw Failure(this, "This Partition is already initialized.");
             }
-            // ----------------------------------------------
-            else if (!floor.Bounds.Contains(bounds.position))
+            if (bounds.width < MIN_PARTITION_SIZE)
             {
-                throw new ArgumentOutOfRangeException($"`bounds.position` ({bounds.position}) is outside {floor.Bounds}.");
+                throw Failure(this, $"This Partition's Width must be atleast {MIN_PARTITION_SIZE}.");
             }
-            else if (bounds.width < MIN_FLOOR_SIZE || bounds.height < MIN_FLOOR_SIZE)
+            if (bounds.height < MIN_PARTITION_SIZE)
             {
-                throw new ArgumentOutOfRangeException($"`bounds.size` ({bounds.size}) is below {MIN_FLOOR_SIZE}.");
+                throw Failure(this, $"This Partition's Height must be atleast {MIN_PARTITION_SIZE}.");
             }
-            else if (bounds.width > MAX_FLOOR_SIZE || bounds.height > MAX_FLOOR_SIZE)
+            if (depth < 0)
             {
-                throw new ArgumentOutOfRangeException($"`bounds.size` ({bounds.size}) is above {MAX_FLOOR_SIZE}.");
-            }
-            else if (depth < 0)
-            {
-                throw new ArgumentOutOfRangeException($"`depth` ({depth}) cannot be negative.");
-            }
-            else
-            {
-                return true;
+                throw Failure(this, "This Partition's Depth must be atleast 0.");
             }
         }
-
-        public PartitionModel(RectInt bounds, int depth, FloorModel floor)
-        {
-            if (ValidateInitialize(bounds, depth, floor))
-            {
-                Bounds = bounds;
-                Debug.Log($"PartitionModel(PartitionModel): `Bounds` is set to {Bounds}.");
-                Depth = depth;
-                Debug.Log($"PartitionModel(PartitionModel): `Depth` is set to {Depth}.");
-                Floor = floor;
-                Debug.Log($"PartitionModel(PartitionModel): `Floor` is set to {Floor}.");
-
-                IsInitialized = true;
-                Debug.Log($"PartitionModel(PartitionModel): Initialization success!");
-            }
-            else
-            {
-                Debug.Log($"PartitionModel(PartitionModel): Initialization failure!");
-            }
-        }
-
-        public PartitionModel(Vector2Int position, Vector2Int size, int depth, FloorModel floor)
-            : this(new RectInt(position, size), depth, floor) { }
-
-        public PartitionModel(int x, int y, int width, int height, int depth, FloorModel floor)
-            : this(new RectInt(x, y, width, height), depth, floor) { }
 
         //----------------------------------------------------------------------------------
-
-        private bool ValidateOutfit(RoomModel room)
-        {
-            if (IsOutfitted)
-            {
-                throw new InvalidOperationException("This object is already outfitted.");
-            }
-            else if (room == null)
-            {
-                throw new ArgumentNullException($"`room` ({room}) is null.");
-            }
-            else
-            {
-                return true;
-            }
-        }
 
         public void Outfit(RoomModel room)
         {
-            if (ValidateOutfit(room))
-            {
-                Room = room;
-                Debug.Log($"PartitionModel(Outfit): `Room` is set to {room}.");
+            ValidateOutfit(room);
 
-                IsOutfitted = true;
-                Debug.Log($"PartitionModel(Outfit): Outfitting success!");
-            }
-            else
+            Room = room;
+            Declare(this, Room);
+
+            IsOutfitted = true;
+            Success(this, "This Partition has been outfitted.");
+        }
+
+        private void ValidateOutfit(RoomModel room)
+        {
+            if (IsOutfitted)
             {
-                Debug.Log($"PartitionModel(Outfit): Outfitting failure!");
+                throw Failure(this, "This Partition is already outfitted.");
+            }
+            if (room == null)
+            {
+                throw Failure(this, "This Partition's Room cannot be null.");
+            }
+            if (!Bounds.Contains(room.Position))
+            {
+                throw Failure(this, "This Partition's Room cannot be outside of the bounds.");
             }
         }
 
         //----------------------------------------------------------------------------------
 
-        public void ConfigureSplit(SplitOrientation splitOrientation, int splitAxis)
-        {
-            SplitOrientation = splitOrientation;
-            Debug.Log($"PartitionModel(ConfigureSplit): `SplitOrientation` is set to {splitOrientation}.");
-            SplitAxis = splitAxis;
-            Debug.Log($"PartitionModel(ConfigureSplit): `SplitAxis` is set to {splitAxis}.");
-
-            Debug.Log($"PartitionModel(ConfigureSplit): Configuration success!");
-        }
-
-        public void ConfigureNode(NodeLevel nodeLevel, NodeExposure nodeExposure)
+        public void Configure(NodeLevel nodeLevel, NodeExposure nodeExposure)
         {
             NodeLevel = nodeLevel;
-            Debug.Log($"PartitionModel(ConfigureNode): `NodeLevel` is set to {nodeLevel}.");
+            Declare(this, NodeLevel);
             NodeExposure = nodeExposure;
-            Debug.Log($"PartitionModel(ConfigureNode): `NodeExposure` is set to {nodeExposure}.");
+            Declare(this, NodeExposure);
 
-            Debug.Log($"PartitionModel(ConfigureNode): Configuration success!");
+            Success(this, "This Partition has been configured.");
         }
 
-        public void Configure(SplitOrientation splitOrientation, int splitAxis, NodeLevel nodeLevel, NodeExposure nodeExposure)
-        {
-            ConfigureSplit(splitOrientation, splitAxis);
-            ConfigureNode(nodeLevel, nodeExposure);
-
-            Debug.Log($"PartitionModel(Configure): Configuration success!");
-        }
-
-        public void ConfigureRoot() => Configure(SplitOrientation.None, 0, NodeLevel.Root, NodeExposure.Root);
+        public void ConfigureRoot() => Configure(NodeLevel.Root, NodeExposure.Root);
 
         //----------------------------------------------------------------------------------
+
+        public (PartitionModel LeftChild, PartitionModel RightChild) Split()
+        {
+            // Make depth of children 1 more than the parent.
+            int childDepth = Depth + 1;
+            // Determine split orientation based on size.
+            SplitOrientation splitOrientation = DetermineSplitOrientation();
+            // Get split axis.
+            (int minAxis, int maxAxis) = GetSplitAxisRange(splitOrientation);
+            int splitAxis = URandom.Range(minAxis, maxAxis);
+            // Set bounds of children based on split orientation and axis.
+            (RectInt leftChildBounds, RectInt rightChildBounds) = CalculateChildrenBounds(splitOrientation, splitAxis);
+            
+            // Initialize children.
+            PartitionModel leftChild = new PartitionModel(leftChildBounds, childDepth);
+            PartitionModel rightChild = new PartitionModel(rightChildBounds, childDepth);
+
+            // Cache children.
+            Children = (leftChild, rightChild);
+
+            Success(this, "This Partition has been split into two children Partitions.");
+            return (leftChild, rightChild);
+        }
 
         private SplitOrientation DetermineSplitOrientation()
         {
-            SplitOrientation splitOrientation;
-
             if (Width > Height)
             {
-                splitOrientation = SplitOrientation.Vertical;
+                return SplitOrientation.Vertical;
             }
             else if (Width < Height)
             {
-                splitOrientation = SplitOrientation.Horizontal;
+                return SplitOrientation.Horizontal;
             }
             else
             {
-                splitOrientation = URandom.value < 0.5f ? SplitOrientation.Vertical : SplitOrientation.Horizontal;
+                return (URandom.value < 0.5f) ?
+                    SplitOrientation.Vertical : 
+                    SplitOrientation.Horizontal;
             }
-
-            return splitOrientation;
         }
 
-        private (int minAxis, int maxAxis) GetSplitAxisRange(SplitOrientation splitOrient)
+        private (int, int) GetSplitAxisRange(SplitOrientation splitOrientation)
         {
-            int minAxis, maxAxis;
-
-            switch (splitOrient)
+            if (splitOrientation == SplitOrientation.Vertical)
             {
-                case SplitOrientation.Vertical:
-                    minAxis = X + MIN_PARTITION_SIZE;
-                    maxAxis = X + Width - MIN_PARTITION_SIZE;
-                    break;
-                case SplitOrientation.Horizontal:
-                    minAxis = Y + MIN_PARTITION_SIZE;
-                    maxAxis = Y + Height - MIN_PARTITION_SIZE;
-                    break;
-                default:
-                    if (URandom.value < 0.5f)
-                    {
-                        minAxis = X + MIN_PARTITION_SIZE;
-                        maxAxis = X + Width - MIN_PARTITION_SIZE;
-                    }
-                    else
-                    {
-                        minAxis = Y + MIN_PARTITION_SIZE;
-                        maxAxis = Y + Height - MIN_PARTITION_SIZE;
-                    }
-                    break;
+                return (
+                    (X + MIN_PARTITION_SIZE),
+                    (X + Width - MIN_PARTITION_SIZE)
+                );
             }
-
-            if (minAxis >= maxAxis)
+            else if (splitOrientation == SplitOrientation.Horizontal)
             {
-                throw new InvalidOperationException($"PartitionModel(Split): Generated split range is inverted; `minAxis` ({minAxis}) is greater than or equal to `maxAxis` ({maxAxis}).");
+                return (
+                    (Y + MIN_PARTITION_SIZE),
+                    (Y + Height - MIN_PARTITION_SIZE)
+                );
             }
             else
             {
-                return (minAxis, maxAxis);
+                return URandom.value < 0.5f ? (
+                        (X + MIN_PARTITION_SIZE),
+                        (X + Width - MIN_PARTITION_SIZE)
+                    ) : (
+                        (Y + MIN_PARTITION_SIZE),
+                        (Y + Height - MIN_PARTITION_SIZE)
+                    );
             }
         }
 
-        private (RectInt bounds_childA, RectInt bounds_childB) CalculateChildBounds(SplitOrientation splitOrientation, int splitAxis)
+        private (RectInt, RectInt) CalculateChildrenBounds(SplitOrientation splitOrientation, int splitAxis)
         {
-            RectInt bounds_childA, bounds_childB;
-            switch (splitOrientation)
+            if (splitOrientation == SplitOrientation.Vertical)
             {
-                case SplitOrientation.Vertical:
-                    // Child A: left side
-                    int width_childA = splitAxis - X;
-                    bounds_childA = new RectInt(X, Y, width_childA, Height);
-
-                    // Child B: right side
-                    int width_childB = X + Width - splitAxis;
-                    bounds_childB = new RectInt(splitAxis, Y, width_childB, Height);
-
-                    break;
-                case SplitOrientation.Horizontal:
-                    // Child A: bottom side
-                    int height_childA = splitAxis - Y;
-                    bounds_childA = new RectInt(X, Y, Width, height_childA);
-
-                    // Child B: top side
-                    int height_childB = Y + Height - splitAxis;
-                    bounds_childB = new RectInt(X, splitAxis, Width, height_childB);
-
-                    break;
-                case SplitOrientation.None:
-                default:
-                    throw new InvalidOperationException($"PartitionModel(Split): `splitOrient` is set to {splitOrientation}.");
+                return (
+                    new RectInt(X, Y, (splitAxis - X), Height),
+                    new RectInt(splitAxis, Y, (X + Width - splitAxis), Height)
+                );
             }
-
-            if (bounds_childA.width <= 0 || bounds_childA.height <= 0 ||
-                bounds_childB.width <= 0 || bounds_childB.height <= 0)
+            else if (splitOrientation == SplitOrientation.Horizontal)
             {
-                throw new Exception("PartitionModel: Split produced an invalid child rectangle (size <= 0).");
+                return (
+                    new RectInt(X, Y, Width, (splitAxis - Y)),
+                    new RectInt(X, splitAxis, Width, (Y + Height - splitAxis))
+                );
             }
             else
             {
-                return (bounds_childA, bounds_childB);
+                if (URandom.value < 0.5f)
+                {
+                    return (
+                        new RectInt(X, Y, (splitAxis - X), Height),
+                        new RectInt(splitAxis, Y, (X + Width - splitAxis), Height)
+                    );
+                }
+                else
+                {
+                    return (
+                        new RectInt(X, Y, Width, (splitAxis - Y)),
+                        new RectInt(X, splitAxis, Width, (Y + Height - splitAxis))
+                    );
+                }
             }
-        }
-
-        public (PartitionModel childA, PartitionModel childB) Split()
-        {
-            // Guard
-            if (!CanBeSplit)
-            {
-                throw new InvalidOperationException($"PartitionModel(Split): Partition cannot be split; `Width` ({Width}) or `Height` ({Height}) is too small.");
-            }
-
-            // Local variables
-            // Note: Partitions are constructed by bounds, depth, and floor
-            // 1. Child A
-            PartitionModel childA;
-            RectInt bounds_childA;
-            // 2. Child B
-            PartitionModel childB;
-            RectInt bounds_childB;
-            // 3. Both children
-            int depth;
-            SplitOrientation splitOrient;
-            int minAxis, maxAxis, splitAxis;
-
-            // 1. Variable assignment
-            splitOrient = DetermineSplitOrientation();
-            (minAxis, maxAxis) = GetSplitAxisRange(splitOrient);
-            splitAxis = URandom.Range(minAxis, maxAxis);
-            (bounds_childA, bounds_childB) = CalculateChildBounds(splitOrient, splitAxis);
-            depth = Depth + 1;
-
-            // 2. Children assignment
-            childA = new PartitionModel(bounds_childA, depth, Floor);
-            childB = new PartitionModel(bounds_childB, depth, Floor);
-
-            // 3. Caching for future
-            ChildA = childA;
-            ChildB = childB;
-
-            Debug.Log($"PartitionModel(Split): This has been split into two children.");
-            return (childA, childB);
         }
 
         //----------------------------------------------------------------------------------
 
         public void Describe()
         {
-            // Code to describe this object's attributes in the console
+            // Describe the class object's attributes in the console.
         }
 
         public void Illustrate()
         {
-            // Code to illustrate in the console
+            // Illustrate the class object as a visual display in the console.
         }
     }
 }

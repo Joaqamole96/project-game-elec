@@ -1,35 +1,22 @@
 // ==================================================
 // Corridor Model
 // -----------
-// A data model of one single Corridor and its data.
-// A functional representation of an edge. A Corridor
-// connects two points on the map. Usually, the
-// points are on the Openings of a Room, but the
-// points can also be on other Corridors.
+// A data model of a Corridor.
+// A Corridor is a list of vector points, 2 tiles
+// wide or long, connecting one Opening of a Room to
+// another.
 // ==================================================
 
-using System;
 using System.Collections.Generic;
 using UnityEngine;
+using static Helpers.LogHelper;
 
 namespace FGA.Models
 {
-    public enum PathOrientation { XFirst, YFirst }
-    public enum PathShape { IShape, LShape, ZShape, YShape }
-    public enum EndType { Opening, CorridorPoint }
     public class CorridorModel
     {
-        #region Properties
-
         // Initialized Variables
-        public Vector2Int Start { get; private set; }
-        public Vector2Int End { get; private set; }
-
-        // Accessor Variables
-        public int StartX => Start.x;
-        public int StartY => Start.y;
-        public int EndX => End.x;
-        public int EndY => End.y;
+        public (Vector2Int Start, Vector2Int End) Openings { get; private set; }
 
         // Configured Variables
         public List<Vector2Int> Path { get; private set; }
@@ -37,65 +24,78 @@ namespace FGA.Models
         // State Flags
         public bool IsInitialized { get; private set; } = false;
 
-        #endregion
+        // Accessor Variables
+        public int StartX => Openings.Start.x;
+        public int StartY => Openings.Start.y;
+        public int EndX => Openings.End.x;
+        public int EndY => Openings.End.y;
 
         //----------------------------------------------------------------------------------
 
-        #region Initialization
-
-        public CorridorModel(Vector2Int start, Vector2Int end)
+        public CorridorModel((Vector2Int, Vector2Int) openings)
         {
-            ValidateInitialize();
-
-            Start = start;
-            End = end;
+            ValidateInitialize(openings);
+            
+            Openings = openings;
+            Declare(this, Openings);
 
             IsInitialized = true;
-            Debug.Log($"CorridorModel: Initialized (Start: ({StartX}, {StartY}), End: ({EndX}, {EndY})).");
+            Success(this, "This Corridor has been initialized.");
         }
 
-        public CorridorModel(int startX, int startY, int endX, int endY)
-            : this(new Vector2Int(startX, startY), new Vector2Int(endX, endY)) { }
+        public CorridorModel(Vector2Int openingA, Vector2Int openingB)
+            : this((openingA, openingB)) { }
 
-        private void ValidateInitialize()
+        private void ValidateInitialize((Vector2Int openingA, Vector2Int openingB) openings)
         {
             if (IsInitialized)
             {
-                throw new InvalidOperationException("CorridorModel: Cannot be re-initialized.");
+                throw Failure(this, "This Corridor is already initialized.");
+            }
+            if (openings.openingA == null || openings.openingB == null)
+            {
+                throw Failure(this, "This Corridor must not have null ends.");
+            }
+            if (openings.openingA == openings.openingB)
+            {
+                throw Failure(this, "This Corridor must have two separate ends.");
             }
         }
 
-        #endregion
-
         //----------------------------------------------------------------------------------
 
-        #region Path Generation
-
-        public void ConnectPointsByManhattan()
+        public void Configure(List<Vector2Int> path)
         {
+            ValidateConfigure(path);
+
+            Path = path;
+            Declare(this, Path);
             
+            Success(this, "This Corridor has been configured.");
         }
 
-        #endregion
+        private void ValidateConfigure(List<Vector2Int> path)
+        {
+            if (path == null)
+            {
+                throw Failure(this, "This Corridor cannot have a null path.");
+            }
+            if (path.Count < 2)
+            {
+                throw Failure(this, "This Corridor must have a path that is 2 or more tiles long.");
+            }
+        }
 
         //----------------------------------------------------------------------------------
-
-        #region Debug
 
         public void Describe()
         {
-            Debug.Log("CorridorModel: Describing this instance:\n" +
-                $"Start: ({StartX}, {StartY})\n" +
-                $"End: ({EndX}, {EndY})\n" +
-                $"Path ({Path.Count} tiles\n"
-            );
+            // Describe the class object's attributes in the console.
         }
 
         public void Illustrate()
         {
-            // Code to illustrate path shape in the console
+            // Illustrate the class object as a visual display in the console.
         }
-
-        #endregion
     }
 }

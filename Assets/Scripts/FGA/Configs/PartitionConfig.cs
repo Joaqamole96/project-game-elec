@@ -17,7 +17,6 @@ namespace FGA.Configs
 
     public enum SplitOrientation
     {
-        None,
         Horizontal,
         Vertical
     }

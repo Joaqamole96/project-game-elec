@@ -1,29 +1,21 @@
 // ==================================================
 // Tilemap Model
 // ---------------
-// A data model representing a single tilemap.
-// Represents a collection of pixels in a cell.
+// A data model representing a collection of pixels
+// in a cell.
 // ==================================================
 
-using UnityEngine;
 using System;
+using UnityEngine;
+using static Configs.FGA.TilemapConfig;
+using static Helpers.LogHelper;
 
 namespace FGA.Models
 {
-    public enum TileType
-    {
-        None,
-        Floor, Wall, Corridor, Door,
-        // Future Implementations
-        Hazard, Boost, Pillar
-    }
-    
     public class TilemapModel
     {
-        #region Properties
-
         // Initialized Variables
-        public TileType[,] TileMap { get; private set; }
+        public TileType[,] Tilemap { get; private set; }
         public Vector2Int Size { get; }
 
         // Accessor Variables
@@ -33,99 +25,88 @@ namespace FGA.Models
         // State Flags
         public bool IsInitialized { get; private set; } = false;
 
-        #endregion
-
         //----------------------------------------------------------------------------------
-
-        #region Initialization
 
         public TilemapModel(Vector2Int size)
         {
             ValidateInitialize(size);
-
+            
             Size = size;
-            TileMap = new TileType[Width, Height];
-            InitializeTileMap();
+            Declare(this, Size);
+            Tilemap = SetTilemap(size.x, size.y);
+            Declare(this, Tilemap);
 
             IsInitialized = true;
-            Debug.Log($"TilemapModel: Initialized ({Width}x{Height}).");
+            Success(this, "This Tilemap has been initialized.");
         }
 
         private void ValidateInitialize(Vector2Int size)
         {
-            if (size.x <= 0 || size.y <= 0)
+            if (IsInitialized)
             {
-                throw new ArgumentOutOfRangeException(nameof(size), $"TilemapModel: Size ({size}) must be positive.");
+                throw Failure(this, "This Tilemap is already initialized,");
+            }
+            if (size.x <= 0)
+            {
+                throw Failure(this, "This Tilemap's Width must be atleast 1.");
+            }
+            if (size.y <= 0)
+            {
+                throw Failure(this, "This Tilemap's Height must be atleast 1.");
             }
         }
 
-        private void InitializeTileMap()
+        private TileType[,] SetTilemap(int width, int height)
         {
-            // By default, initialize the entire map to Wall or None
-            // The Controller will then stamp the rooms/corridors over this.
-            for (int x = 0; x < Width; x++)
+            TileType[,] tileMap = new TileType[width, height];
+
+            for (int x = 0; x < width; x++)
             {
-                for (int y = 0; y < Height; y++)
+                for (int y = 0; y < height; y++)
                 {
-                    TileMap[x, y] = TileType.Wall;
+                    tileMap[x, y] = TileType.Wall;
                 }
             }
-        }
 
-        #endregion
+            return tileMap;
+        }
 
         //----------------------------------------------------------------------------------
 
-        #region Configuration
-
-        // The Controller will use this to "stamp" the final tile map.
         public void SetTile(TileType type, int x, int y)
         {
             if (x < 0 || x >= Width || y < 0 || y >= Height)
             {
-                // This is generally a design error, throw or warn based on preference
-                Debug.LogError($"TilemapModel: Attempted to set tile outside of bounds ({x}, {y}).");
-                return;
+                throw Failure(this, "The Tile cannot be placed outside of the bounds.");
             }
-            TileMap[x, y] = type;
+            Tilemap[x, y] = type;
         }
 
         public void SetTile(TileType type, Vector2Int position)
             => SetTile(type, position.x, position.y);
 
-        #endregion
-
-        //----------------------------------------------------------------------------------
-
-        #region Accessor
-
         public TileType GetTile(int x, int y)
         {
             if (x < 0 || x >= Width || y < 0 || y >= Height)
             {
-                return TileType.Wall; // Treat areas outside the map as walls
+                return TileType.Wall;
             }
-            return TileMap[x, y];
+            return Tilemap[x, y];
         }
 
-        #endregion
+        public void GetTile(Vector2Int position)
+            => GetTile(position.x, position.y);
 
         //----------------------------------------------------------------------------------
 
-        #region Debug
-
         public void Describe()
         {
-            Debug.Log("TilemapModel: Describing this instance:\n" +
-                $"Size: {Size}"
-            );
+            // Describe the class object's attributes in the console.
         }
 
         public void Illustrate()
         {
-            // Code to illustrate in the console
+            // Illustrate the class object as a visual display in the console.
         }
-
-        #endregion
     }
 }

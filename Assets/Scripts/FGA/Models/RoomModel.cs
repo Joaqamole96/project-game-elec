@@ -1,34 +1,30 @@
 // ==================================================
 // Room Model
 // -----------
-// A data model representing a single room.
-// Represents a node within a floor or partition.
+// A data model representing a Room.
 // ==================================================
 
 using UnityEngine;
-using System;
 using System.Collections.Generic;
+using static FGA.Configs.RoomConfig;
+using static Helpers.LogHelper;
 
 namespace FGA.Models
 {
-    public enum RoomType
-    {
-        // Endpoints
-        Entrance, Exit,
-        // Throughpoints
-        Boss, Survival, Pursuit, Puzzle,
-        // Standard
-        Combat, Treasure, Shop,
-        // Base
-        Empty
-    }
-
     public class RoomModel
     {
-        #region Properties
-
         // Initialized Variables
         public RectInt Bounds { get; }
+        public RoomType Type { get; private set; }
+
+        // Configured Variables
+        public static Dictionary<RoomFace, RectInt> Openings { get; private set; }
+        
+        // State Flags
+        public bool IsInitialized { get; private set; } = false;
+        public bool IsOutfitted { get; private set; } = false;
+
+        // Accessor Variables
         public Vector2Int Position => Bounds.position;
         public int X => Bounds.x;
         public int Y => Bounds.y;
@@ -37,29 +33,19 @@ namespace FGA.Models
         public int Height => Bounds.height;
         public Vector2Int Center => Vector2Int.RoundToInt(Bounds.center);
 
-        // Configured Variables
-        public RoomType Type { get; private set; } = RoomType.Empty;
-
-        // Outfitted Variables
-        public List<Vector2Int> Openings { get; private set; }
-        // State Flags
-        public bool IsInitialized { get; private set; } = false;
-        public bool IsOutfitted { get; private set; } = false;
-
-        #endregion
-
         //----------------------------------------------------------------------------------
-
-        #region Initialization
 
         public RoomModel(RectInt bounds, RoomType type)
         {
             ValidateInitialize(bounds, type);
+            
             Bounds = bounds;
+            Declare(this, Bounds);
             Type = type;
+            Declare(this, Type);
 
-            IsInitialized = true;
-            Debug.Log($"RoomModel: Initialized (Bounds: {Bounds}, Type: {Type}).");
+            IsInitialized = true; 
+            Success(this, "This Room has been initialized.");
         }
 
         public RoomModel(Vector2Int position, Vector2Int size, RoomType type)
@@ -72,48 +58,58 @@ namespace FGA.Models
         {
             if (IsInitialized)
             {
-                throw new InvalidOperationException("RoomModel: Cannot be re-initialized.");
+                throw Failure(this, "This Room is already initialized.");
             }
-            if (bounds.width <= 0 || bounds.height <= 0)
+            if (bounds.width < MIN_ROOM_SIZE)
             {
-                throw new ArgumentOutOfRangeException(nameof(bounds), $"RoomModel: Declared area ({bounds.width}x{bounds.height}) is too small.");
+                throw Failure(this, $"This Room's Width must be at least {MIN_ROOM_SIZE}.");
+            }
+            if (bounds.height < MIN_ROOM_SIZE)
+            {
+                throw Failure(this, $"This Room's Height must be at least {MIN_ROOM_SIZE}.");
             }
         }
 
-        #endregion
-
         //----------------------------------------------------------------------------------
 
-        #region Outfitting
-
-        public void AddOpening(Vector2Int point)
+        public void Configure(Dictionary<RoomFace, RectInt> openings)
         {
-            if (Openings == null)
-            {
-                Openings = new List<Vector2Int>();
-            }
-            Openings.Add(point);
-        }
+            Openings = openings;
+            // Use SetOpenings() and change params in the future
+            Declare(this, Openings);
 
-        #endregion
+            Success(this, "This Room has been configured.");
+        }
 
         //----------------------------------------------------------------------------------
 
-        #region Debug
+        public void SetOpenings(List<RoomFace> roomFaces)
+        {
+            // foreach (RoomFace roomFace in roomFaces)
+            // {
+            //     if (roomFace == RoomFace.North)
+            //     {
+            //         Vector2Int northOpeningPosition = new Vector2Int(X + Mathf.FloorToInt(Width / 2), Y + Height);
+            //         Vector2Int northOpeningSize = new Vector2Int(Width % 2 + 1);
+            //     }
+            // }
+
+            // Process:
+            // Foreach room face, create a 2x1 or 1x2 RectInt Opening.
+            // - For north/south, place Opening anywhere between x+1 to x+width-1
+            // - For west/east, place Opening anywhere between y+1 to y+height-1
+        }
+
+        //----------------------------------------------------------------------------------
 
         public void Describe()
         {
-            Debug.Log("RoomModel: Describing this instance:\n" +
-                $"Bounds: {Bounds}\n" +
-                $"Type: {Type}"
-            );
+            // Describe the class object's attributes in the console.
         }
 
         public void Illustrate()
         {
-            // Code to illustrate in the console
+            // Illustrate the class object as a visual display in the console.
         }
-
-        #endregion
     }
 }
