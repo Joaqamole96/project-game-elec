@@ -1,216 +1,163 @@
-// FloorGenerator_v3.cs // Corridor Door Upgrade (Random Door Placement)
-// Minimal BSP Floor Generator — Commit A
-// - Asymmetric random insets for rooms (version B)
-// - Global corridor list for visualization
-// - Keeps geometry aligned to partition grid (Option 2)
+// FloorGenerator_v4.cs
+// Phase 3 — Door-to-door corridors, wall-accurate endpoints, subtle split randomness, door gizmos (brown)
 
 using UnityEngine;
 using System.Collections.Generic;
 
 public class FloorGenerator : MonoBehaviour
 {
-    [Header("Floor Settings")]
-    public int width = 50;
-    public int height = 50;
-    [Tooltip("Partitions smaller than this won't split.")]
-    public int minPartitionSize = 10;
+    [Header("Floor Settings")] public int width = 50, height = 50;
+    [Tooltip("Partitions smaller than this won't split.")] public int minPartitionSize = 12;
 
-    [Header("Room Insets (cells)")]
-    public int minInset = 1; // minimum inset on any side
-    public int maxInset = 3; // maximum inset on any side
+    [Header("Room Insets")] public int minInset = 1, maxInset = 3;
 
-    private Partition root;
-    private List<Partition> leafPartitions = new List<Partition>();
-    private List<Room> rooms = new List<Room>();
-    private List<Corridor> corridors = new List<Corridor>();
+    Partition root;
+    List<Partition> leaves = new();
+    List<Room> rooms = new();
+    List<Corridor> corridors = new();
+    List<Vector2Int> doors = new();
 
-    void Start()
+    void Start() => Generate();
+    [ContextMenu("Generate")] void Generate()
     {
-        Generate();
-    }
-
-    [ContextMenu("Generate")]
-    public void Generate()
-    {
-        // clear old
-        leafPartitions.Clear();
-        rooms.Clear();
-        corridors.Clear();
-
+        leaves.Clear(); rooms.Clear(); corridors.Clear(); doors.Clear();
         root = new Partition(new RectInt(0, 0, width, height));
-        SplitPartition(root);
+        Split(root);
         CreateRooms();
-        ConnectRooms(root);
+        Connect(root);
     }
 
-    void SplitPartition(Partition p)
+    void Split(Partition p)
     {
-        // If partition is already too small, make it a leaf
         if (p.rect.width <= minPartitionSize || p.rect.height <= minPartitionSize)
-        {
-            leafPartitions.Add(p);
-            return;
-        }
+        { leaves.Add(p); return; }
 
-        bool splitVert = p.rect.width > p.rect.height;
+        bool vert = p.rect.width > p.rect.height;
+        float ratio = Random.Range(.45f, .55f);
 
-        if (splitVert)
+        if (vert)
         {
-            int split = p.rect.width / 2; // fixed 50/50 for this commit
-            p.left = new Partition(new RectInt(p.rect.x, p.rect.y, split, p.rect.height));
-            p.right = new Partition(new RectInt(p.rect.x + split, p.rect.y, p.rect.width - split, p.rect.height));
+            int split = Mathf.RoundToInt(p.rect.width * ratio);
+            p.left = new(new RectInt(p.rect.x, p.rect.y, split, p.rect.height));
+            p.right = new(new RectInt(p.rect.x + split, p.rect.y, p.rect.width - split, p.rect.height));
         }
         else
         {
-            int split = p.rect.height / 2;
-            p.left = new Partition(new RectInt(p.rect.x, p.rect.y, p.rect.width, split));
-            p.right = new Partition(new RectInt(p.rect.x, p.rect.y + split, p.rect.width, p.rect.height - split));
+            int split = Mathf.RoundToInt(p.rect.height * ratio);
+            p.left = new(new RectInt(p.rect.x, p.rect.y, p.rect.width, split));
+            p.right = new(new RectInt(p.rect.x, p.rect.y + split, p.rect.width, p.rect.height - split));
         }
 
-        SplitPartition(p.left);
-        SplitPartition(p.right);
+        Split(p.left); Split(p.right);
     }
 
+    // TODO: Phase 3.5 room drift will be added here
     void CreateRooms()
     {
-        foreach (Partition p in leafPartitions)
+        foreach (var p in leaves)
         {
-            // choose asymmetric insets per side (version B)
-            int leftInset = Random.Range(minInset, maxInset + 1);
-            int rightInset = Random.Range(minInset, maxInset + 1);
-            int bottomInset = Random.Range(minInset, maxInset + 1);
-            int topInset = Random.Range(minInset, maxInset + 1);
-
-            // compute room bounds clamped to ensure valid size
-            int rx = p.rect.x + leftInset;
-            int ry = p.rect.y + bottomInset;
-            int rWidth = p.rect.width - (leftInset + rightInset);
-            int rHeight = p.rect.height - (bottomInset + topInset);
-
-            // safety: ensure rooms are at least 1x1
-            rWidth = Mathf.Max(rWidth, 1);
-            rHeight = Mathf.Max(rHeight, 1);
-
-            // if insets were too large, shift the room to fit within partition
-            if (rx + rWidth > p.rect.x + p.rect.width)
-            {
-                rx = p.rect.x + p.rect.width - rWidth;
-            }
-            if (ry + rHeight > p.rect.y + p.rect.height)
-            {
-                ry = p.rect.y + p.rect.height - rHeight;
-            }
-
-            RectInt r = new RectInt(rx, ry, rWidth, rHeight);
-
-            Room room = new Room(r);
-            p.room = room;
-            rooms.Add(room);
+            int l = Random.Range(minInset, maxInset + 1), r = Random.Range(minInset, maxInset + 1);
+            int b = Random.Range(minInset, maxInset + 1), t = Random.Range(minInset, maxInset + 1);
+            RectInt rr = new(
+                p.rect.x + l,
+                p.rect.y + b,
+                Mathf.Max(1, p.rect.width - (l + r)),
+                Mathf.Max(1, p.rect.height - (b + t))
+            );
+            var room = new Room(rr); p.room = room; rooms.Add(room);
         }
     }
 
-    void ConnectRooms(Partition p)
+    void Connect(Partition p)
     {
-        if (p == null) return;
+        if (p?.left == null || p.right == null) return;
 
-        // if both children exist and each subtree has a room, connect them
-        if (p.left != null && p.right != null)
+        var A = FindRoom(p.left); var B = FindRoom(p.right);
+        if (A != null && B != null) MakeCorridor(A, B);
+
+        Connect(p.left); Connect(p.right);
+    }
+
+    void MakeCorridor(Room a, Room b)
+    {
+        var ar = a.rect; var br = b.rect;
+        Vector2Int dA, dB;
+
+        if (ar.xMax <= br.xMin && OverlapRange(ar.yMin, ar.yMax, br.yMin, br.yMax, out int y))
         {
-            Room leftRoom = FindRoomInSubtree(p.left);
-            Room rightRoom = FindRoomInSubtree(p.right);
-
-            if (leftRoom != null && rightRoom != null)
-            {
-                corridors.Add(new Corridor(leftRoom, rightRoom));
-            }
+            dA = new(ar.xMax - 1, y); dB = new(br.xMin, y);
+        }
+        else if (br.xMax <= ar.xMin && OverlapRange(ar.yMin, ar.yMax, br.yMin, br.yMax, out int y2))
+        {
+            dA = new(ar.xMin, y2); dB = new(br.xMax - 1, y2);
+        }
+        else if (ar.yMax <= br.yMin && OverlapRange(ar.xMin, ar.xMax, br.xMin, br.xMax, out int x))
+        {
+            dA = new(x, ar.yMax - 1); dB = new(x, br.yMin);
+        }
+        else if (br.yMax <= ar.yMin && OverlapRange(ar.xMin, ar.xMax, br.xMin, br.xMax, out int x2))
+        {
+            dA = new(x2, ar.yMin); dB = new(x2, br.yMax - 1);
+        }
+        else
+        {
+            dA = Vector2Int.RoundToInt(ar.center); dB = Vector2Int.RoundToInt(br.center);
         }
 
-        ConnectRooms(p.left);
-        ConnectRooms(p.right);
+        doors.Add(dA); doors.Add(dB);
+        corridors.Add(new Corridor(Path(dA, dB)));
     }
 
-    // find a room within a subtree: prefer leaf's own room, otherwise search children
-    Room FindRoomInSubtree(Partition p)
+    bool OverlapRange(int aMin, int aMax, int bMin, int bMax, out int v)
     {
-        if (p == null) return null;
-        if (p.room != null) return p.room;
-        Room r = FindRoomInSubtree(p.left);
-        if (r != null) return r;
-        return FindRoomInSubtree(p.right);
+        int min = Mathf.Max(aMin, bMin), max = Mathf.Min(aMax - 1, bMax - 1);
+        v = (max < min) ? (aMin + aMax) / 2 : Random.Range(min, max + 1);
+        return true;
     }
+
+    List<Vector2Int> Path(Vector2Int a, Vector2Int b)
+    {
+        List<Vector2Int> p = new(); bool first = Random.value > .5f;
+        if (first)
+        {
+            for (int x = a.x; x != b.x; x += (int)Mathf.Sign(b.x - a.x)) p.Add(new(x, a.y));
+            for (int y = a.y; y != b.y; y += (int)Mathf.Sign(b.y - a.y)) p.Add(new(b.x, y));
+        }
+        else
+        {
+            for (int y = a.y; y != b.y; y += (int)Mathf.Sign(b.y - a.y)) p.Add(new(a.x, y));
+            for (int x = a.x; x != b.x; x += (int)Mathf.Sign(b.x - a.x)) p.Add(new(x, b.y));
+        }
+        p.Add(b);
+        return p;
+    }
+
+    Room FindRoom(Partition p) => p?.room ?? FindRoom(p.left) ?? FindRoom(p.right);
 
     void OnDrawGizmos()
     {
         if (root == null) return;
+        Gizmos.color = new(1, 1, 1, .05f); DrawBounds(root);
 
-        // draw partition bounds faintly for debugging
-        Gizmos.color = new Color(1f, 1f, 1f, 0.1f);
-        DrawPartitionBounds(root);
-
-        // rooms
         Gizmos.color = Color.green;
-        foreach (Room room in rooms)
-        {
-            Vector3 center = new Vector3(room.rect.center.x, 0, room.rect.center.y);
-            Vector3 size = new Vector3(room.rect.width, 0, room.rect.height);
-            Gizmos.DrawWireCube(center, size);
-        }
+        foreach (var r in rooms) Gizmos.DrawWireCube(new(r.rect.center.x, 0, r.rect.center.y), new(r.rect.width, .01f, r.rect.height));
 
-        // corridors (center-to-center LATER we'll make door-to-door)
         Gizmos.color = Color.white;
         foreach (var c in corridors)
-        {
-            Vector3 a = new Vector3(c.a.rect.center.x, 0, c.a.rect.center.y);
-            Vector3 b = new Vector3(c.b.rect.center.x, 0, c.b.rect.center.y);
-            Gizmos.DrawLine(a, b);
-        }
+            foreach (var t in c.tiles) Gizmos.DrawCube(new(t.x + .5f, 0, t.y + .5f), new(.9f, .05f, .9f));
+
+        Gizmos.color = new Color(.4f, .2f, 0); // brown doors
+        foreach (var d in doors) Gizmos.DrawCube(new(d.x + .5f, 0, d.y + .5f), new(.7f, .1f, .7f));
     }
 
-    void DrawPartitionBounds(Partition p)
+    void DrawBounds(Partition p)
     {
-        if (p == null) return;
-        Vector3 center = new Vector3(p.rect.center.x, 0, p.rect.center.y);
-        Vector3 size = new Vector3(p.rect.width, 0, p.rect.height);
-        Gizmos.DrawWireCube(center, size);
-
-        DrawPartitionBounds(p.left);
-        DrawPartitionBounds(p.right);
+        Gizmos.DrawWireCube(new(p.rect.center.x, 0, p.rect.center.y), new(p.rect.width, .01f, p.rect.height));
+        if (p.left != null) DrawBounds(p.left);
+        if (p.right != null) DrawBounds(p.right);
     }
 }
 
-[System.Serializable]
-public class Partition
-{
-    public RectInt rect;
-    public Partition left, right;
-    public Room room;
-
-    public Partition(RectInt rect)
-    {
-        this.rect = rect;
-    }
-}
-
-[System.Serializable]
-public class Room
-{
-    public RectInt rect;
-
-    public Room(RectInt rect)
-    {
-        this.rect = rect;
-    }
-}
-
-[System.Serializable]
-public struct Corridor
-{
-    public Room a;
-    public Room b;
-
-    public Corridor(Room a, Room b)
-    {
-        this.a = a;
-        this.b = b;
-    }
-}
+public class Partition { public RectInt rect; public Partition left, right; public Room room; public Partition(RectInt r) => rect = r; }
+public class Room { public RectInt rect; public Room(RectInt r) => rect = r; }
+public class Corridor { public List<Vector2Int> tiles; public Corridor(List<Vector2Int> t) => tiles = t; }
