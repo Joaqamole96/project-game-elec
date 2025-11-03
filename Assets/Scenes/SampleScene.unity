@@ -131,7 +131,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 104313363}
-  - component: {fileID: 104313365}
   - component: {fileID: 104313364}
   m_Layer: 0
   m_Name: FloorGenerator
@@ -164,29 +163,14 @@ MonoBehaviour:
   m_GameObject: {fileID: 104313362}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 62b671e8787c1ce4db21b4c5290996bb, type: 3}
+  m_Script: {fileID: 11500000, guid: 2895fe1d78c1a734c88eb72dcdfa77e2, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  floorSize: 70
-  maxDepth: 5
-  seed: 0
-  floorView: {fileID: 104313365}
---- !u!114 &104313365
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 104313362}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fbeefce776ff69a4685247f07b5fa739, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  displayMode: 1
-  WallTilePrefab: {fileID: 0}
-  FloorTilePrefab: {fileID: 0}
-  TileParent: {fileID: 0}
+  width: 50
+  height: 50
+  minPartitionSize: 20
+  minInset: 1
+  maxInset: 3
 --- !u!1 &705507993
 GameObject:
   m_ObjectHideFlags: 0
