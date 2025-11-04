@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 using System.Text;
+using System.Linq;
 
 // Single-file floor generator — cleaned & consolidated version.
 // Features: BSP rooms, adjacency-first straight corridors, guarded fallbacks, corridor validation, MST pruning, gizmo debug.
@@ -28,8 +29,33 @@ public class FloorGenerator : MonoBehaviour
     private List<Vector2Int> doors = new List<Vector2Int>();
     private List<Vector2Int> intersections = new List<Vector2Int>();
 
+    // ----- Tiles ----- //
+
     // occupancy grid (true = walkable)
     private bool[,] walkable;
+    private HashSet<Vector2Int> floorTiles = new HashSet<Vector2Int>();
+    private HashSet<Vector2Int> wallTiles = new HashSet<Vector2Int>();
+    private Dictionary<Vector2Int, WallTile> allWallTiles = new Dictionary<Vector2Int, WallTile>();
+
+    // ----- Prefab ------ //
+
+    // Assign these in Inspector manually
+    public GameObject FloorTilePrefab;
+    public GameObject WallTilePrefab;
+
+    // Parents (empty GameObjects in scene)
+    public Transform FloorParent;
+    public Transform WallParent;
+
+    // Render rotation fix
+    // // Force floors flat (assuming prefab pivot at center)
+    private static readonly Quaternion FloorRotation = Quaternion.Euler(90f, 0f, 0f);
+    // Walls stay upright, but we rotate around Y to face neighbors
+    private static readonly Quaternion WallRotationNorth = Quaternion.Euler(0f, 0f, 0f);
+    private static readonly Quaternion WallRotationEast  = Quaternion.Euler(0f, 90f, 0f);
+    private static readonly Quaternion WallRotationSouth = Quaternion.Euler(0f, 180f, 0f);
+    private static readonly Quaternion WallRotationWest  = Quaternion.Euler(0f, 270f, 0f);
+
 
     // ----- Unity lifecycle -----
     void Start() => Generate();
@@ -37,6 +63,8 @@ public class FloorGenerator : MonoBehaviour
     [ContextMenu("Generate")]
     public void Generate()
     {
+        ClearVisuals();
+
         Random.InitState(Seed);
 
         // reset
@@ -45,17 +73,24 @@ public class FloorGenerator : MonoBehaviour
         corridors.Clear();
         doors.Clear();
         intersections.Clear();
+        floorTiles.Clear();
+        wallTiles.Clear();
+
         root = new Partition(new RectInt(0, 0, Width, Height));
 
         // BSP -> rooms
         Split(root);
         CreateRooms();
 
+        BuildEnhancedWalls();
+
         // Build occupancy grid (rooms are obstacles)
         BuildWalkableGrid();
 
         // Spatial neighbor graph among leaves
         BuildNeighbors();
+
+        MarkRoomInteriors();
 
         // ADJACENCY-FIRST: build adjacency MST and create straight-edge corridors along shared boundaries
         BuildAdjacencyCorridors();
@@ -75,6 +110,13 @@ public class FloorGenerator : MonoBehaviour
         // finalise corridors on the walkable grid
         ApplyCorridorsToGrid();
 
+        BuildFloorsAndWalls();
+
+        BuildEnhancedWalls();
+
+        RenderFloor(walkable, Width, Height);
+        RenderWalls(walkable, Width, Height);
+
         // debug summary
         DebugRoomGraph();
 
@@ -84,7 +126,10 @@ public class FloorGenerator : MonoBehaviour
     // ------------------- BSP split & room creation -------------------
     private void Split(Partition p)
     {
-        if (p.rect.width <= minPartitionSize || p.rect.height <= minPartitionSize)
+        int minRoomSize = (MinInset * 2) + 3;
+
+        if (p.rect.width <= minPartitionSize || p.rect.height <= minPartitionSize ||
+            p.rect.width < minRoomSize || p.rect.height < minRoomSize)
         {
             leaves.Add(p);
             return;
@@ -134,30 +179,72 @@ public class FloorGenerator : MonoBehaviour
         }
     }
 
+    private void MarkRoomInteriors()
+    {
+        foreach (var leaf in leaves)
+        {
+            if (leaf.room == null) continue;
+
+            var r = leaf.room.rect;
+            for (int x = r.xMin; x < r.xMax; x++)
+            {
+                for (int y = r.yMin; y < r.yMax; y++)
+                {
+                    walkable[x, y] = true;
+                }
+            }
+        }
+    }
+
     // ------------------- Build spatial neighbor graph of leaf partitions -------------------
     private void BuildNeighbors()
     {
         if (leaves == null || leaves.Count == 0) return;
 
+        // Reset neighbors
         foreach (var p in leaves)
+            p.neighbors?.Clear();
+
+        // Spatial partitioning for O(n) neighbor detection
+        var xBuckets = new Dictionary<int, List<Partition>>();
+        var yBuckets = new Dictionary<int, List<Partition>>();
+
+        foreach (var leaf in leaves)
         {
-            if (p.neighbors == null) p.neighbors = new List<Partition>();
-            else p.neighbors.Clear();
+            // Index by right edge for horizontal neighbors
+            if (!xBuckets.ContainsKey(leaf.rect.xMax)) xBuckets[leaf.rect.xMax] = new List<Partition>();
+            xBuckets[leaf.rect.xMax].Add(leaf);
+            
+            // Index by bottom edge for vertical neighbors  
+            if (!yBuckets.ContainsKey(leaf.rect.yMax)) yBuckets[leaf.rect.yMax] = new List<Partition>();
+            yBuckets[leaf.rect.yMax].Add(leaf);
         }
 
-        for (int i = 0; i < leaves.Count; i++)
+        foreach (var leaf in leaves)
         {
-            var a = leaves[i];
-            if (a == null) continue;
-            for (int j = i + 1; j < leaves.Count; j++)
+            // Check horizontal neighbors
+            if (xBuckets.TryGetValue(leaf.rect.xMin, out var horizontalNeighbors))
             {
-                var b = leaves[j];
-                if (b == null) continue;
-
-                if (AreNeighbors(a.rect, b.rect))
+                foreach (var neighbor in horizontalNeighbors)
                 {
-                    a.neighbors.Add(b);
-                    b.neighbors.Add(a);
+                    if (AreNeighbors(leaf.rect, neighbor.rect))
+                    {
+                        leaf.neighbors.Add(neighbor);
+                        neighbor.neighbors.Add(leaf);
+                    }
+                }
+            }
+
+            // Check vertical neighbors
+            if (yBuckets.TryGetValue(leaf.rect.yMin, out var verticalNeighbors))
+            {
+                foreach (var neighbor in verticalNeighbors)
+                {
+                    if (AreNeighbors(leaf.rect, neighbor.rect))
+                    {
+                        leaf.neighbors.Add(neighbor);
+                        neighbor.neighbors.Add(leaf);
+                    }
                 }
             }
         }
@@ -431,19 +518,19 @@ public class FloorGenerator : MonoBehaviour
     {
         walkable = new bool[Width, Height];
 
-        // default all walkable
+        // FIXED: Default all to NOT walkable (false)
         for (int x = 0; x < Width; x++)
             for (int y = 0; y < Height; y++)
-                walkable[x, y] = true;
+                walkable[x, y] = false; // Changed from true
 
-        // mark room interior as blocked (not walkable)
+        // Mark room interior as walkable (true)
         foreach (var r in rooms)
         {
             for (int x = r.rect.xMin; x < r.rect.xMax; x++)
                 for (int y = r.rect.yMin; y < r.rect.yMax; y++)
                 {
                     if (InBounds(x, y))
-                        walkable[x, y] = false;
+                        walkable[x, y] = true; // Rooms are walkable
                 }
         }
     }
@@ -687,10 +774,15 @@ public class FloorGenerator : MonoBehaviour
         if (corridors == null || corridors.Count == 0) return;
 
         var kept = new List<Corridor>();
+        var prunedCount = 0;
 
         foreach (var c in corridors)
         {
-            if (c == null || c.tiles == null || c.tiles.Count == 0) continue;
+            if (c == null || c.tiles == null || c.tiles.Count == 0) 
+            {
+                prunedCount++;
+                continue;
+            }
 
             Vector2Int a = c.tiles[0];
             Vector2Int b = c.tiles[c.tiles.Count - 1];
@@ -698,21 +790,20 @@ public class FloorGenerator : MonoBehaviour
             Room roomA = RoomTouchedByEndpoint(a);
             Room roomB = RoomTouchedByEndpoint(b);
 
-            if (roomA != null && roomB != null && !ReferenceEquals(roomA, roomB))
+            if (roomA != null && roomB != null && roomA != roomB)
             {
-                // record room refs for future graph operations
                 c.roomA = roomA;
                 c.roomB = roomB;
                 kept.Add(c);
             }
             else
             {
-                // optional: uncomment to debug pruned corridors
-                // Debug.Log($"Pruned corridor endpoints {a}→{b} touched {roomA?.id.ToString() ?? "null"} & {roomB?.id.ToString() ?? "null"}");
+                prunedCount++;
             }
         }
 
         corridors = kept;
+        Debug.Log($"Pruned {prunedCount} invalid corridors");
     }
 
     // returns the Room that the given corridor endpoint tile is adjacent to (tile is outside room rect)
@@ -844,30 +935,6 @@ public class FloorGenerator : MonoBehaviour
         return true;
     }
 
-    List<Vector2Int> Path(Vector2Int a, Vector2Int b)
-    {
-        List<Vector2Int> p = new List<Vector2Int>();
-        bool first = Random.value > .5f;
-
-        if (first)
-        {
-            for (int x = a.x; x != b.x; x += (int)Mathf.Sign(b.x - a.x))
-                p.Add(new Vector2Int(x, a.y));
-            for (int y = a.y; y != b.y; y += (int)Mathf.Sign(b.y - a.y))
-                p.Add(new Vector2Int(b.x, y));
-        }
-        else
-        {
-            for (int y = a.y; y != b.y; y += (int)Mathf.Sign(b.y - a.y))
-                p.Add(new Vector2Int(a.x, y));
-            for (int x = a.x; x != b.x; x += (int)Mathf.Sign(b.x - a.x))
-                p.Add(new Vector2Int(x, b.y));
-        }
-
-        p.Add(b);
-        return p;
-    }
-
     private Vector2Int EnsureDoorIsOutsideAndInBounds(Vector2Int door, Room room)
     {
         door.x = Mathf.Clamp(door.x, 0, Width - 1);
@@ -966,6 +1033,46 @@ public class FloorGenerator : MonoBehaviour
         }
     }
 
+    private void BuildFloorsAndWalls()
+    {
+        floorTiles.Clear();
+        wallTiles.Clear();
+
+        // Room floors
+        foreach (var l in leaves)
+        {
+            if (l.room == null) continue;
+            var rr = l.room.rect;
+            for (int x = rr.xMin; x < rr.xMax; x++)
+            for (int y = rr.yMin; y < rr.yMax; y++)
+                floorTiles.Add(new Vector2Int(x, y));
+        }
+
+        // Corridor floors
+        foreach (var c in corridors)
+        {
+            if (c == null || c.tiles == null) continue;
+            foreach (var t in c.tiles)
+                floorTiles.Add(t);
+        }
+
+        // Walls: any non-floor tile directly touching a floor tile
+        Vector2Int[] dirs = {
+            new Vector2Int(1, 0), new Vector2Int(-1, 0),
+            new Vector2Int(0, 1), new Vector2Int(0, -1)
+        };
+
+        foreach (var f in floorTiles)
+        {
+            foreach (var d in dirs)
+            {
+                var n = f + d;
+                if (!floorTiles.Contains(n))
+                    wallTiles.Add(n);
+            }
+        }
+    }
+
     // ------------------- Debug / Graph print -------------------
     private void DebugRoomGraph()
     {
@@ -1002,6 +1109,236 @@ public class FloorGenerator : MonoBehaviour
                 return true;
         }
         return false;
+    }
+
+    // --------- Tile Rendering --------- //
+
+    bool IsWalkable(int x, int y)
+    {
+        if (x < 0 || x >= Width || y < 0 || y >= Height)
+            return false;
+        return walkable[x, y];
+    }
+
+    void RenderFloor(bool[,] walkable, int width, int height)
+    {
+        for (int x = 0; x < width; x++)
+        for (int y = 0; y < height; y++)
+        {
+            if (!walkable[x, y]) continue;
+
+            Vector3 pos = new Vector3(x + 0.5f, 0f, y + 0.5f);
+            Instantiate(FloorTilePrefab, pos, FloorRotation, FloorParent);
+        }
+    }
+    
+    void RenderWalls(bool[,] walkable, int width, int height)
+    {
+        for (int x = 0; x < width; x++)
+        for (int y = 0; y < height; y++)
+        {
+            if (!walkable[x, y]) continue;
+
+            Vector3 basePos = new Vector3(x + 0.5f, 0f, y + 0.5f);
+
+            TryPlaceWall(x, y + 1, basePos + new Vector3(0f, 0.5f, 0.5f), WallRotationNorth); // north
+            TryPlaceWall(x + 1, y, basePos + new Vector3(0.5f, 0.5f, 0f), WallRotationEast); // east
+            TryPlaceWall(x, y - 1, basePos + new Vector3(0f, 0.5f, -0.5f), WallRotationSouth); // south
+            TryPlaceWall(x - 1, y, basePos + new Vector3(-0.5f, 0.5f, 0f), WallRotationWest); // west
+        }
+    }
+
+    void TryPlaceWall(int x, int y, Vector3 pos, Quaternion rot)
+    {
+        if (!IsWalkable(x, y))
+            Instantiate(WallTilePrefab, pos, rot, WallParent);
+    }
+
+    // Remove previously spawned visual tiles (floors + walls) before re-rendering
+    void ClearVisuals()
+    {
+        if (FloorParent != null)
+        {
+            for (int i = FloorParent.childCount - 1; i >= 0; i--)
+                DestroyImmediate(FloorParent.GetChild(i).gameObject);
+        }
+
+        if (WallParent != null)
+        {
+            for (int i = WallParent.childCount - 1; i >= 0; i--)
+                DestroyImmediate(WallParent.GetChild(i).gameObject);
+        }
+    }
+    
+    private void BuildEnhancedWalls()
+    {
+        allWallTiles.Clear();
+        wallTiles.Clear();
+        
+        // First pass: collect all room walls
+        foreach (var room in rooms)
+        {
+            foreach (var wall in room.wallTiles)
+            {
+                allWallTiles[wall.position] = wall;
+            }
+        }
+        
+        // Second pass: resolve conflicts and create interior walls
+        ResolveWallConflicts();
+        
+        // Third pass: convert some walls to doorways
+        CreateDoorways();
+        
+        // Final pass: build visual wall set
+        foreach (var wall in allWallTiles.Values)
+        {
+            if (wall.type != WallType.Doorway)
+                wallTiles.Add(wall.position);
+        }
+    }
+    
+    private void ResolveWallConflicts()
+    {
+        var wallsToRemove = new List<Vector2Int>();
+        var wallsToConvert = new List<WallTile>();
+        
+        foreach (var kvp in allWallTiles)
+        {
+            var pos = kvp.Key;
+            var wall = kvp.Value;
+            
+            // Check if this wall position is shared with another room
+            foreach (var otherRoom in rooms)
+            {
+                if (otherRoom == wall.room) continue;
+                
+                if (otherRoom.wallTiles.Any(w => w.position == pos))
+                {
+                    // Shared wall position - mark as interior
+                    wall.type = WallType.Interior;
+                    wallsToConvert.Add(wall);
+                }
+            }
+            
+            // Remove walls that are inside corridors
+            if (IsPositionInCorridor(pos))
+            {
+                wallsToRemove.Add(pos);
+            }
+        }
+        
+        // Apply changes
+        foreach (var pos in wallsToRemove)
+            allWallTiles.Remove(pos);
+            
+        foreach (var wall in wallsToConvert)
+            allWallTiles[wall.position] = wall;
+    }
+    
+    private void CreateDoorways()
+    {
+        foreach (var corridor in corridors)
+        {
+            if (corridor.tiles == null || corridor.tiles.Count < 2) continue;
+            
+            // Find door positions at corridor endpoints
+            var start = corridor.tiles[0];
+            var end = corridor.tiles[corridor.tiles.Count - 1];
+            
+            ConvertToDoorway(start);
+            ConvertToDoorway(end);
+        }
+    }
+    
+    private void ConvertToDoorway(Vector2Int doorPos)
+    {
+        if (allWallTiles.ContainsKey(doorPos))
+        {
+            var wall = allWallTiles[doorPos];
+            wall.type = WallType.Doorway;
+            allWallTiles[doorPos] = wall;
+            
+            // Also mark in the room
+            if (wall.room != null)
+                wall.room.doorways.Add(doorPos);
+        }
+    }
+
+    private bool IsPositionInCorridor(Vector2Int pos)
+    {
+        foreach (var corridor in corridors)
+        {
+            if (corridor.tiles != null && corridor.tiles.Contains(pos))
+                return true;
+        }
+        return false;
+    }
+    
+    private void RenderEnhancedWalls()
+    {
+        foreach (var wall in allWallTiles.Values)
+        {
+            if (wall.type == WallType.Doorway) continue; // Skip doors for wall rendering
+            
+            Vector3 worldPos = new Vector3(wall.position.x + 0.5f, 0f, wall.position.y + 0.5f);
+            Quaternion rotation = GetWallRotation(wall.type);
+            Vector3 positionOffset = GetWallPositionOffset(wall.type);
+            
+            var wallObj = Instantiate(WallTilePrefab, worldPos + positionOffset, rotation, WallParent);
+            
+            // Optional: Apply different materials based on wall type
+            ApplyWallMaterial(wallObj, wall.type);
+        }
+    }
+
+    private Quaternion GetWallRotation(WallType type)
+    {
+        switch (type)
+        {
+            case WallType.North: return WallRotationNorth;
+            case WallType.South: return WallRotationSouth;
+            case WallType.East: return WallRotationEast;
+            case WallType.West: return WallRotationWest;
+            case WallType.NorthEastCorner: return Quaternion.Euler(0f, 45f, 0f);
+            case WallType.NorthWestCorner: return Quaternion.Euler(0f, 315f, 0f);
+            case WallType.SouthEastCorner: return Quaternion.Euler(0f, 135f, 0f);
+            case WallType.SouthWestCorner: return Quaternion.Euler(0f, 225f, 0f);
+            case WallType.Interior: return WallRotationNorth; // Default
+            default: return Quaternion.identity;
+        }
+    }
+
+    private Vector3 GetWallPositionOffset(WallType type)
+    {
+        // Fine-tune positioning for different wall types
+        switch (type)
+        {
+            case WallType.North: return new Vector3(0f, 0.5f, 0.5f);
+            case WallType.South: return new Vector3(0f, 0.5f, -0.5f);
+            case WallType.East: return new Vector3(0.5f, 0.5f, 0f);
+            case WallType.West: return new Vector3(-0.5f, 0.5f, 0f);
+            default: return new Vector3(0f, 0.5f, 0f);
+        }
+    }
+
+    private void ApplyWallMaterial(GameObject wallObj, WallType type)
+    {
+        var renderer = wallObj.GetComponent<Renderer>();
+        if (renderer != null)
+        {
+            // You could assign different materials based on wall type
+            switch (type)
+            {
+                case WallType.Interior:
+                    // renderer.material = InteriorWallMaterial;
+                    break;
+                case WallType.Doorway:
+                    // renderer.material = DoorwayMaterial;
+                    break;
+                // etc.
+            }
+        }
     }
 
     // ------------------- Gizmos / debug drawing -------------------
@@ -1043,6 +1380,14 @@ public class FloorGenerator : MonoBehaviour
         Gizmos.color = Color.yellow;
         foreach (var it in intersections)
             Gizmos.DrawCube(new Vector3(it.x + .5f, 0.03f, it.y + .5f), new Vector3(.5f, .12f, .5f));
+
+        // Floor tiles (green)
+        foreach (var f in floorTiles)
+            Gizmos.DrawCube(new Vector3(f.x + .5f, f.y + .5f), Vector3.one * 0.9f);
+
+        // Wall tiles (red)
+        foreach (var w in wallTiles)
+            Gizmos.DrawCube(new Vector3(w.x + .5f, w.y + .5f), Vector3.one);
     }
 
     void DrawBounds(Partition p)
@@ -1073,11 +1418,81 @@ public class Partition
     }
 }
 
+public enum WallType
+{
+    North, South, East, West,
+    NorthEastCorner, NorthWestCorner, 
+    SouthEastCorner, SouthWestCorner,
+    Interior, // Walls between connected rooms
+    Doorway
+}
+
+public class WallTile
+{
+    public Vector2Int position;
+    public WallType type;
+    public Room room; // Which room this wall belongs to
+    public bool isDoorCandidate; // Could become a door
+    
+    public WallTile(Vector2Int pos, WallType wallType, Room owner)
+    {
+        position = pos;
+        type = wallType;
+        room = owner;
+    }
+}
+
 public class Room
 {
     public RectInt rect;
     public int id;
-    public Room(RectInt r, int id) { rect = r; this.id = id; }
+    
+    // Explicit wall storage
+    public HashSet<Vector2Int> floorTiles = new HashSet<Vector2Int>();
+    public List<WallTile> wallTiles = new List<WallTile>();
+    public List<Vector2Int> doorways = new List<Vector2Int>();
+    
+    public Room(RectInt r, int id) 
+    { 
+        rect = r; 
+        this.id = id;
+        GenerateWalls();
+    }
+    
+    private void GenerateWalls()
+    {
+        wallTiles.Clear();
+        floorTiles.Clear();
+        doorways.Clear();
+        
+        // Generate floor tiles (inset from walls)
+        for (int x = rect.xMin + 1; x < rect.xMax - 1; x++)
+        for (int y = rect.yMin + 1; y < rect.yMax - 1; y++)
+            floorTiles.Add(new Vector2Int(x, y));
+        
+        // Generate wall perimeter
+        // North wall
+        for (int x = rect.xMin; x < rect.xMax; x++)
+            wallTiles.Add(new WallTile(new Vector2Int(x, rect.yMax - 1), WallType.North, this));
+        
+        // South wall  
+        for (int x = rect.xMin; x < rect.xMax; x++)
+            wallTiles.Add(new WallTile(new Vector2Int(x, rect.yMin), WallType.South, this));
+        
+        // East wall
+        for (int y = rect.yMin; y < rect.yMax; y++)
+            wallTiles.Add(new WallTile(new Vector2Int(rect.xMax - 1, y), WallType.East, this));
+        
+        // West wall
+        for (int y = rect.yMin; y < rect.yMax; y++)
+            wallTiles.Add(new WallTile(new Vector2Int(rect.xMin, y), WallType.West, this));
+        
+        // Corners
+        wallTiles.Add(new WallTile(new Vector2Int(rect.xMin, rect.yMax - 1), WallType.NorthWestCorner, this));
+        wallTiles.Add(new WallTile(new Vector2Int(rect.xMax - 1, rect.yMax - 1), WallType.NorthEastCorner, this));
+        wallTiles.Add(new WallTile(new Vector2Int(rect.xMin, rect.yMin), WallType.SouthWestCorner, this));
+        wallTiles.Add(new WallTile(new Vector2Int(rect.xMax - 1, rect.yMin), WallType.SouthEastCorner, this));
+    }
 }
 
 public class Corridor
