@@ -1,14 +1,19 @@
 using UnityEngine;
 using System.Collections.Generic;
+using Dungeon.Models;
 
-// FloorGenerator: adjacency-first corridors (based on your working "snaking" version)
+// FloorGenerator: adjacency-first Corridors (based on your working "snaking" version)
 public class FloorGenerator : MonoBehaviour
 {
+    // ----- //
     [Header("Floor Settings")]
     public int Width = 100;
     public int Height = 100;
     public int Seed = 0;
-    [Tooltip("Partitions smaller than this won't split.")] public int minPartitionSize = 20;
+
+    [Header("Partition Settings")]
+    [Tooltip("Partitions smaller than this won't split.")] public int MinPartSize = 20;
+    public Vector2 SplitRange = new(0.4f, 0.6f);
 
     [Header("Room Insets")]
     public int MinInset = 1;
@@ -16,118 +21,148 @@ public class FloorGenerator : MonoBehaviour
 
     [Header("MST / Graph")]
     [Tooltip("Extra random connections in addition to MST")]
-    public int extraConnections = 3;
+    public int ExtraConnections = 3;
 
     // Core data
-    private Partition root;
-    private List<Partition> leaves = new();
-    private List<Room> rooms = new();
-    private List<Corridor> corridors = new();
-    private List<Vector2Int> doors = new();
+    private PartitionModel RootPart;
+    private List<PartitionModel> LeafParts = new();
+    private List<Room> Rooms = new();
+    private List<Corridor> Corridors = new();
+    private List<Vector2Int> Doors = new();
 
     // Occupancy grid (true = walkable)
-    private bool[,] walkable;
+    private bool[,] WalkableGrid;
 
     void Start() => Generate();
 
+    /// <summary>
+    /// Generates a complete floor.
+    /// </summary>
     [ContextMenu("Generate")]
     public void Generate()
     {
+        // Initialize random seed.
         Random.InitState(Seed);
-
-        // reset
-        leaves.Clear(); rooms.Clear(); corridors.Clear(); doors.Clear();
-        root = new Partition(new RectInt(0, 0, Width, Height));
-
-        // BSP -> rooms (same as Failsafe)
-        Split(root);
+        // Clear all prior leaf partitions, rooms, corridors, and doors.
+        LeafParts.Clear();
+        Rooms.Clear();
+        Corridors.Clear();
+        Doors.Clear();
+        // Initialize blank root part
+        RootPart = new(new(0, 0, Width, Height));
+        // BSP -> Rooms (same as Failsafe)
+        Split(RootPart);
         CreateRooms();
-
-        // Build occupancy grid (rooms are obstacles)
+        // Build occupancy grid (Rooms are obstacles)
         BuildWalkableGrid();
-
-        // Spatial neighbor graph among leaves
+        // Spatial neighbor graph among LeafParts
         BuildNeighbors();
-
-        // ADJACENCY-FIRST: build adjacency MST and create straight-edge corridors along shared boundaries
+        // ADJACENCY-FIRST: build adjacency MST and create straight-edge Corridors along shared boundaries
         BuildAdjacencyCorridors();
-
         // If adjacency couldn't fully connect (rare), fall back to MST over neighbors using BFS connectors
         ConnectNeighborsMST_Fallback();
-
-        Debug.Log($"Generate complete: leaves={leaves.Count} rooms={rooms.Count} corridors={corridors.Count}");
+        Debug.Log($"FloorGenerator(Generate): Generation complete. LeafParts={LeafParts.Count}, Rooms={Rooms.Count}, Corridors={Corridors.Count}");
     }
 
     // ------------------- BSP (unchanged logic) -------------------
-    private void Split(Partition p)
+    /// <summary>
+    /// Splits a partition into two halves.
+    /// </summary>
+    /// <param name="part">The partition to be split.</param>
+    private void Split(PartitionModel part)
     {
-        if (p.rect.width <= minPartitionSize || p.rect.height <= minPartitionSize)
+        if (part.Width <= MinPartSize || part.Height <= MinPartSize)
         {
-            leaves.Add(p);
+            LeafParts.Add(part); 
             return;
         }
 
-        bool vert = (p.rect.width > p.rect.height);
-        float ratio = Random.Range(.45f, .55f);
+        bool isVert = (part.Width > part.Height);
+        float ratio = Random.Range(SplitRange.x, SplitRange.y);
 
-        if (vert)
+        if (isVert)
         {
-            int split = Mathf.RoundToInt(p.rect.width * ratio);
-            p.left = new(new RectInt(p.rect.x, p.rect.y, split, p.rect.height));
-            p.right = new(new RectInt(p.rect.x + split, p.rect.y, p.rect.width - split, p.rect.height));
+            int split = Mathf.RoundToInt(part.Width * ratio);
+            part.LeftHalf = new(new(
+                part.X,
+                part.Y,
+                split,
+                part.Height
+            ));
+            part.RightHalf = new(new(
+                part.X + split,
+                part.Y,
+                part.Width - split,
+                part.Height
+            ));
         }
         else
         {
-            int split = Mathf.RoundToInt(p.rect.height * ratio);
-            p.left = new(new RectInt(p.rect.x, p.rect.y, p.rect.width, split));
-            p.right = new(new RectInt(p.rect.x, p.rect.y + split, p.rect.width, p.rect.height - split));
+            int split = Mathf.RoundToInt(part.Height * ratio);
+            part.LeftHalf = new(new(
+                part.X,
+                part.Y,
+                part.Width,
+                split
+            ));
+            part.RightHalf = new(new(
+                part.X,
+                part.Y + split,
+                part.Width,
+                part.Height - split
+            ));
         }
 
-        Split(p.left); Split(p.right);
+        Split(part.LeftHalf); 
+        Split(part.RightHalf);
     }
 
+    /// <summary>
+    /// Creates one Room inside each partition in LeafParts.
+    /// </summary>
     private void CreateRooms()
     {
-        rooms.Clear();
-        foreach (var p in leaves)
+        Rooms.Clear();
+        foreach (PartitionModel part in LeafParts)
         {
-            int l = Random.Range(MinInset, MaxInset + 1);
-            int r = Random.Range(MinInset, MaxInset + 1);
-            int b = Random.Range(MinInset, MaxInset + 1);
-            int t = Random.Range(MinInset, MaxInset + 1);
+            int leftPad = Random.Range(MinInset, MaxInset + 1);
+            int rightPad = Random.Range(MinInset, MaxInset + 1);
+            int bottomPad = Random.Range(MinInset, MaxInset + 1);
+            int topPad = Random.Range(MinInset, MaxInset + 1);
 
-            RectInt rr = new RectInt(
-                p.rect.x + l,
-                p.rect.y + b,
-                Mathf.Max(1, p.rect.width - (l + r)),
-                Mathf.Max(1, p.rect.height - (b + t))
+            RectInt bounds = new RectInt(
+                part.X + leftPad,
+                part.Y + bottomPad,
+                Mathf.Max(1, part.Width - (leftPad + rightPad)),
+                Mathf.Max(1, part.Height - (bottomPad + topPad))
             );
 
-            var room = new Room(rr);
-            p.room = room;
-            rooms.Add(room);
+            Room room = new(bounds);
+            part.Room = room;
+            Rooms.Add(room);
         }
     }
 
     // ------------------- Spatial neighbor graph -------------------
     private void BuildNeighbors()
     {
-        if (leaves == null || leaves.Count == 0) return;
+        if (LeafParts == null || LeafParts.Count == 0) return;
 
         // init/clear neighbor lists
-        foreach (var p in leaves)
+        foreach (var part in LeafParts)
         {
-            if (p.neighbors == null) p.neighbors = new List<Partition>();
-            else p.neighbors.Clear();
+            if (part.Neighbors == null) 
+                part.Neighbors = new List<PartitionModel>();
+            else part.Neighbors.Clear();
         }
 
-        for (int i = 0; i < leaves.Count; i++)
+        for (int i = 0; i < LeafParts.Count; i++)
         {
-            var a = leaves[i];
+            var a = LeafParts[i];
             if (a == null) continue;
-            for (int j = i + 1; j < leaves.Count; j++)
+            for (int j = i + 1; j < LeafParts.Count; j++)
             {
-                var b = leaves[j];
+                var b = LeafParts[j];
                 if (b == null) continue;
 
                 if (AreNeighbors(a.rect, b.rect))
@@ -154,10 +189,10 @@ public class FloorGenerator : MonoBehaviour
     private void BuildAdjacencyCorridors()
     {
         // collect unique neighbor pairs
-        var pairs = new List<(Partition, Partition)>();
-        var seen = new HashSet<(Partition, Partition)>();
+        var pairs = new List<(PartitionModel, PartitionModel)>();
+        var seen = new HashSet<(PartitionModel, PartitionModel)>();
 
-        foreach (var a in leaves)
+        foreach (var a in LeafParts)
         {
             if (a == null || a.neighbors == null) continue;
             foreach (var b in a.neighbors)
@@ -171,23 +206,23 @@ public class FloorGenerator : MonoBehaviour
             }
         }
 
-        // Build a simple weighted graph (nodes = leaves). We'll run Prim's MST below using distances.
+        // Build a simple weighted graph (nodes = LeafParts). We'll run Prim's MST below using distances.
         // Create adjacency lookup for quick neighbor access
-        var adjacency = new Dictionary<Partition, List<Partition>>();
-        foreach (var l in leaves) adjacency[l] = new List<Partition>(l.neighbors ?? new List<Partition>());
+        var adjacency = new Dictionary<PartitionModel, List<PartitionModel>>();
+        foreach (var l in LeafParts) adjacency[l] = new List<PartitionModel>(l.neighbors ?? new List<PartitionModel>());
 
         // Prim-like MST
-        var connected = new HashSet<Partition>();
-        List<(Partition A, Partition B)> mstEdges = new List<(Partition A, Partition B)>();
-        if (leaves.Count > 0)
+        var connected = new HashSet<PartitionModel>();
+        List<(PartitionModel A, PartitionModel B)> mstEdges = new List<(PartitionModel A, PartitionModel B)>();
+        if (LeafParts.Count > 0)
         {
-            Partition start = leaves[0];
+            PartitionModel start = LeafParts[0];
             connected.Add(start);
 
-            while (connected.Count < leaves.Count)
+            while (connected.Count < LeafParts.Count)
             {
                 float best = float.MaxValue;
-                Partition bestA = null, bestB = null;
+                PartitionModel bestA = null, bestB = null;
 
                 foreach (var a in connected)
                 {
@@ -211,7 +246,7 @@ public class FloorGenerator : MonoBehaviour
             }
         }
 
-        // Commit MST edges as direct boundary corridors
+        // Commit MST edges as direct boundary Corridors
         var createdEdges = new HashSet<string>(); // simple string key to avoid dups
         foreach (var e in mstEdges)
         {
@@ -220,7 +255,7 @@ public class FloorGenerator : MonoBehaviour
 
         // Add some extra adjacency edges (loops) for flavor
         int added = 0, tries = 0;
-        while (added < extraConnections && tries < pairs.Count * 3)
+        while (added < ExtraConnections && tries < pairs.Count * 3)
         {
             tries++;
             var pick = pairs[Random.Range(0, pairs.Count)];
@@ -232,8 +267,8 @@ public class FloorGenerator : MonoBehaviour
         }
     }
 
-    // build a canonical string key for a partition pair
-    private string MakeEdgeKey(Partition a, Partition b)
+    // build a canonical string key for a part pair
+    private string MakeEdgeKey(PartitionModel a, PartitionModel b)
     {
         // Use instance ids (hashcodes) sorted to canonicalize
         int h1 = a.GetHashCode(), h2 = b.GetHashCode();
@@ -243,7 +278,7 @@ public class FloorGenerator : MonoBehaviour
 
     // Create a corridor along the exact shared boundary between two touching partitions.
     // If there's no clean shared boundary or door placement fails, returns false.
-    private bool CreateBoundaryCorridor(Partition A, Partition B, HashSet<string> createdEdges)
+    private bool CreateBoundaryCorridor(PartitionModel A, PartitionModel B, HashSet<string> createdEdges)
     {
         if (A == null || B == null) return false;
         if (A.room == null || B.room == null) return false;
@@ -269,7 +304,7 @@ public class FloorGenerator : MonoBehaviour
             int spanMaxY = Mathf.Min(A.rect.yMax - 1, B.rect.yMax - 1);
             if (spanMinY > spanMaxY) return false;
 
-            // Prefer Y overlap of the rooms; fallback to A.room center clamped
+            // Prefer Y overlap of the Rooms; fallback to A.room center clamped
             int roomOverlapMinY = Mathf.Max(A.room.rect.yMin, B.room.rect.yMin);
             int roomOverlapMaxY = Mathf.Min(A.room.rect.yMax - 1, B.room.rect.yMax - 1);
 
@@ -314,7 +349,7 @@ public class FloorGenerator : MonoBehaviour
             return false;
         }
 
-        // Ensure doors are in bounds and not inside some other room; if they are, nudge them outward
+        // Ensure Doors are in bounds and not inside some other room; if they are, nudge them outward
         doorA = EnsureDoorIsOutsideAndInBounds(doorA, A.room);
         doorB = EnsureDoorIsOutsideAndInBounds(doorB, B.room);
 
@@ -359,26 +394,26 @@ public class FloorGenerator : MonoBehaviour
             var fallback = GuardedLPath(doorA, doorB, A.room, B.room);
             if (fallback != null && fallback.Count > 0)
             {
-                // Snap doors to nearest corridor tiles to guarantee doors are corridor tiles
+                // Snap Doors to nearest corridor tiles to guarantee Doors are corridor tiles
                 var snappedA = SnapDoorToNearestTile(doorA, fallback);
                 var snappedB = SnapDoorToNearestTile(doorB, fallback);
 
-                doors.Add(snappedA);
-                doors.Add(snappedB);
-                corridors.Add(new Corridor(fallback));
+                Doors.Add(snappedA);
+                Doors.Add(snappedB);
+                Corridors.Add(new Corridor(fallback));
                 createdEdges.Add(key);
                 return true;
             }
             return false;
         }
 
-        // Ensure doors land on corridor tiles; if not, snap them to the nearest corridor tile
+        // Ensure Doors land on corridor tiles; if not, snap them to the nearest corridor tile
         var finalDoorA = tiles.Contains(doorA) ? doorA : SnapDoorToNearestTile(doorA, tiles);
         var finalDoorB = tiles.Contains(doorB) ? doorB : SnapDoorToNearestTile(doorB, tiles);
 
-        doors.Add(finalDoorA);
-        doors.Add(finalDoorB);
-        corridors.Add(new Corridor(tiles));
+        Doors.Add(finalDoorA);
+        Doors.Add(finalDoorB);
+        Corridors.Add(new Corridor(tiles));
         createdEdges.Add(key);
         return true;
     }
@@ -386,7 +421,7 @@ public class FloorGenerator : MonoBehaviour
     // returns true if any existing corridor already contains that tile
     private bool CorridorTileExists(Vector2Int t)
     {
-        foreach (var c in corridors)
+        foreach (var c in Corridors)
         {
             if (c?.tiles == null) continue;
             foreach (var q in c.tiles) if (q == t) return true;
@@ -397,25 +432,25 @@ public class FloorGenerator : MonoBehaviour
     // ------------------- Grid & BFS pathfinding (kept as fallback) -------------------
     private void BuildWalkableGrid()
     {
-        walkable = new bool[Width, Height];
+        WalkableGrid = new bool[Width, Height];
 
         // default all walkable
         for (int x = 0; x < Width; x++)
             for (int y = 0; y < Height; y++)
-                walkable[x, y] = true;
+                WalkableGrid[x, y] = true;
 
         // mark room interior as blocked (not walkable)
-        foreach (var r in rooms)
+        foreach (var r in Rooms)
         {
             for (int x = r.rect.xMin; x < r.rect.xMax; x++)
                 for (int y = r.rect.yMin; y < r.rect.yMax; y++)
                 {
                     if (InBounds(x, y))
-                        walkable[x, y] = false;
+                        WalkableGrid[x, y] = false;
                 }
         }
 
-        // allow corridors to be walkable if desired (they will be added later)
+        // allow Corridors to be walkable if desired (they will be added later)
     }
 
     private bool InBounds(int x, int y)
@@ -446,11 +481,11 @@ public class FloorGenerator : MonoBehaviour
             if (cur == goal)
             {
                 // reconstruct
-                Vector2Int p = cur;
-                while (p.x != -1)
+                Vector2Int position = cur;
+                while (position.x != -1)
                 {
-                    path.Add(p);
-                    p = parent[p.x, p.y];
+                    path.Add(position);
+                    position = parent[position.x, position.y];
                 }
                 path.Reverse();
                 return path;
@@ -463,8 +498,8 @@ public class FloorGenerator : MonoBehaviour
                 if (!InBounds(nx, ny)) continue;
                 if (visited[nx, ny]) continue;
 
-                // allow stepping into blocked only if it's the goal (so endpoints inside rooms ok)
-                if (!walkable[nx, ny] && !(nx == goal.x && ny == goal.y)) continue;
+                // allow stepping into blocked only if it's the goal (so endpoints inside Rooms ok)
+                if (!WalkableGrid[nx, ny] && !(nx == goal.x && ny == goal.y)) continue;
 
                 visited[nx, ny] = true;
                 parent[nx, ny] = cur;
@@ -477,14 +512,14 @@ public class FloorGenerator : MonoBehaviour
     }
 
     // ------------------- Door selection & safe connection (fallback) -------------------
-    // Connect two rooms by selecting perimeter-adjacent door positions and running BFS
+    // Connect two Rooms by selecting perimeter-adjacent door positions and running BFS
     private void SafeConnectRooms(Room a, Room b)
     {
         // compute candidate outside-perimeter points for A and B
         Vector2Int doorA = ComputeExteriorDoorPoint(a.rect, b.rect);
         Vector2Int doorB = ComputeExteriorDoorPoint(b.rect, a.rect);
 
-        // if chosen points end up inside other rooms or out of bounds, nudge along shared boundary or fallback later
+        // if chosen points end up inside other Rooms or out of bounds, nudge along shared boundary or fallback later
         if (!InBounds(doorA.x, doorA.y) || !InBounds(doorB.x, doorB.y))
         {
             // fallback to center-based L-shape (will be guarded later)
@@ -492,18 +527,18 @@ public class FloorGenerator : MonoBehaviour
             return;
         }
 
-        // attempt BFS avoiding rooms
+        // attempt BFS avoiding Rooms
         var path = FindPathBFS(doorA, doorB);
 
         if (path != null && path.Count > 0)
         {
-            // commit doors & corridor
-            doors.Add(doorA); doors.Add(doorB);
-            corridors.Add(new Corridor(path));
+            // commit Doors & corridor
+            Doors.Add(doorA); Doors.Add(doorB);
+            Corridors.Add(new Corridor(path));
         }
         else
         {
-            // fallback: try a guarded L-path that refuses to place tiles inside rooms
+            // fallback: try a guarded L-path that refuses to place tiles inside Rooms
             AddFallbackCorridor(a, b);
         }
     }
@@ -581,7 +616,7 @@ public class FloorGenerator : MonoBehaviour
     // Check whether pt is inside any room (optionally ignoring a room 'ignoreFrom' which is allowed)
     private bool IsPointInsideAnyRoom(Vector2Int pt, RectInt? allowInsideRoom)
     {
-        foreach (var r in rooms)
+        foreach (var r in Rooms)
         {
             if (allowInsideRoom.HasValue && r.rect.Equals(allowInsideRoom.Value)) continue;
             if (r.rect.Contains(pt)) return true;
@@ -592,7 +627,7 @@ public class FloorGenerator : MonoBehaviour
     // overload: ignore a specific RectInt room
     private bool IsPointInsideAnyRoom(Vector2Int pt, RectInt allowToIgnore)
     {
-        foreach (var r in rooms)
+        foreach (var r in Rooms)
         {
             if (r.rect.Equals(allowToIgnore)) continue;
             if (r.rect.Contains(pt)) return true;
@@ -602,7 +637,7 @@ public class FloorGenerator : MonoBehaviour
 
     private bool IsPointInsideAnyRoom(Vector2Int pt, Room ignoreRoom)
     {
-        foreach (var r in rooms)
+        foreach (var r in Rooms)
         {
             if (ignoreRoom != null && r == ignoreRoom) continue;
             if (r.rect.Contains(pt)) return true;
@@ -610,7 +645,7 @@ public class FloorGenerator : MonoBehaviour
         return false;
     }
 
-    // If adjacency can't create tiles, do a guarded L-path: skip tiles that would lie inside rooms.
+    // If adjacency can't create tiles, do a guarded L-path: skip tiles that would lie inside Rooms.
     private void AddFallbackCorridor(Room a, Room b)
     {
         var ar = a.rect;
@@ -638,18 +673,18 @@ public class FloorGenerator : MonoBehaviour
             dA = Vector2Int.RoundToInt(ar.center); dB = Vector2Int.RoundToInt(br.center);
         }
 
-        // create guarded path from dA to dB (no tile inside rooms)
-        var p = GuardedLPath(dA, dB, a, b);
-        if (p != null && p.Count > 0)
+        // create guarded path from dA to dB (no tile inside Rooms)
+        var path = GuardedLPath(dA, dB, a, b);
+        if (path != null && path.Count > 0)
         {
-            doors.Add(dA); doors.Add(dB);
-            corridors.Add(new Corridor(p));
+            Doors.Add(dA); Doors.Add(dB);
+            Corridors.Add(new Corridor(path));
         }
     }
 
     private List<Vector2Int> GuardedLPath(Vector2Int a, Vector2Int b, Room A, Room B)
     {
-        var p = new List<Vector2Int>();
+        var path = new List<Vector2Int>();
         bool first = Random.value > .5f;
 
         if (first)
@@ -657,13 +692,13 @@ public class FloorGenerator : MonoBehaviour
             for (int x = a.x; x != b.x; x += (int)Mathf.Sign(b.x - a.x))
             {
                 var t = new Vector2Int(x, a.y);
-                if (!IsPointInsideAnyRoom(t, A) && !IsPointInsideAnyRoom(t, B)) p.Add(t);
+                if (!IsPointInsideAnyRoom(t, A) && !IsPointInsideAnyRoom(t, B)) path.Add(t);
             }
 
             for (int y = a.y; y != b.y; y += (int)Mathf.Sign(b.y - a.y))
             {
                 var t = new Vector2Int(b.x, y);
-                if (!IsPointInsideAnyRoom(t, A) && !IsPointInsideAnyRoom(t, B)) p.Add(t);
+                if (!IsPointInsideAnyRoom(t, A) && !IsPointInsideAnyRoom(t, B)) path.Add(t);
             }
         }
         else
@@ -671,36 +706,36 @@ public class FloorGenerator : MonoBehaviour
             for (int y = a.y; y != b.y; y += (int)Mathf.Sign(b.y - a.y))
             {
                 var t = new Vector2Int(a.x, y);
-                if (!IsPointInsideAnyRoom(t, A) && !IsPointInsideAnyRoom(t, B)) p.Add(t);
+                if (!IsPointInsideAnyRoom(t, A) && !IsPointInsideAnyRoom(t, B)) path.Add(t);
             }
 
             for (int x = a.x; x != b.x; x += (int)Mathf.Sign(b.x - a.x))
             {
                 var t = new Vector2Int(x, b.y);
-                if (!IsPointInsideAnyRoom(t, A) && !IsPointInsideAnyRoom(t, B)) p.Add(t);
+                if (!IsPointInsideAnyRoom(t, A) && !IsPointInsideAnyRoom(t, B)) path.Add(t);
             }
         }
 
-        p.Add(b);
-        return p;
+        path.Add(b);
+        return path;
     }
 
     // ------------------- MST over neighbors fallback (if adjacency didn't fully connect) -------------------
-    // This runs SafeConnectRooms for any remaining disconnected leaves.
+    // This runs SafeConnectRooms for any remaining disconnected LeafParts.
     private void ConnectNeighborsMST_Fallback()
     {
-        if (leaves == null || leaves.Count == 0) return;
+        if (LeafParts == null || LeafParts.Count == 0) return;
 
         // Build adjacency MST like before but ensure every node is connected using SafeConnectRooms (BFS fallback)
-        HashSet<Partition> visited = new HashSet<Partition>();
-        Partition start = leaves[Random.Range(0, leaves.Count)];
+        HashSet<PartitionModel> visited = new HashSet<PartitionModel>();
+        PartitionModel start = LeafParts[Random.Range(0, LeafParts.Count)];
         visited.Add(start);
 
-        while (visited.Count < leaves.Count)
+        while (visited.Count < LeafParts.Count)
         {
             float best = float.MaxValue;
-            Partition bestA = null;
-            Partition bestB = null;
+            PartitionModel bestA = null;
+            PartitionModel bestB = null;
 
             foreach (var v in visited)
             {
@@ -748,32 +783,32 @@ public class FloorGenerator : MonoBehaviour
     List<Vector2Int> Path(Vector2Int a, Vector2Int b)
     {
         // Preserve the old L-path generator for fallback/compatibility
-        List<Vector2Int> p = new List<Vector2Int>();
+        List<Vector2Int> path = new List<Vector2Int>();
         bool first = Random.value > .5f;
 
         if (first)
         {
             for (int x = a.x; x != b.x; x += (int)Mathf.Sign(b.x - a.x))
-                p.Add(new Vector2Int(x, a.y));
+                path.Add(new Vector2Int(x, a.y));
 
             for (int y = a.y; y != b.y; y += (int)Mathf.Sign(b.y - a.y))
-                p.Add(new Vector2Int(b.x, y));
+                path.Add(new Vector2Int(b.x, y));
         }
         else
         {
             for (int y = a.y; y != b.y; y += (int)Mathf.Sign(b.y - a.y))
-                p.Add(new Vector2Int(a.x, y));
+                path.Add(new Vector2Int(a.x, y));
 
             for (int x = a.x; x != b.x; x += (int)Mathf.Sign(b.x - a.x))
-                p.Add(new Vector2Int(x, b.y));
+                path.Add(new Vector2Int(x, b.y));
         }
 
-        p.Add(b);
-        return p;
+        path.Add(b);
+        return path;
     }
 
-    Room FindRoom(Partition p)
-        => p?.room ?? FindRoom(p.left) ?? FindRoom(p.right);
+    Room FindRoom(PartitionModel part)
+        => part?.room ?? FindRoom(part.LeftHalf) ?? FindRoom(part.RightHalf);
 
     // Ensure a door point is outside the given room interior and inside bounds.
     // If door lies inside some room, nudge it outward away from that room center until free.
@@ -839,15 +874,15 @@ public class FloorGenerator : MonoBehaviour
     // ------------------- Gizmos / debug drawing -------------------
     void OnDrawGizmos()
     {
-        if (root == null) return;
+        if (RootPart == null) return;
 
         // Partitions (wire)
         Gizmos.color = new Color(1, 1, 1, .08f);
-        DrawBounds(root);
+        DrawBounds(RootPart);
 
         // Rooms
         Gizmos.color = Color.green;
-        foreach (var r in rooms)
+        foreach (var r in Rooms)
         {
             Gizmos.DrawWireCube(new Vector3(r.rect.center.x, 0, r.rect.center.y),
                                 new Vector3(r.rect.width, .12f, r.rect.height));
@@ -855,7 +890,7 @@ public class FloorGenerator : MonoBehaviour
 
         // Corridors
         Gizmos.color = Color.white;
-        foreach (var c in corridors)
+        foreach (var c in Corridors)
         {
             if (c?.tiles == null) continue;
             foreach (var t in c.tiles)
@@ -865,40 +900,24 @@ public class FloorGenerator : MonoBehaviour
 
         // Doors
         Gizmos.color = new Color(.4f, .2f, 0);
-        foreach (var d in doors)
+        foreach (var d in Doors)
             Gizmos.DrawCube(new Vector3(d.x + .5f, 0, d.y + .5f),
                             new Vector3(.7f, .1f, .7f));
     }
 
-    void DrawBounds(Partition p)
+    void DrawBounds(PartitionModel part)
     {
-        if (p == null) return;
+        if (part == null) return;
 
-        Gizmos.DrawWireCube(new Vector3(p.rect.center.x, 0, p.rect.center.y),
-                            new Vector3(p.rect.width, .03f, p.rect.height));
+        Gizmos.DrawWireCube(new Vector3(part.Center.x, 0, part.Center.y),
+                            new Vector3(part.Width, .03f, part.Height));
 
-        if (p.left != null) DrawBounds(p.left);
-        if (p.right != null) DrawBounds(p.right);
+        if (part.LeftHalf != null) DrawBounds(part.LeftHalf);
+        if (part.RightHalf != null) DrawBounds(part.RightHalf);
     }
 }
 
 // ------------------- Simple data classes -------------------
-public class Partition
-{
-    public RectInt rect;
-    public Partition left;
-    public Partition right;
-    public Room room;
-
-    // spatial neighbors
-    public List<Partition> neighbors;
-
-    public Partition(RectInt r)
-    {
-        rect = r;
-        neighbors = new List<Partition>();
-    }
-}
 
 public class Room
 {
