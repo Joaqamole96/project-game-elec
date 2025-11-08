@@ -36,9 +36,20 @@ public class RoomModel
     /// <summary>Enumerates the position of each floor tile in the room.</summary>
     public IEnumerable<Vector2Int> GetFloorTiles()
     {
+        // Ensure we have valid bounds that can contain floor tiles
+        if (Bounds.width < 3 || Bounds.height < 3)
+        {
+            Debug.LogWarning($"Room {ID} bounds too small for floor tiles: {Bounds}");
+            yield break;
+        }
+
         for (int x = Bounds.xMin + 1; x < Bounds.xMax - 1; x++)
+        {
             for (int y = Bounds.yMin + 1; y < Bounds.yMax - 1; y++)
+            {
                 yield return new Vector2Int(x, y);
+            }
+        }
     }
 
     /// <summary>Enumerates the position of each wall tile on each face of the room.</summary>

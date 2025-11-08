@@ -5,8 +5,29 @@ public class MeshCombiner
 {
     public GameObject CreateCombinedMesh(List<Vector3> positions, string name, Transform parent)
     {
-        if (positions.Count == 0) return null;
+        if (positions.Count == 0) 
+        {
+            Debug.LogWarning($"No positions provided for mesh: {name}");
+            return null;
+        }
 
+        // Check if we need to split due to vertex limit
+        const int maxVerticesPerMesh = 60000; // Conservative limit
+        const int verticesPerCube = 24; // A cube has 24 vertices in Unity
+
+        int maxCubesPerMesh = maxVerticesPerMesh / verticesPerCube;
+        
+        if (positions.Count > maxCubesPerMesh)
+        {
+            Debug.Log($"Splitting {name}: {positions.Count} cubes exceeds vertex limit, splitting into chunks");
+            return CreateSplitMeshes(positions, name, parent, maxCubesPerMesh);
+        }
+
+        return CreateSingleCombinedMesh(positions, name, parent);
+    }
+
+    private GameObject CreateSingleCombinedMesh(List<Vector3> positions, string name, Transform parent)
+    {
         // Create container object
         GameObject container = new GameObject(name);
         container.transform.SetParent(parent);
@@ -21,17 +42,72 @@ public class MeshCombiner
             cube.transform.SetParent(container.transform);
             
             var meshFilter = cube.GetComponent<MeshFilter>();
-            if (meshFilter != null)
+            if (meshFilter != null && meshFilter.sharedMesh != null)
                 meshFilters.Add(meshFilter);
         }
+
+        Debug.Log($"Created {meshFilters.Count} cubes for {name}");
 
         // Combine meshes if we have multiple
         if (meshFilters.Count > 1)
         {
             CombineMeshesInContainer(container);
         }
+        else if (meshFilters.Count == 1)
+        {
+            // Handle single mesh case
+            var containerFilter = container.GetComponent<MeshFilter>();
+            if (containerFilter == null)
+                containerFilter = container.AddComponent<MeshFilter>();
+                
+            MeshRenderer containerRenderer = container.GetComponent<MeshRenderer>();
+            if (containerRenderer == null)
+                containerRenderer = container.AddComponent<MeshRenderer>();
+            
+            containerFilter.mesh = meshFilters[0].sharedMesh;
+            
+            // Copy material from the cube
+            var cubeRenderer = meshFilters[0].GetComponent<Renderer>();
+            if (cubeRenderer != null)
+            {
+                containerRenderer.sharedMaterial = cubeRenderer.sharedMaterial;
+            }
+            
+            // Destroy the child cube
+            Object.DestroyImmediate(meshFilters[0].gameObject);
+        }
+        else
+        {
+            Debug.LogWarning($"No valid meshes created for {name}");
+            Object.DestroyImmediate(container);
+            return null;
+        }
         
         return container;
+    }
+
+    private GameObject CreateSplitMeshes(List<Vector3> positions, string name, Transform parent, int maxCubesPerChunk)
+    {
+        GameObject mainContainer = new GameObject(name);
+        mainContainer.transform.SetParent(parent);
+        
+        int chunkCount = Mathf.CeilToInt((float)positions.Count / maxCubesPerChunk);
+        int chunksCreated = 0;
+        
+        for (int i = 0; i < positions.Count; i += maxCubesPerChunk)
+        {
+            int chunkSize = Mathf.Min(maxCubesPerChunk, positions.Count - i);
+            var chunkPositions = positions.GetRange(i, chunkSize);
+            
+            var chunk = CreateSingleCombinedMesh(chunkPositions, $"{name}_Chunk{chunksCreated}", mainContainer.transform);
+            if (chunk != null)
+            {
+                chunksCreated++;
+            }
+        }
+        
+        Debug.Log($"Created {chunksCreated} chunks for {name}");
+        return mainContainer;
     }
 
     private void CombineMeshesInContainer(GameObject container)

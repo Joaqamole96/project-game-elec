@@ -18,16 +18,32 @@ public class GizmoFloorRenderer : IFloorRenderer
         var floorGroups = GroupFloorTilesByRoomType(layout, rooms);
         var meshContainers = new List<GameObject>();
 
+        Debug.Log($"Combining floors by room type: {floorGroups.Count} room types found");
+        
         foreach (var floorGroup in floorGroups)
         {
             if (floorGroup.Value.Count > 0)
             {
+                Debug.Log($"Creating combined mesh for {floorGroup.Key}: {floorGroup.Value.Count} tiles");
                 var combinedMesh = _meshCombiner.CreateCombinedMesh(floorGroup.Value, $"Floors_{floorGroup.Key}", parent);
-                ApplyRoomMaterial(combinedMesh, floorGroup.Key);
-                meshContainers.Add(combinedMesh);
+                if (combinedMesh != null)
+                {
+                    ApplyRoomMaterial(combinedMesh, floorGroup.Key);
+                    meshContainers.Add(combinedMesh);
+                    Debug.Log($"Successfully created combined mesh for {floorGroup.Key}");
+                }
+                else
+                {
+                    Debug.LogError($"Failed to create combined mesh for {floorGroup.Key}");
+                }
+            }
+            else
+            {
+                Debug.LogWarning($"No floor tiles found for room type: {floorGroup.Key}");
             }
         }
 
+        Debug.Log($"Created {meshContainers.Count} combined floor meshes");
         return meshContainers;
     }
 

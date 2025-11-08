@@ -163,12 +163,12 @@ public class DungeonGenerator : MonoBehaviour
 
     public Vector3 GetEntranceRoomPosition()
     {
-        if (_rooms == null) 
+        if (_rooms == null)
         {
             Debug.LogWarning("GetEntranceRoomPosition: _rooms is null");
             return Vector3.zero;
         }
-        
+
         var entrance = _rooms.FirstOrDefault(room => room.Type == RoomType.Entrance);
         if (entrance == null)
         {
@@ -180,9 +180,27 @@ public class DungeonGenerator : MonoBehaviour
         // Use the room's center, but ensure we're spawning on a walkable floor tile
         Vector2Int spawnTile = entrance.Center;
         Vector3 spawnPosition = new Vector3(spawnTile.x + 0.5f, 1f, spawnTile.y + 0.5f);
-        
+
         Debug.Log($"Spawning at entrance room center: {spawnTile} -> {spawnPosition}");
         return spawnPosition;
     }
     #endregion
+
+    void Reset()
+    {
+        // This prevents Unity from resetting the config references when the component is reset
+        #if UNITY_EDITOR
+        // Don't reset our config references
+        #endif
+    }
+
+    // Optional: Add this if you want to see what's happening with configs
+    private void OnValidate()
+    {
+        // This helps debug when configs get reset in the editor
+        if (!Application.isPlaying)
+        {
+            Debug.Log($"Config check - LevelConfig: {levelConfig != null}, Seed: {levelConfig?.Seed}");
+        }
+    }
 }

@@ -23,17 +23,44 @@ public class PrefabFloorRenderer : IFloorRenderer
 
     public void RenderIndividualFloors(LevelModel layout, List<RoomModel> rooms, Transform parent, bool enableCollision)
     {
+        if (layout?.AllFloorTiles == null)
+        {
+            Debug.LogError("Cannot render floors - AllFloorTiles is null!");
+            return;
+        }
+
+        int floorsRendered = 0;
+        int floorsSkipped = 0;
+
         foreach (var floorPos in layout.AllFloorTiles)
         {
-            var roomType = GetRoomTypeAtPosition(floorPos, rooms, layout);
-            var floorPrefab = _biomeManager.GetFloorPrefab(roomType, floorPos);
-            
-            var floor = CreateFloorAtPosition(floorPos, floorPrefab);
-            floor.transform.SetParent(parent);
-            
-            if (enableCollision)
-                AddCollisionToObject(floor, "Floor");
+            try
+            {
+                var roomType = GetRoomTypeAtPosition(floorPos, rooms, layout);
+                var floorPrefab = _biomeManager.GetFloorPrefab(roomType, floorPos);
+                
+                var floor = CreateFloorAtPosition(floorPos, floorPrefab);
+                if (floor != null)
+                {
+                    floor.transform.SetParent(parent);
+                    floorsRendered++;
+                    
+                    if (enableCollision)
+                        AddCollisionToObject(floor, "Floor");
+                }
+                else
+                {
+                    floorsSkipped++;
+                }
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogError($"Error rendering floor at {floorPos}: {ex.Message}");
+                floorsSkipped++;
+            }
         }
+
+        Debug.Log($"Floor rendering: {floorsRendered} rendered, {floorsSkipped} skipped");
     }
 
     private GameObject CreateFloorAtPosition(Vector2Int gridPos, GameObject prefab)

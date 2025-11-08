@@ -18,13 +18,32 @@ public class GeometryBuilder
         layout.WallTypes.Clear();
 
         var allFloorTiles = new HashSet<Vector2Int>();
+        int roomsProcessed = 0;
+        int corridorTilesProcessed = 0;
 
-        // Collect all floor tiles (rooms + corridors)
+        // Collect all floor tiles (rooms + corridors) with better error handling
         foreach (var room in layout.Rooms)
         {
             if (room != null)
             {
-                allFloorTiles.UnionWith(room.GetFloorTiles());
+                try 
+                {
+                    var roomFloors = room.GetFloorTiles();
+                    int roomFloorCount = 0;
+                    
+                    foreach (var floorPos in roomFloors)
+                    {
+                        allFloorTiles.Add(floorPos);
+                        roomFloorCount++;
+                    }
+                    
+                    roomsProcessed++;
+                    Debug.Log($"Room {room.ID} ({room.Type}): added {roomFloorCount} floor tiles");
+                }
+                catch (System.Exception ex)
+                {
+                    Debug.LogError($"Error processing room {room?.ID}: {ex.Message}");
+                }
             }
         }
 
@@ -32,11 +51,18 @@ public class GeometryBuilder
         {
             if (corridor?.Tiles != null)
             {
-                allFloorTiles.UnionWith(corridor.Tiles);
+                foreach (var tile in corridor.Tiles)
+                {
+                    allFloorTiles.Add(tile);
+                    corridorTilesProcessed++;
+                }
             }
         }
 
         layout.AllFloorTiles = allFloorTiles;
+        
+        Debug.Log($"Geometry built: {roomsProcessed} rooms, {corridorTilesProcessed} corridor tiles, {allFloorTiles.Count} total floor tiles");
+        
         BuildWallsWithTypes(layout);
     }
     

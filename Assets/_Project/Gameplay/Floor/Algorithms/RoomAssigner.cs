@@ -56,29 +56,46 @@ public class RoomAssigner
 
     private void AssignCriticalRooms(List<RoomModel> rooms, Dictionary<RoomModel, int> distances, int floorLevel, System.Random random)
     {
-        if (rooms.Count < 2) return;
+        if (rooms.Count < 2) 
+        {
+            Debug.LogWarning("Not enough rooms to assign critical rooms!");
+            return;
+        }
 
         var entranceRoom = rooms.OrderBy(r => r.DistanceFromEntrance).First();
         var exitRoom = rooms.OrderByDescending(r => r.DistanceFromEntrance).First();
 
+        // Ensure we have distinct rooms for entrance and exit
         if (entranceRoom == exitRoom && rooms.Count > 1)
         {
             exitRoom = rooms.OrderByDescending(r => r.DistanceFromEntrance)
-                           .First(r => r != entranceRoom);
+                        .First(r => r != entranceRoom);
         }
 
-        entranceRoom.Type = RoomType.Entrance;
-        entranceRoom.State = RoomAccess.Open;
-        entranceRoom.IsRevealed = true;
+        // Only assign if they're currently combat rooms (don't reassign already assigned rooms)
+        if (entranceRoom.Type == RoomType.Combat)
+        {
+            entranceRoom.Type = RoomType.Entrance;
+            entranceRoom.State = RoomAccess.Open;
+            entranceRoom.IsRevealed = true;
+            Debug.Log($"Assigned Entrance: Room {entranceRoom.ID}");
+        }
 
-        exitRoom.Type = RoomType.Exit;
-        exitRoom.State = RoomAccess.Open;
-        exitRoom.IsRevealed = true;
+        if (exitRoom.Type == RoomType.Combat && exitRoom != entranceRoom)
+        {
+            exitRoom.Type = RoomType.Exit;
+            exitRoom.State = RoomAccess.Open;
+            exitRoom.IsRevealed = true;
+            Debug.Log($"Assigned Exit: Room {exitRoom.ID}");
+        }
 
         if (floorLevel % 5 == 0)
         {
             AssignBossRoom(rooms, exitRoom);
         }
+        
+        // Log the final room distribution
+        Debug.Log($"Room assignment - Entrance: {entranceRoom.ID}, Exit: {exitRoom?.ID}, Total rooms: {rooms.Count}");
     }
 
     private void AssignBossRoom(List<RoomModel> rooms, RoomModel exitRoom)

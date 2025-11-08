@@ -134,12 +134,21 @@ public class DungeonRenderer : MonoBehaviour
     #region Rendering Orchestration
     private void RenderFloors(LevelModel layout, List<RoomModel> rooms)
     {
-        if (layout?.AllFloorTiles == null || rooms == null) return;
+        if (layout?.AllFloorTiles == null || rooms == null) 
+        {
+            Debug.LogError("Cannot render floors: layout or rooms is null");
+            return;
+        }
+        
+        Debug.Log($"Starting floor rendering: {layout.AllFloorTiles.Count} floor tiles, {rooms.Count} rooms");
         
         if (CombineMeshes && Mode == RenderMode.Gizmo) // Only combine in Gizmo mode
         {
+            Debug.Log("Using combined mesh rendering for floors");
             var floorMeshes = _floorRenderer.RenderCombinedFloorsByRoomType(layout, rooms, FloorsParent);
             _spawnedContainers.AddRange(floorMeshes);
+            
+            Debug.Log($"Combined mesh rendering complete: {floorMeshes.Count} mesh objects created");
             
             if (EnableFloorCollision)
             {
@@ -149,8 +158,13 @@ public class DungeonRenderer : MonoBehaviour
         }
         else
         {
+            Debug.Log("Using individual floor rendering");
             _floorRenderer.RenderIndividualFloors(layout, rooms, FloorsParent, EnableFloorCollision);
         }
+        
+        // Verify floors were actually created
+        int renderedFloors = FloorsParent?.childCount ?? 0;
+        Debug.Log($"Floor rendering complete: {renderedFloors} floor objects in scene");
     }
 
     private void RenderWalls(LevelModel layout)
