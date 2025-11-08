@@ -25,16 +25,33 @@ public class DungeonGenerator : MonoBehaviour
     private List<RoomModel> _rooms;
     private System.Random _random;
     
+    // NEW: Runtime config copies
+    private RuntimeConfigs _runtimeConfigs;
+    
+    // NEW: Helper properties that use runtime configs
+    private GameConfig RuntimeGameConfig => _runtimeConfigs?.GameConfig ?? gameConfig;
+    private LevelConfig RuntimeLevelConfig => _runtimeConfigs?.LevelConfig ?? levelConfig;
+    private PartitionConfig RuntimePartitionConfig => _runtimeConfigs?.PartitionConfig ?? partitionConfig;
+    private RoomConfig RuntimeRoomConfig => _runtimeConfigs?.RoomConfig ?? roomConfig;
+    
     public List<RoomModel> CurrentRooms => _rooms;
     public LevelModel CurrentLayout => _layout;
     
     void Awake()
     {
         InitializeComponents();
+        InitializeRuntimeConfigs(); // NEW: Initialize runtime configs
         InitializeRandom();
     }
 
     void Start() => GenerateDungeon();
+
+    // NEW: Initialize runtime config copies
+    private void InitializeRuntimeConfigs()
+    {
+        _runtimeConfigs = new RuntimeConfigs(gameConfig, levelConfig, partitionConfig, roomConfig);
+        Debug.Log($"Runtime configs initialized - Starting floor: {RuntimeLevelConfig.FloorLevel}");
+    }
 
     private void InitializeComponents()
     {
@@ -62,6 +79,9 @@ public class DungeonGenerator : MonoBehaviour
         ClearPreviousGeneration();
         ValidateConfigs();
         
+        // NEW: Log runtime config state
+        Debug.Log($"Generating floor {RuntimeLevelConfig.FloorLevel} with size: {RuntimeLevelConfig.Width}x{RuntimeLevelConfig.Height}");
+        
         // Phase 1: Generate layout
         Debug.Log("Phase 1: Generating dungeon layout...");
         _layout = GenerateDungeonLayout();
@@ -69,7 +89,7 @@ public class DungeonGenerator : MonoBehaviour
 
         // Phase 2: Assign room types
         Debug.Log("Phase 2: Assigning room types...");
-        _rooms = _roomAssigner.AssignRooms(_layout, levelConfig.FloorLevel, _random);
+        _rooms = _roomAssigner.AssignRooms(_layout, RuntimeLevelConfig.FloorLevel, _random); // CHANGED: Use runtime config
         if (_rooms == null || _rooms.Count == 0) return;
 
         // Phase 3: Build geometry
@@ -96,23 +116,34 @@ public class DungeonGenerator : MonoBehaviour
         }
         
         stopwatch.Stop();
-        Debug.Log($"Generated Floor {levelConfig.FloorLevel}: {GetRoomTypeBreakdown()} in {stopwatch.ElapsedMilliseconds}ms");
+        Debug.Log($"Generated Floor {RuntimeLevelConfig.FloorLevel}: {GetRoomTypeBreakdown()} in {stopwatch.ElapsedMilliseconds}ms"); // CHANGED: Use runtime config
     }
 
     [ContextMenu("Next Floor")]
     public void GenerateNextFloor()
     {
-        levelConfig.FloorLevel++;
-        _random = new System.Random(levelConfig.Seed + levelConfig.FloorLevel);
+        // NEW: Use runtime config for floor progression
+        RuntimeLevelConfig.FloorLevel++;
+        _random = new System.Random(RuntimeLevelConfig.Seed + RuntimeLevelConfig.FloorLevel);
 
-        if (levelConfig.FloorLevel > 1)
+        if (RuntimeLevelConfig.FloorLevel > 1)
         {
             bool growWidth = RandomBool();
             if (growWidth)
-                levelConfig.Width = Mathf.Min(levelConfig.Width + levelConfig.FloorGrowth, levelConfig.MaxFloorSize);
+            {
+                int newWidth = Mathf.Min(RuntimeLevelConfig.Width + RuntimeLevelConfig.FloorGrowth, RuntimeLevelConfig.MaxFloorSize);
+                Debug.Log($"Growing width from {RuntimeLevelConfig.Width} to {newWidth}");
+                RuntimeLevelConfig.Width = newWidth;
+            }
             else
-                levelConfig.Height = Mathf.Min(levelConfig.Height + levelConfig.FloorGrowth, levelConfig.MaxFloorSize);
+            {
+                int newHeight = Mathf.Min(RuntimeLevelConfig.Height + RuntimeLevelConfig.FloorGrowth, RuntimeLevelConfig.MaxFloorSize);
+                Debug.Log($"Growing height from {RuntimeLevelConfig.Height} to {newHeight}");
+                RuntimeLevelConfig.Height = newHeight;
+            }
         }
+
+        Debug.Log($"Moving to floor {RuntimeLevelConfig.FloorLevel} - New size: {RuntimeLevelConfig.Width}x{RuntimeLevelConfig.Height}");
 
         GenerateDungeon();
     }
@@ -121,9 +152,10 @@ public class DungeonGenerator : MonoBehaviour
     {
         var layout = new LevelModel();
         
-        var root = _bspGenerator.GeneratePartitionTree(levelConfig, partitionConfig, _random);
+        // CHANGED: Use runtime configs
+        var root = _bspGenerator.GeneratePartitionTree(RuntimeLevelConfig, RuntimePartitionConfig, _random);
         var leaves = _bspGenerator.CollectLeafPartitions(root);
-        layout.Rooms = _bspGenerator.CreateRoomsFromPartitions(leaves, roomConfig, _random);
+        layout.Rooms = _bspGenerator.CreateRoomsFromPartitions(leaves, RuntimeRoomConfig, _random);
         _bspGenerator.FindAndAssignNeighbors(leaves);
         
         var allCorridors = _corridorGenerator.GenerateAllPossibleCorridors(leaves, _random);
@@ -134,18 +166,19 @@ public class DungeonGenerator : MonoBehaviour
 
     #region Helper Methods
     private void InitializeRandom()
-        => _random ??= new System.Random(levelConfig.Seed);
+        => _random ??= new System.Random(RuntimeLevelConfig.Seed); // CHANGED: Use runtime config
 
     private bool RandomBool() 
         => _random.NextDouble() > 0.5;
 
     private void ValidateConfigs()
     {
-        levelConfig.Width = Mathf.Clamp(levelConfig.Width, 10, 100);
-        levelConfig.Height = Mathf.Clamp(levelConfig.Height, 10, 100);
-        partitionConfig.MinPartitionSize = Mathf.Max(3, partitionConfig.MinPartitionSize);
-        roomConfig.MinRoomSize = Mathf.Max(3, roomConfig.MinRoomSize);
-        roomConfig.MaxRooms = Mathf.Max(1, roomConfig.MaxRooms);
+        // CHANGED: Use runtime configs for validation
+        RuntimeLevelConfig.Width = Mathf.Clamp(RuntimeLevelConfig.Width, 10, 1000); // Increased max for growth
+        RuntimeLevelConfig.Height = Mathf.Clamp(RuntimeLevelConfig.Height, 10, 1000);
+        RuntimePartitionConfig.MinPartitionSize = Mathf.Max(3, RuntimePartitionConfig.MinPartitionSize);
+        RuntimeRoomConfig.MinRoomSize = Mathf.Max(3, RuntimeRoomConfig.MinRoomSize);
+        RuntimeRoomConfig.MaxRooms = Mathf.Max(1, RuntimeRoomConfig.MaxRooms);
     }
 
     private void ClearPreviousGeneration()
@@ -163,12 +196,12 @@ public class DungeonGenerator : MonoBehaviour
 
     public Vector3 GetEntranceRoomPosition()
     {
-        if (_rooms == null)
+        if (_rooms == null) 
         {
             Debug.LogWarning("GetEntranceRoomPosition: _rooms is null");
             return Vector3.zero;
         }
-
+        
         var entrance = _rooms.FirstOrDefault(room => room.Type == RoomType.Entrance);
         if (entrance == null)
         {
@@ -177,30 +210,11 @@ public class DungeonGenerator : MonoBehaviour
             return Vector3.zero;
         }
 
-        // Use the room's center, but ensure we're spawning on a walkable floor tile
         Vector2Int spawnTile = entrance.Center;
         Vector3 spawnPosition = new Vector3(spawnTile.x + 0.5f, 1f, spawnTile.y + 0.5f);
-
+        
         Debug.Log($"Spawning at entrance room center: {spawnTile} -> {spawnPosition}");
         return spawnPosition;
     }
     #endregion
-
-    void Reset()
-    {
-        // This prevents Unity from resetting the config references when the component is reset
-        #if UNITY_EDITOR
-        // Don't reset our config references
-        #endif
-    }
-
-    // Optional: Add this if you want to see what's happening with configs
-    private void OnValidate()
-    {
-        // This helps debug when configs get reset in the editor
-        if (!Application.isPlaying)
-        {
-            Debug.Log($"Config check - LevelConfig: {levelConfig != null}, Seed: {levelConfig?.Seed}");
-        }
-    }
 }
