@@ -1,0 +1,513 @@
+using UnityEngine;
+using System.Collections.Generic;
+using System.Linq;
+
+public class DungeonRenderer : MonoBehaviour
+{
+    [Header("Prefabs")]
+    public GameObject FloorPrefab;
+    public GameObject WallPrefab;
+    public GameObject DoorPrefab;
+    
+    [Header("Parent Transforms")]
+    public Transform FloorsParent;
+    public Transform WallsParent;
+    public Transform DoorsParent;
+    
+    [Header("Mobile Optimization")]
+    public bool CombineMeshes = true;
+    public bool EnableFloorCollision = true;
+    public bool EnableWallCollision = true;
+    public bool EnableDoorCollision = false;
+    
+    [Header("Material Settings")]
+    public Material DefaultFloorMaterial;
+    public Material DefaultWallMaterial;
+    public Material DefaultDoorMaterial;
+    
+    // Material cache
+    private Dictionary<RoomType, Material> _roomTypeMaterials = new Dictionary<RoomType, Material>();
+    private Dictionary<WallType, Material> _wallTypeMaterials = new Dictionary<WallType, Material>();
+    
+    // Combined mesh containers
+    private List<GameObject> _spawnedContainers = new List<GameObject>();
+
+    public void RenderDungeon(DungeonLayout layout, List<RoomAssignment> roomAssignments)
+    {
+        ClearRendering();
+        CreateParentContainers();
+        InitializeMaterialCache();
+        
+        // Render with combined meshes for mobile performance
+        RenderCombinedFloors(layout, roomAssignments);
+        RenderCombinedWalls(layout);
+        RenderDoors(layout);
+        
+        Debug.Log($"Rendered dungeon with {_spawnedContainers.Count} combined mesh objects");
+    }
+
+    public void ClearRendering()
+    {
+        foreach (var container in _spawnedContainers)
+        {
+            if (container != null)
+            {
+                #if UNITY_EDITOR
+                if (!Application.isPlaying)
+                    DestroyImmediate(container);
+                else
+                    Destroy(container);
+                #else
+                Destroy(container);
+                #endif
+            }
+        }
+        _spawnedContainers.Clear();
+
+        ClearAllChildObjects(FloorsParent);
+        ClearAllChildObjects(WallsParent);
+        ClearAllChildObjects(DoorsParent);
+
+        CleanupMaterialCache();
+    }
+
+    #region Combined Mesh Rendering
+    private void RenderCombinedFloors(DungeonLayout layout, List<RoomAssignment> roomAssignments)
+    {
+        if (layout?.AllFloorTiles == null || roomAssignments == null) return;
+        
+        if (CombineMeshes)
+        {
+            RenderCombinedFloorsByRoomType(layout, roomAssignments);
+        }
+        else
+        {
+            RenderIndividualFloors(layout, roomAssignments);
+        }
+    }
+
+    private void RenderCombinedFloorsByRoomType(DungeonLayout layout, List<RoomAssignment> roomAssignments)
+    {
+        // Group floor tiles by room type for optimal batching
+        var floorGroups = new Dictionary<RoomType, List<Vector3>>();
+        
+        foreach (var floorPos in layout.AllFloorTiles)
+        {
+            var roomAssignment = GetRoomAssignmentAtPosition(floorPos, roomAssignments, layout);
+            var roomType = roomAssignment?.Type ?? RoomType.Combat;
+            
+            if (!floorGroups.ContainsKey(roomType))
+                floorGroups[roomType] = new List<Vector3>();
+                
+            floorGroups[roomType].Add(new Vector3(floorPos.x + 0.5f, 0, floorPos.y + 0.5f));
+        }
+
+        // Create combined meshes for each room type
+        foreach (var floorGroup in floorGroups)
+        {
+            if (floorGroup.Value.Count > 0)
+            {
+                var combinedMesh = CreateCombinedMesh(floorGroup.Value, $"Floors_{floorGroup.Key}", FloorsParent);
+                ApplyRoomMaterial(combinedMesh, floorGroup.Key);
+                
+                if (EnableFloorCollision)
+                    AddCollisionToObject(combinedMesh, "Floor");
+                    
+                _spawnedContainers.Add(combinedMesh);
+            }
+        }
+    }
+
+    private void RenderCombinedWalls(DungeonLayout layout)
+    {
+        if (layout?.AllWallTiles == null || layout.WallTypes == null) return;
+        
+        if (CombineMeshes)
+        {
+            RenderCombinedWallsByType(layout);
+        }
+        else
+        {
+            RenderIndividualWalls(layout);
+        }
+    }
+
+    private void RenderCombinedWallsByType(DungeonLayout layout)
+    {
+        // Group walls by type for optimal batching
+        var wallGroups = new Dictionary<WallType, List<Vector3>>();
+        
+        foreach (var wallPos in layout.AllWallTiles)
+        {
+            if (layout.WallTypes.TryGetValue(wallPos, out var wallType))
+            {
+                if (!wallGroups.ContainsKey(wallType))
+                    wallGroups[wallType] = new List<Vector3>();
+                    
+                wallGroups[wallType].Add(new Vector3(wallPos.x + 0.5f, 0.5f, wallPos.y + 0.5f));
+            }
+        }
+
+        // Create combined meshes for each wall type
+        foreach (var wallGroup in wallGroups)
+        {
+            if (wallGroup.Value.Count > 0)
+            {
+                var combinedMesh = CreateCombinedMesh(wallGroup.Value, $"Walls_{wallGroup.Key}", WallsParent);
+                ApplyWallMaterial(combinedMesh, wallGroup.Key);
+                
+                if (EnableWallCollision)
+                    AddCollisionToObject(combinedMesh, "Wall");
+                    
+                _spawnedContainers.Add(combinedMesh);
+            }
+        }
+    }
+
+    private GameObject CreateCombinedMesh(List<Vector3> positions, string name, Transform parent)
+    {
+        if (positions.Count == 0) return null;
+
+        // Create container object
+        GameObject container = new GameObject(name);
+        container.transform.SetParent(parent);
+        
+        // Create individual cubes as children (will be combined)
+        var meshFilters = new List<MeshFilter>();
+        
+        foreach (var position in positions)
+        {
+            var cube = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            cube.transform.position = position;
+            cube.transform.SetParent(container.transform);
+            
+            var meshFilter = cube.GetComponent<MeshFilter>();
+            if (meshFilter != null)
+                meshFilters.Add(meshFilter);
+        }
+
+        // Combine meshes if we have multiple
+        if (meshFilters.Count > 1)
+        {
+            CombineMeshesInContainer(container);
+        }
+        
+        return container;
+    }
+
+    private void CombineMeshesInContainer(GameObject container)
+    {
+        MeshFilter[] meshFilters = container.GetComponentsInChildren<MeshFilter>();
+        List<CombineInstance> combineInstances = new List<CombineInstance>();
+        
+        // Skip the first mesh filter (it's the container's own filter)
+        for (int i = 0; i < meshFilters.Length; i++)
+        {
+            if (meshFilters[i].sharedMesh != null)
+            {
+                CombineInstance combineInstance = new CombineInstance();
+                combineInstance.mesh = meshFilters[i].sharedMesh;
+                combineInstance.transform = meshFilters[i].transform.localToWorldMatrix;
+                combineInstances.Add(combineInstance);
+            }
+        }
+        
+        // Create combined mesh
+        Mesh combinedMesh = new Mesh();
+        combinedMesh.CombineMeshes(combineInstances.ToArray());
+        
+        // Set up the container with combined mesh
+        MeshFilter containerFilter = container.GetComponent<MeshFilter>();
+        if (containerFilter == null)
+            containerFilter = container.AddComponent<MeshFilter>();
+            
+        MeshRenderer containerRenderer = container.GetComponent<MeshRenderer>();
+        if (containerRenderer == null)
+            containerRenderer = container.AddComponent<MeshRenderer>();
+        
+        containerFilter.mesh = combinedMesh;
+        
+        // Copy material from first child
+        if (container.transform.childCount > 0)
+        {
+            var firstRenderer = container.transform.GetChild(0).GetComponent<Renderer>();
+            if (firstRenderer != null)
+            {
+                containerRenderer.sharedMaterial = firstRenderer.sharedMaterial;
+            }
+        }
+        
+        // Destroy individual child objects
+        for (int i = container.transform.childCount - 1; i >= 0; i--)
+        {
+            DestroyImmediate(container.transform.GetChild(i).gameObject);
+        }
+    }
+    #endregion
+
+    #region Individual Rendering (Fallback)
+    private void RenderIndividualFloors(DungeonLayout layout, List<RoomAssignment> roomAssignments)
+    {
+        foreach (var floorPos in layout.AllFloorTiles)
+        {
+            var floor = CreateFloorAtPosition(floorPos);
+            floor.transform.SetParent(FloorsParent);
+            
+            // Apply room material
+            var roomAssignment = GetRoomAssignmentAtPosition(floorPos, roomAssignments, layout);
+            if (roomAssignment != null)
+            {
+                ApplyRoomMaterial(floor, roomAssignment.Type);
+            }
+            
+            if (EnableFloorCollision)
+                AddCollisionToObject(floor, "Floor");
+        }
+    }
+
+    private void RenderIndividualWalls(DungeonLayout layout)
+    {
+        foreach (var wallPos in layout.AllWallTiles)
+        {
+            if (layout.WallTypes.TryGetValue(wallPos, out var wallType))
+            {
+                var wall = CreateWallAtPosition(wallPos, wallType);
+                wall.transform.SetParent(WallsParent);
+                
+                if (EnableWallCollision)
+                    AddCollisionToObject(wall, "Wall");
+            }
+        }
+    }
+
+    private GameObject CreateFloorAtPosition(Vector2Int gridPos)
+    {
+        Vector3 worldPos = new Vector3(gridPos.x + 0.5f, 0, gridPos.y + 0.5f);
+        return InstantiatePrefabOrCreateCube(FloorPrefab, worldPos, "Floor", new Vector3(1f, 0.1f, 1f));
+    }
+
+    private GameObject CreateWallAtPosition(Vector2Int gridPos, WallType wallType)
+    {
+        Vector3 worldPos = new Vector3(gridPos.x + 0.5f, 0.5f, gridPos.y + 0.5f);
+        var wall = InstantiatePrefabOrCreateCube(WallPrefab, worldPos, $"Wall_{wallType}", new Vector3(1f, 1f, 1f));
+        ApplyWallMaterial(wall, wallType);
+        return wall;
+    }
+    #endregion
+
+    #region Door Rendering (Keep as individual objects)
+    private void RenderDoors(DungeonLayout layout)
+    {
+        if (layout?.AllDoorTiles == null) return;
+        
+        foreach (var doorPos in layout.AllDoorTiles)
+        {
+            var door = CreateDoorAtPosition(doorPos);
+            door.transform.SetParent(DoorsParent);
+            
+            if (EnableDoorCollision && door != null) 
+            {
+                AddCollisionToObject(door, "Door");
+            }
+        }
+    }
+
+    private GameObject CreateDoorAtPosition(Vector2Int gridPos)
+    {
+        Vector3 worldPos = new Vector3(gridPos.x + 0.5f, 0.4f, gridPos.y + 0.5f);
+        var door = InstantiatePrefabOrCreateCube(DoorPrefab, worldPos, "Door", new Vector3(1f, 0.8f, 1f));
+        ApplyDoorMaterial(door);
+        return door;
+    }
+    #endregion
+
+    #region Material Management
+    private void InitializeMaterialCache()
+    {
+        // Room type materials
+        _roomTypeMaterials[RoomType.Entrance] = GetOrCreateMaterial(Color.green);
+        _roomTypeMaterials[RoomType.Exit] = GetOrCreateMaterial(Color.red);
+        _roomTypeMaterials[RoomType.Empty] = GetOrCreateMaterial(Color.gray);
+        _roomTypeMaterials[RoomType.Combat] = GetOrCreateMaterial(Color.white);
+        _roomTypeMaterials[RoomType.Shop] = GetOrCreateMaterial(Color.blue);
+        _roomTypeMaterials[RoomType.Treasure] = GetOrCreateMaterial(Color.yellow);
+        _roomTypeMaterials[RoomType.Boss] = GetOrCreateMaterial(Color.magenta);
+        
+        // Wall type materials
+        _wallTypeMaterials[WallType.North] = GetOrCreateMaterial(Color.black);
+        _wallTypeMaterials[WallType.South] = GetOrCreateMaterial(Color.black);
+        _wallTypeMaterials[WallType.East] = GetOrCreateMaterial(Color.black);
+        _wallTypeMaterials[WallType.West] = GetOrCreateMaterial(Color.black);
+        _wallTypeMaterials[WallType.NorthEastCorner] = GetOrCreateMaterial(Color.black);
+        _wallTypeMaterials[WallType.NorthWestCorner] = GetOrCreateMaterial(Color.black);
+        _wallTypeMaterials[WallType.SouthEastCorner] = GetOrCreateMaterial(Color.black);
+        _wallTypeMaterials[WallType.SouthWestCorner] = GetOrCreateMaterial(Color.black);
+        _wallTypeMaterials[WallType.Interior] = GetOrCreateMaterial(Color.white);
+        _wallTypeMaterials[WallType.Doorway] = GetOrCreateMaterial(Color.yellow);
+    }
+
+    private Material GetOrCreateMaterial(Color color)
+    {
+        // Use default materials if available, otherwise create simple colored materials
+        if (DefaultFloorMaterial != null)
+        {
+            Material newMaterial = new Material(DefaultFloorMaterial);
+            newMaterial.color = color;
+            return newMaterial;
+        }
+        else
+        {
+            Material newMaterial = new Material(Shader.Find("Standard"));
+            newMaterial.color = color;
+            return newMaterial;
+        }
+    }
+
+    private void ApplyRoomMaterial(GameObject obj, RoomType roomType)
+    {
+        var renderer = obj.GetComponent<Renderer>();
+        if (renderer != null && _roomTypeMaterials.ContainsKey(roomType))
+        {
+            renderer.sharedMaterial = _roomTypeMaterials[roomType];
+        }
+    }
+
+    private void ApplyWallMaterial(GameObject obj, WallType wallType)
+    {
+        var renderer = obj.GetComponent<Renderer>();
+        if (renderer != null && _wallTypeMaterials.ContainsKey(wallType))
+        {
+            renderer.sharedMaterial = _wallTypeMaterials[wallType];
+        }
+    }
+
+    private void ApplyDoorMaterial(GameObject obj)
+    {
+        var renderer = obj.GetComponent<Renderer>();
+        if (renderer != null)
+        {
+            if (_wallTypeMaterials.ContainsKey(WallType.Doorway))
+            {
+                renderer.sharedMaterial = _wallTypeMaterials[WallType.Doorway];
+            }
+            else if (DefaultDoorMaterial != null)
+            {
+                renderer.sharedMaterial = DefaultDoorMaterial;
+            }
+        }
+    }
+
+    private void CleanupMaterialCache()
+    {
+        #if UNITY_EDITOR
+        if (!Application.isPlaying)
+        {
+            foreach (var material in _roomTypeMaterials.Values)
+            {
+                if (material != null && material.name.Contains("Instance"))
+                {
+                    DestroyImmediate(material);
+                }
+            }
+            foreach (var material in _wallTypeMaterials.Values)
+            {
+                if (material != null && material.name.Contains("Instance"))
+                {
+                    DestroyImmediate(material);
+                }
+            }
+        }
+        #endif
+        
+        _roomTypeMaterials.Clear();
+        _wallTypeMaterials.Clear();
+    }
+    #endregion
+
+    #region Utility Methods
+    private RoomAssignment GetRoomAssignmentAtPosition(Vector2Int position, List<RoomAssignment> roomAssignments, DungeonLayout layout)
+    {
+        // Use the layout's spatial data for efficient room lookup
+        var room = layout.GetRoomAtPosition(position);
+        if (room != null)
+        {
+            return roomAssignments.FirstOrDefault(ra => ra.Room == room);
+        }
+        return null;
+    }
+
+    private GameObject InstantiatePrefabOrCreateCube(GameObject prefab, Vector3 position, string name, Vector3 scale)
+    {
+        GameObject obj;
+        if (prefab != null)
+        {
+            obj = Instantiate(prefab, position, Quaternion.identity);
+            obj.name = name;
+        }
+        else
+        {
+            obj = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            obj.transform.position = position;
+            obj.transform.localScale = scale;
+            obj.name = name;
+        }
+        return obj;
+    }
+
+    private void AddCollisionToObject(GameObject obj, string objectType)
+    {
+        if (obj == null) return;
+
+        var existingCollider = obj.GetComponent<Collider>();
+        if (existingCollider == null)
+        {
+            obj.AddComponent<BoxCollider>();
+        }
+
+        if (objectType == "Door")
+        {
+            var rb = obj.GetComponent<Rigidbody>();
+            if (rb == null)
+            {
+                rb = obj.AddComponent<Rigidbody>();
+                rb.isKinematic = true;
+            }
+        }
+    }
+
+    private void CreateParentContainers()
+    {
+        if (FloorsParent == null) FloorsParent = CreateParent("Floors");
+        if (WallsParent == null) WallsParent = CreateParent("Walls");
+        if (DoorsParent == null) DoorsParent = CreateParent("Doors");
+    }
+
+    private Transform CreateParent(string name)
+    {
+        GameObject go = new GameObject(name);
+        go.transform.SetParent(transform);
+        return go.transform;
+    }
+
+    private void ClearAllChildObjects(Transform parent)
+    {
+        if (parent == null) return;
+
+        for (int i = parent.childCount - 1; i >= 0; i--)
+        {
+            var child = parent.GetChild(i);
+            if (child != null)
+            {
+                #if UNITY_EDITOR
+                if (!Application.isPlaying)
+                    DestroyImmediate(child.gameObject);
+                else
+                    Destroy(child.gameObject);
+                #else
+                Destroy(child.gameObject);
+                #endif
+            }
+        }
+    }
+    #endregion
+}

@@ -1,0 +1,354 @@
+using UnityEngine;
+using System.Collections.Generic;
+using System.Linq;
+
+public enum WallType { North, South, East, West, NorthEastCorner, NorthWestCorner, SouthEastCorner, SouthWestCorner, Interior, Doorway }
+public enum RoomType { Entrance, Exit, Empty, Combat, Shop, Treasure, Boss }
+public enum RoomState { Open, Closed, Completed }
+
+[System.Serializable]
+public class DungeonConfig
+{
+    [Header("Dungeon Dimensions")]
+    public int Width = 50;
+    public int Height = 50;
+    public int Seed = 0;
+    
+    [Header("Partition Settings")]
+    public int MinimumPartitionSize = 16;
+    
+    [Header("Room Settings")]
+    public int MinimumInset = 1;
+    public int MaximumInset = 2;
+    public int MinimumRoomSize = 3;
+    
+    [Header("Graph Settings")]
+    public int ExtraConnections = 3;
+    
+    [Header("Floor Progression")]
+    public int FloorLevel = 1;
+    public int FloorGrowth = 4;
+    public int MaxFloorSize = 100;
+    
+    [Header("Mobile Optimization")]
+    public int MaxRooms = 20;
+    public int MaxRoomSize = 15;
+    public bool SimplifyGeometry = true;
+    
+    [Header("Gameplay Settings")]
+    public int EnemiesPerCombatRoom = 3;
+    public int TreasureRoomsPerFloor = 1;
+    public int ShopRoomsPerFloor = 1;
+    
+    public void Validate()
+    {
+        Width = Mathf.Clamp(Width, 10, 100);
+        Height = Mathf.Clamp(Height, 10, 100);
+        MinimumPartitionSize = Mathf.Max(3, MinimumPartitionSize);
+        MinimumRoomSize = Mathf.Max(3, MinimumRoomSize);
+        MaxRooms = Mathf.Max(1, MaxRooms);
+    }
+}
+
+[System.Serializable]
+public class FloorSaveData
+{
+    public int Seed;
+    public int FloorLevel;
+    public List<RoomSaveData> Rooms;
+    public Vector2Int PlayerPosition;
+    public int PlayerHealth;
+    public int Gold;
+}
+
+[System.Serializable]
+public class RoomSaveData
+{
+    public int RoomId;
+    public RoomState State;
+    public bool IsRevealed;
+    public bool IsCleared;
+}
+
+public class PathfindingNode
+{
+    public Vector2Int Position;
+    public float GCost;
+    public float HCost;
+    public float FCost => GCost + HCost;
+    public PathfindingNode Parent;
+    
+    public PathfindingNode(Vector2Int position) { Position = position; }
+}
+
+public class PartitionModel
+{
+    public RectInt Bounds;
+    public PartitionModel LeftChild;
+    public PartitionModel RightChild;
+    public RoomModel Room;
+    public List<PartitionModel> Neighbors;
+
+    public PartitionModel(RectInt bounds) { Bounds = bounds; Neighbors = new List<PartitionModel>(); }
+}
+
+public class RoomModel
+{
+    public RectInt Bounds;
+    public int Id;
+    public List<RoomModel> ConnectedRooms;
+    public Vector2Int Center => new Vector2Int(
+        (Bounds.xMin + Bounds.xMax) / 2, 
+        (Bounds.yMin + Bounds.yMax) / 2
+    );
+
+    public RoomModel(RectInt bounds, int id) 
+    { 
+        Bounds = bounds; 
+        Id = id;
+        ConnectedRooms = new List<RoomModel>();
+    }
+
+    // KEEP original methods that your generator depends on
+    public IEnumerable<Vector2Int> GetFloorTiles()
+    {
+        for (int x = Bounds.xMin + 1; x < Bounds.xMax - 1; x++)
+        for (int y = Bounds.yMin + 1; y < Bounds.yMax - 1; y++)
+            yield return new Vector2Int(x, y);
+    }
+
+    public IEnumerable<Vector2Int> GetWallPerimeter()
+    {
+        for (int x = Bounds.xMin; x < Bounds.xMax; x++) yield return new Vector2Int(x, Bounds.yMax - 1);
+        for (int x = Bounds.xMin; x < Bounds.xMax; x++) yield return new Vector2Int(x, Bounds.yMin);
+        for (int y = Bounds.yMin; y < Bounds.yMax; y++) yield return new Vector2Int(Bounds.xMax - 1, y);
+        for (int y = Bounds.yMin; y < Bounds.yMax; y++) yield return new Vector2Int(Bounds.xMin, y);
+    }
+
+    // ADD new utility methods
+    public bool ContainsPosition(Vector2Int position)
+    {
+        return position.x >= Bounds.xMin && position.x < Bounds.xMax &&
+               position.y >= Bounds.yMin && position.y < Bounds.yMax;
+    }
+
+    public IEnumerable<Vector2Int> GetInnerTiles(int padding = 1)
+    {
+        for (int x = Bounds.xMin + padding; x < Bounds.xMax - padding; x++)
+        for (int y = Bounds.yMin + padding; y < Bounds.yMax - padding; y++)
+            yield return new Vector2Int(x, y);
+    }
+}
+
+public class CorridorModel
+{
+    public List<Vector2Int> Tiles;
+    public RoomModel StartRoom;
+    public RoomModel EndRoom;
+    public Vector2Int StartDoor;
+    public Vector2Int EndDoor;
+    public float Length => Tiles?.Count ?? 0f;
+
+    public CorridorModel(List<Vector2Int> tiles, RoomModel startRoom, RoomModel endRoom, Vector2Int startDoor, Vector2Int endDoor)
+    {
+        Tiles = tiles ?? new List<Vector2Int>();
+        StartRoom = startRoom; 
+        EndRoom = endRoom; 
+        StartDoor = startDoor; 
+        EndDoor = endDoor;
+        
+        // Safe connection - check for null and avoid duplicates
+        if (startRoom != null && endRoom != null && startRoom != endRoom)
+        {
+            if (!startRoom.ConnectedRooms.Contains(endRoom))
+                startRoom.ConnectedRooms.Add(endRoom);
+            if (!endRoom.ConnectedRooms.Contains(startRoom))
+                endRoom.ConnectedRooms.Add(startRoom);
+        }
+    }
+    
+    public bool ContainsPosition(Vector2Int position)
+    {
+        return Tiles.Contains(position);
+    }
+    
+    public Vector2Int GetCenter()
+    {
+        if (Tiles == null || Tiles.Count == 0) return Vector2Int.zero;
+        return Tiles[Tiles.Count / 2];
+    }
+}
+
+public class RoomAssignment
+{
+    public RoomModel Room;
+    public RoomType Type;
+    public RoomState State;
+    public int DistanceFromEntrance;
+    public List<RoomAssignment> ConnectedRooms;
+    public bool IsRevealed;
+    public bool IsCleared;
+    public List<Vector2Int> SpawnPositions;
+    public Vector2Int EntranceDoor;
+    public Vector2Int ExitDoor;
+
+    public RoomAssignment(RoomModel room, RoomType type)
+    {
+        Room = room;
+        Type = type;
+        State = GetDefaultStateForType(type);
+        ConnectedRooms = new List<RoomAssignment>();
+        IsRevealed = type == RoomType.Entrance;
+        IsCleared = type != RoomType.Combat && type != RoomType.Boss;
+        SpawnPositions = new List<Vector2Int>();
+    }
+    
+    private RoomState GetDefaultStateForType(RoomType type)
+    {
+        return type switch 
+        { 
+            RoomType.Combat or RoomType.Boss => RoomState.Closed, 
+            _ => RoomState.Open 
+        };
+    }
+    
+    public void GenerateSpawnPositions(int count, int padding = 2)
+    {
+        var innerTiles = Room.GetInnerTiles(padding).ToList();
+        if (innerTiles.Count == 0) return;
+        
+        SpawnPositions.Clear();
+        // Use HashSet to avoid duplicate positions
+        var usedPositions = new HashSet<Vector2Int>();
+        
+        for (int i = 0; i < Mathf.Min(count, innerTiles.Count); i++)
+        {
+            Vector2Int spawnPos;
+            int attempts = 0;
+            do {
+                spawnPos = innerTiles[Random.Range(0, innerTiles.Count)];
+                attempts++;
+            } while (usedPositions.Contains(spawnPos) && attempts < 10);
+            
+            SpawnPositions.Add(spawnPos);
+            usedPositions.Add(spawnPos);
+        }
+    }
+}
+
+public class DungeonLayout
+{
+    public List<RoomModel> Rooms = new List<RoomModel>();
+    public List<CorridorModel> Corridors = new List<CorridorModel>();
+    public HashSet<Vector2Int> AllFloorTiles = new HashSet<Vector2Int>();
+    public HashSet<Vector2Int> AllWallTiles = new HashSet<Vector2Int>();
+    public HashSet<Vector2Int> AllDoorTiles = new HashSet<Vector2Int>();
+    public Dictionary<Vector2Int, WallType> WallTypes = new Dictionary<Vector2Int, WallType>();
+    
+    // Spatial data - initialize on demand
+    public BoundsInt OverallBounds { get; private set; }
+    private Dictionary<Vector2Int, RoomModel> _tileToRoomMap;
+    private Dictionary<Vector2Int, CorridorModel> _tileToCorridorMap;
+    private Dictionary<RoomModel, List<RoomModel>> _roomGraph;
+    private bool _isInitialized = false;
+
+    public void InitializeSpatialData()
+    {
+        if (_isInitialized) return;
+        
+        CalculateOverallBounds();
+        BuildTileMaps();
+        BuildRoomGraph();
+        _isInitialized = true;
+    }
+    
+    private void CalculateOverallBounds()
+    {
+        if (Rooms.Count == 0) 
+        {
+            OverallBounds = new BoundsInt(0, 0, 0, 0, 0, 0);
+            return;
+        }
+        
+        int minX = Rooms.Min(r => r.Bounds.xMin);
+        int maxX = Rooms.Max(r => r.Bounds.xMax);
+        int minY = Rooms.Min(r => r.Bounds.yMin);
+        int maxY = Rooms.Max(r => r.Bounds.yMax);
+        
+        OverallBounds = new BoundsInt(minX, minY, 0, maxX - minX, maxY - minY, 1);
+    }
+    
+    private void BuildTileMaps()
+    {
+        _tileToRoomMap = new Dictionary<Vector2Int, RoomModel>();
+        _tileToCorridorMap = new Dictionary<Vector2Int, CorridorModel>();
+        
+        // Map ALL floor tiles (not just inner tiles) for accurate player detection
+        foreach (var room in Rooms)
+        {
+            foreach (var tile in room.GetFloorTiles()) // Use GetFloorTiles, not GetInnerTiles
+            {
+                _tileToRoomMap[tile] = room;
+            }
+        }
+        
+        foreach (var corridor in Corridors)
+        {
+            if (corridor?.Tiles != null)
+            {
+                foreach (var tile in corridor.Tiles)
+                {
+                    _tileToCorridorMap[tile] = corridor;
+                    // Also add corridor tiles to room mapping if not already mapped
+                    if (!_tileToRoomMap.ContainsKey(tile))
+                    {
+                        _tileToRoomMap[tile] = null; // Corridor tiles don't belong to rooms
+                    }
+                }
+            }
+        }
+    }
+    
+    private void BuildRoomGraph()
+    {
+        _roomGraph = new Dictionary<RoomModel, List<RoomModel>>();
+        
+        foreach (var room in Rooms)
+        {
+            _roomGraph[room] = new List<RoomModel>();
+        }
+        
+        foreach (var corridor in Corridors)
+        {
+            if (corridor?.StartRoom != null && corridor?.EndRoom != null && 
+                _roomGraph.ContainsKey(corridor.StartRoom) && _roomGraph.ContainsKey(corridor.EndRoom))
+            {
+                if (!_roomGraph[corridor.StartRoom].Contains(corridor.EndRoom))
+                    _roomGraph[corridor.StartRoom].Add(corridor.EndRoom);
+                
+                if (!_roomGraph[corridor.EndRoom].Contains(corridor.StartRoom))
+                    _roomGraph[corridor.EndRoom].Add(corridor.StartRoom);
+            }
+        }
+    }
+    
+    public RoomModel GetRoomAtPosition(Vector2Int position)
+    {
+        if (!_isInitialized) InitializeSpatialData();
+        _tileToRoomMap.TryGetValue(position, out var room);
+        return room;
+    }
+    
+    public Dictionary<RoomModel, List<RoomModel>> RoomGraph 
+    { 
+        get 
+        {
+            if (!_isInitialized) InitializeSpatialData();
+            return _roomGraph;
+        } 
+    }
+    
+    public bool IsFloorTile(Vector2Int position) => AllFloorTiles.Contains(position);
+    public bool IsWallTile(Vector2Int position) => AllWallTiles.Contains(position);
+    public bool IsDoorTile(Vector2Int position) => AllDoorTiles.Contains(position);
+}
