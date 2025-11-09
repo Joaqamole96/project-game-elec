@@ -1,6 +1,11 @@
+// OptimizedPrefabRenderer.cs
 using UnityEngine;
 using System.Collections.Generic;
 
+/// <summary>
+/// High-performance prefab renderer that uses mesh combining for optimal rendering.
+/// Supports biome themes and efficient geometry batching.
+/// </summary>
 public class OptimizedPrefabRenderer
 {
     private BiomeManager _biomeManager;
@@ -8,26 +13,22 @@ public class OptimizedPrefabRenderer
     private int _currentFloor;
     private AdvancedMeshCombiner _meshCombiner;
 
-    // REMOVED: Old combine instance lists
-    // private List<CombineInstance> _floorCombineInstances = new List<CombineInstance>();
-    // private List<CombineInstance> _wallCombineInstances = new List<CombineInstance>();
-    // private List<CombineInstance> _doorCombineInstances = new List<CombineInstance>();
-    // private List<CombineInstance> _doorTopCombineInstances = new List<CombineInstance>();
-
     public OptimizedPrefabRenderer(BiomeManager biomeManager)
     {
         _biomeManager = biomeManager;
-        _meshCombiner = new AdvancedMeshCombiner(); // ADDED: New mesh combiner
+        _meshCombiner = new AdvancedMeshCombiner();
     }
 
     public void SetThemeForFloor(int floorLevel, int seed)
     {
         _currentFloor = floorLevel;
         _currentTheme = _biomeManager.GetThemeForFloor(floorLevel, seed);
-        Debug.Log($"Using theme: {_currentTheme.Name} for floor {floorLevel}");
+        Debug.Log($"Using theme: {_currentTheme?.Name} for floor {floorLevel}");
     }
 
-    // MODIFIED: Completely rewritten to use AdvancedMeshCombiner
+    /// <summary>
+    /// Renders all floor tiles using combined meshes for optimal performance.
+    /// </summary>
     public void RenderFloorsOptimized(LevelModel layout, Transform parent)
     {
         if (_currentTheme == null)
@@ -100,7 +101,9 @@ public class OptimizedPrefabRenderer
         Debug.Log($"=== END FLOOR DEBUG ===");
     }
 
-    // MODIFIED: Completely rewritten to use AdvancedMeshCombiner
+    /// <summary>
+    /// Renders all wall tiles using combined meshes for optimal performance.
+    /// </summary>
     public void RenderWallsOptimized(LevelModel layout, Transform parent)
     {
         if (_currentTheme == null || layout?.AllWallTiles == null) return;
@@ -115,8 +118,8 @@ public class OptimizedPrefabRenderer
         }
 
         Mesh wallMesh = GetPrefabMesh(wallPrefab);
-        Material wallMaterial = GetPrefabMaterial(wallPrefab); // ADDED: Get material
-        Vector3 wallScale = wallPrefab.transform.localScale; // ADDED: Get scale
+        Material wallMaterial = GetPrefabMaterial(wallPrefab);
+        Vector3 wallScale = wallPrefab.transform.localScale;
 
         if (wallMesh == null || wallMaterial == null) return;
 
@@ -126,13 +129,14 @@ public class OptimizedPrefabRenderer
             {
                 Vector3 worldPos = new Vector3(wallPos.x + 0.5f, 4.5f, wallPos.y + 0.5f);
                 Quaternion rotation = GetWallRotation(wallType);
-                // MODIFIED: Use AdvancedMeshCombiner instead of old system
                 _meshCombiner.AddMesh(wallMesh, worldPos, rotation, wallScale, wallMaterial);
             }
         }
     }
 
-    // MODIFIED: Completely rewritten to use AdvancedMeshCombiner
+    /// <summary>
+    /// Renders all door tiles and door tops using combined meshes.
+    /// </summary>
     public void RenderDoorsOptimized(LevelModel layout, Transform parent)
     {
         if (_currentTheme == null || layout?.AllDoorTiles == null) return;
@@ -142,16 +146,15 @@ public class OptimizedPrefabRenderer
         if (doorPrefab != null)
         {
             Mesh doorMesh = GetPrefabMesh(doorPrefab);
-            Material doorMaterial = GetPrefabMaterial(doorPrefab); // ADDED: Get material
-            Vector3 doorScale = doorPrefab.transform.localScale; // ADDED: Get scale
+            Material doorMaterial = GetPrefabMaterial(doorPrefab);
+            Vector3 doorScale = doorPrefab.transform.localScale;
 
             if (doorMesh != null && doorMaterial != null)
             {
                 foreach (var doorPos in layout.AllDoorTiles)
                 {
                     Vector3 worldPos = new Vector3(doorPos.x + 0.5f, 1f, doorPos.y + 0.5f);
-                    Quaternion rotation = GetDoorRotation(layout, doorPos); // FIXED: Proper orientation
-                    // MODIFIED: Use AdvancedMeshCombiner instead of old system
+                    Quaternion rotation = GetDoorRotation(layout, doorPos);
                     _meshCombiner.AddMesh(doorMesh, worldPos, rotation, doorScale, doorMaterial);
                 }
             }
@@ -162,22 +165,23 @@ public class OptimizedPrefabRenderer
         if (doorTopPrefab != null)
         {
             Mesh doorTopMesh = GetPrefabMesh(doorTopPrefab);
-            Material doorTopMaterial = GetPrefabMaterial(doorTopPrefab); // ADDED: Get material
-            Vector3 doorTopScale = doorTopPrefab.transform.localScale; // ADDED: Get scale
+            Material doorTopMaterial = GetPrefabMaterial(doorTopPrefab);
+            Vector3 doorTopScale = doorTopPrefab.transform.localScale;
 
             if (doorTopMesh != null && doorTopMaterial != null)
             {
                 foreach (var doorPos in layout.AllDoorTiles)
                 {
                     Vector3 worldPos = new Vector3(doorPos.x + 0.5f, 6f, doorPos.y + 0.5f);
-                    // MODIFIED: Use AdvancedMeshCombiner instead of old system
                     _meshCombiner.AddMesh(doorTopMesh, worldPos, Quaternion.identity, doorTopScale, doorTopMaterial);
                 }
             }
         }
     }
 
-    // ADDED: New method to finalize all combined meshes
+    /// <summary>
+    /// Finalizes all combined meshes and builds them in the scene.
+    /// </summary>
     public void FinalizeRendering(Transform parent)
     {
         // Build all combined meshes at once
@@ -185,9 +189,13 @@ public class OptimizedPrefabRenderer
         Debug.Log($"Finalized rendering with {combinedObjects.Count} combined mesh objects");
     }
 
-    // Existing methods (mostly unchanged)
+    /// <summary>
+    /// Renders a ceiling plane above the entire dungeon.
+    /// </summary>
     public void RenderCeilingOptimized(LevelModel layout, Transform parent)
     {
+        if (layout?.OverallBounds == null) return;
+
         // Create one main ceiling plane at Y=9
         GameObject ceiling = GameObject.CreatePrimitive(PrimitiveType.Plane);
         ceiling.name = "MainCeiling";
@@ -211,8 +219,13 @@ public class OptimizedPrefabRenderer
         GameObject.DestroyImmediate(ceiling.GetComponent<Collider>());
     }
 
+    /// <summary>
+    /// Renders a void plane below the dungeon to catch falling objects.
+    /// </summary>
     public void RenderVoidPlane(LevelModel layout, Transform parent)
     {
+        if (layout?.OverallBounds == null) return;
+
         GameObject voidPlane = GameObject.CreatePrimitive(PrimitiveType.Plane);
         voidPlane.name = "VoidPlane";
         voidPlane.transform.SetParent(parent);
@@ -238,29 +251,20 @@ public class OptimizedPrefabRenderer
 
     #region Helper Methods
 
-    // ADDED: New method to get material from prefab
-    private Material GetPrefabMaterial(GameObject prefab)
-    {
-        var renderer = prefab.GetComponentInChildren<Renderer>();
-        return renderer != null ? renderer.sharedMaterial : null;
-    }
-
     private Mesh GetPrefabMesh(GameObject prefab)
     {
+        if (prefab == null) return null;
         var meshFilter = prefab.GetComponentInChildren<MeshFilter>();
         return meshFilter != null ? meshFilter.sharedMesh : null;
     }
 
-    // REMOVED: Old AddToCombineInstances method
-    // private void AddToCombineInstances(List<CombineInstance> combineInstances, Mesh mesh, Vector3 position, Quaternion rotation, Vector3 scale)
+    private Material GetPrefabMaterial(GameObject prefab)
+    {
+        if (prefab == null) return null;
+        var renderer = prefab.GetComponentInChildren<Renderer>();
+        return renderer != null ? renderer.sharedMaterial : null;
+    }
 
-    // REMOVED: Old CreateCombinedMesh method
-    // private GameObject CreateCombinedMesh(List<CombineInstance> combineInstances, GameObject sourcePrefab, string name, Transform parent)
-
-    // REMOVED: Old CreateSplitCombinedMeshes method  
-    // private List<GameObject> CreateSplitCombinedMeshes(List<CombineInstance> combineInstances, GameObject sourcePrefab, string baseName, Transform parent, int maxInstancesPerMesh = 10000)
-
-    // ADDED: New door orientation logic
     private Quaternion GetDoorRotation(LevelModel layout, Vector2Int doorPos)
     {
         // Check adjacent tiles to determine which way the door should face
@@ -308,7 +312,6 @@ public class OptimizedPrefabRenderer
         return Quaternion.Euler(0, 0, 0);
     }
 
-    // ADDED: Helper for door rotation
     private Quaternion GetRotationFromDirection(Vector2Int direction)
     {
         if (direction == new Vector2Int(0, 1)) return Quaternion.Euler(0, 0, 0);    // North
@@ -319,7 +322,6 @@ public class OptimizedPrefabRenderer
         return Quaternion.identity;
     }
 
-    // ADDED: Helper for door rotation
     private RoomModel FindAdjacentRoom(LevelModel layout, Vector2Int doorPos)
     {
         Vector2Int[] checkDirections = new Vector2Int[]
@@ -337,7 +339,6 @@ public class OptimizedPrefabRenderer
         return null;
     }
 
-    // ADDED: Helper for door rotation
     private Quaternion GetDoorRotationFromRoom(RoomModel room, Vector2Int doorPos)
     {
         var bounds = room.Bounds;

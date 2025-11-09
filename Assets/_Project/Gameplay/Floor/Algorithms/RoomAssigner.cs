@@ -1,15 +1,22 @@
+// RoomAssigner.cs
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
+/// <summary>
+/// Assigns room types and purposes based on dungeon progression and connectivity.
+/// </summary>
 public class RoomAssigner
 {
+    /// <summary>
+    /// Assigns room types based on dungeon progression and connectivity.
+    /// </summary>
     public List<RoomModel> AssignRooms(LevelModel layout, int floorLevel, System.Random random)
     {
         if (layout?.Rooms == null || layout.Rooms.Count == 0)
         {
             Debug.LogWarning("No rooms to assign!");
-            return new List<RoomModel>();
+            return CreateFallbackAssignments(layout?.Rooms);
         }
 
         layout.InitializeSpatialData();
@@ -24,18 +31,14 @@ public class RoomAssigner
         var entranceRoom = FindOptimalEntranceRoom(layout.Rooms, roomGraph, layout);
         var distances = CalculateDistancesFromRoom(roomGraph, entranceRoom);
         
-        foreach (var room in layout.Rooms)
-        {
-            distances.TryGetValue(room, out room.DistanceFromEntrance);
-        }
-
+        AssignDistanceValues(layout.Rooms, distances);
         AssignCriticalRooms(layout.Rooms, distances, floorLevel, random);
         AssignSpecialRooms(layout.Rooms, floorLevel, random);
         AssignEmptyRooms(layout.Rooms, random);
         
         GenerateSpawnPositions(layout.Rooms);
         
-        Debug.Log($"Room assignment complete: {layout.Rooms.Count} rooms");
+        Debug.Log($"Room assignment complete: {GetRoomTypeSummary(layout.Rooms)}");
         return layout.Rooms;
     }
 
@@ -44,32 +47,53 @@ public class RoomAssigner
         return rooms.OrderBy(room => 
         {
             int connectionCount = graph.ContainsKey(room) ? graph[room].Count : int.MaxValue;
-            int edgeDistance = Mathf.Min(
-                room.Bounds.xMin, 
-                layout.OverallBounds.size.x - room.Bounds.xMax,
-                room.Bounds.yMin, 
-                layout.OverallBounds.size.y - room.Bounds.yMax
-            );
-            return connectionCount * 1000 + edgeDistance;
+            int edgeDistance = CalculateEdgeDistance(room, layout);
+            return connectionCount * 1000 + edgeDistance; // Prioritize well-connected edge rooms
         }).FirstOrDefault() ?? rooms[0];
+    }
+
+    private int CalculateEdgeDistance(RoomModel room, LevelModel layout)
+    {
+        if (room?.Bounds == null || layout?.OverallBounds == null) return int.MaxValue;
+        
+        return Mathf.Min(
+            room.Bounds.xMin, 
+            layout.OverallBounds.size.x - room.Bounds.xMax,
+            room.Bounds.yMin, 
+            layout.OverallBounds.size.y - room.Bounds.yMax
+        );
+    }
+
+    private void AssignDistanceValues(List<RoomModel> rooms, Dictionary<RoomModel, int> distances)
+    {
+        if (rooms == null || distances == null) return;
+
+        foreach (var room in rooms)
+        {
+            if (room != null && distances.TryGetValue(room, out int distance))
+            {
+                room.DistanceFromEntrance = distance;
+            }
+        }
     }
 
     private void AssignCriticalRooms(List<RoomModel> rooms, Dictionary<RoomModel, int> distances, int floorLevel, System.Random random)
     {
-        if (rooms.Count < 2) 
+        if (rooms == null || rooms.Count < 2) 
         {
             Debug.LogWarning("Not enough rooms to assign critical rooms!");
             return;
         }
 
-        var entranceRoom = rooms.OrderBy(r => r.DistanceFromEntrance).First();
-        var exitRoom = rooms.OrderByDescending(r => r.DistanceFromEntrance).First();
+        var entranceRoom = rooms.OrderBy(r => distances.GetValueOrDefault(r, int.MaxValue)).First();
+        var exitRoom = rooms.OrderByDescending(r => distances.GetValueOrDefault(r, int.MinValue)).First();
 
         // Ensure we have distinct rooms for entrance and exit
         if (entranceRoom == exitRoom && rooms.Count > 1)
         {
-            exitRoom = rooms.OrderByDescending(r => r.DistanceFromEntrance)
-                        .First(r => r != entranceRoom);
+            exitRoom = rooms.Where(r => r != entranceRoom)
+                          .OrderByDescending(r => distances.GetValueOrDefault(r, int.MinValue))
+                          .First();
         }
 
         // Only assign if they're currently combat rooms (don't reassign already assigned rooms)
@@ -100,13 +124,15 @@ public class RoomAssigner
 
     private void AssignBossRoom(List<RoomModel> rooms, RoomModel exitRoom)
     {
+        if (exitRoom == null) return;
+
         var bossCandidate = rooms
-            .Where(r => r.Type == RoomType.Combat && r.ConnectedRooms.Contains(exitRoom))
+            .Where(r => r != null && r.Type == RoomType.Combat && r.ConnectedRooms.Contains(exitRoom))
             .OrderByDescending(r => r.DistanceFromEntrance)
             .FirstOrDefault();
 
         bossCandidate ??= rooms
-            .Where(r => r.Type == RoomType.Combat)
+            .Where(r => r != null && r.Type == RoomType.Combat)
             .OrderByDescending(r => r.DistanceFromEntrance)
             .FirstOrDefault();
 
@@ -119,7 +145,7 @@ public class RoomAssigner
 
     private void AssignSpecialRooms(List<RoomModel> rooms, int floorLevel, System.Random random)
     {
-        var combatRooms = rooms.Where(r => r.Type == RoomType.Combat).ToList();
+        var combatRooms = rooms.Where(r => r != null && r.Type == RoomType.Combat).ToList();
         if (combatRooms.Count < 2) return;
 
         // These would come from GameConfig in the real implementation
@@ -127,15 +153,17 @@ public class RoomAssigner
         int targetTreasureRooms = 1;
 
         var midProgressRooms = combatRooms
-            .OrderBy(r => Mathf.Abs((float)(r.DistanceFromEntrance - combatRooms.Average(room => room.DistanceFromEntrance))))
+            .OrderBy(r => Mathf.Abs(r.DistanceFromEntrance - (float)combatRooms.Average(room => room.DistanceFromEntrance)))
             .ToList();
 
+        // Assign shop rooms
         for (int i = 0; i < targetShopRooms && i < midProgressRooms.Count; i++)
         {
             midProgressRooms[i].Type = RoomType.Shop;
             midProgressRooms[i].State = RoomAccess.Open;
         }
 
+        // Assign treasure rooms
         int treasureStart = targetShopRooms;
         for (int i = 0; i < targetTreasureRooms && treasureStart + i < midProgressRooms.Count; i++)
         {
@@ -146,7 +174,7 @@ public class RoomAssigner
 
     private void AssignEmptyRooms(List<RoomModel> rooms, System.Random random)
     {
-        var combatRooms = rooms.Where(r => r.Type == RoomType.Combat).ToList();
+        var combatRooms = rooms.Where(r => r != null && r.Type == RoomType.Combat).ToList();
         if (combatRooms.Count == 0) return;
 
         int emptyRoomCount = Mathf.Max(1, combatRooms.Count / 4);
@@ -169,21 +197,11 @@ public class RoomAssigner
         
         foreach (var room in rooms)
         {
-            if (room.Type == RoomType.Combat || room.Type == RoomType.Boss)
+            if (room != null && (room.Type == RoomType.Combat || room.Type == RoomType.Boss))
             {
                 room.GenerateSpawnPositions(enemiesPerRoom);
             }
         }
-    }
-
-    private List<RoomModel> CreateFallbackAssignments(List<RoomModel> rooms)
-    {
-        for (int i = 0; i < rooms.Count; i++)
-        {
-            rooms[i].Type = i == 0 ? RoomType.Entrance : 
-                          i == rooms.Count - 1 ? RoomType.Exit : RoomType.Combat;
-        }
-        return rooms;
     }
 
     private Dictionary<RoomModel, int> CalculateDistancesFromRoom(Dictionary<RoomModel, List<RoomModel>> graph, RoomModel startRoom)
@@ -204,16 +222,43 @@ public class RoomAssigner
             var (current, distance) = queue.Dequeue();
             distances[current] = distance;
             
-            foreach (var neighbor in graph[current])
+            if (graph.ContainsKey(current))
             {
-                if (!visited.Contains(neighbor))
+                foreach (var neighbor in graph[current])
                 {
-                    visited.Add(neighbor);
-                    queue.Enqueue((neighbor, distance + 1));
+                    if (neighbor != null && !visited.Contains(neighbor))
+                    {
+                        visited.Add(neighbor);
+                        queue.Enqueue((neighbor, distance + 1));
+                    }
                 }
             }
         }
         
         return distances;
+    }
+
+    private List<RoomModel> CreateFallbackAssignments(List<RoomModel> rooms)
+    {
+        if (rooms == null || rooms.Count == 0)
+            return new List<RoomModel>();
+
+        for (int i = 0; i < rooms.Count; i++)
+        {
+            if (rooms[i] != null)
+            {
+                rooms[i].Type = i == 0 ? RoomType.Entrance : 
+                              i == rooms.Count - 1 ? RoomType.Exit : RoomType.Combat;
+            }
+        }
+        return rooms;
+    }
+
+    private string GetRoomTypeSummary(List<RoomModel> rooms)
+    {
+        if (rooms == null) return "No rooms";
+        return string.Join(", ", rooms.Where(r => r != null)
+                                    .GroupBy(r => r.Type)
+                                    .Select(g => $"{g.Key}: {g.Count()}"));
     }
 }

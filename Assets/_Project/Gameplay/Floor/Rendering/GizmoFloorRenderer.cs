@@ -1,7 +1,11 @@
+// GizmoFloorRenderer.cs
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
 
+/// <summary>
+/// Renders floors in Gizmo mode using colored cubes for debugging and visualization.
+/// </summary>
 public class GizmoFloorRenderer : IFloorRenderer
 {
     private MaterialManager _materialManager;
@@ -13,8 +17,17 @@ public class GizmoFloorRenderer : IFloorRenderer
         _meshCombiner = new MeshCombiner();
     }
 
+    /// <summary>
+    /// Renders floors as combined meshes grouped by room type for optimal performance.
+    /// </summary>
     public List<GameObject> RenderCombinedFloorsByRoomType(LevelModel layout, List<RoomModel> rooms, Transform parent)
     {
+        if (layout?.AllFloorTiles == null || rooms == null)
+        {
+            Debug.LogError("Cannot render combined floors: layout or rooms is null");
+            return new List<GameObject>();
+        }
+
         var floorGroups = GroupFloorTilesByRoomType(layout, rooms);
         var meshContainers = new List<GameObject>();
 
@@ -47,18 +60,30 @@ public class GizmoFloorRenderer : IFloorRenderer
         return meshContainers;
     }
 
+    /// <summary>
+    /// Renders floors as individual cubes for detailed debugging.
+    /// </summary>
     public void RenderIndividualFloors(LevelModel layout, List<RoomModel> rooms, Transform parent, bool enableCollision)
     {
+        if (layout?.AllFloorTiles == null || rooms == null)
+        {
+            Debug.LogError("Cannot render individual floors: layout or rooms is null");
+            return;
+        }
+
         foreach (var floorPos in layout.AllFloorTiles)
         {
             var floor = CreateFloorAtPosition(floorPos);
-            floor.transform.SetParent(parent);
-            
-            var roomType = GetRoomTypeAtPosition(floorPos, rooms, layout);
-            ApplyRoomMaterial(floor, roomType);
-            
-            if (enableCollision)
-                AddCollisionToObject(floor, "Floor");
+            if (floor != null)
+            {
+                floor.transform.SetParent(parent);
+                
+                var roomType = GetRoomTypeAtPosition(floorPos, rooms, layout);
+                ApplyRoomMaterial(floor, roomType);
+                
+                if (enableCollision)
+                    AddCollisionToObject(floor, "Floor");
+            }
         }
     }
 
@@ -81,6 +106,8 @@ public class GizmoFloorRenderer : IFloorRenderer
 
     private RoomType GetRoomTypeAtPosition(Vector2Int position, List<RoomModel> rooms, LevelModel layout)
     {
+        if (layout == null || rooms == null) return RoomType.Combat;
+        
         var room = layout.GetRoomAtPosition(position);
         return room?.Type ?? RoomType.Combat;
     }
@@ -97,6 +124,8 @@ public class GizmoFloorRenderer : IFloorRenderer
 
     private void ApplyRoomMaterial(GameObject obj, RoomType roomType)
     {
+        if (obj == null) return;
+        
         var renderer = obj.GetComponent<Renderer>();
         if (renderer != null)
         {

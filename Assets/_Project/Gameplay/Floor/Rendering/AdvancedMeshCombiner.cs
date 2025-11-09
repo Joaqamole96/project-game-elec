@@ -1,7 +1,12 @@
+// AdvancedMeshCombiner.cs
 using UnityEngine;
 using System.Collections.Generic;
 
-// REMOVED: : MonoBehaviour
+/// <summary>
+/// Advanced mesh combining system that handles large numbers of meshes efficiently.
+/// Supports material-based grouping and automatic vertex limit management.
+/// </summary>
+[System.Serializable]
 public class AdvancedMeshCombiner
 {
     [System.Serializable]
@@ -26,9 +31,6 @@ public class AdvancedMeshCombiner
 
     private Dictionary<Material, CombinedMeshData> _materialMeshes = new Dictionary<Material, CombinedMeshData>();
     private const int MAX_VERTICES_PER_MESH = 60000;
-
-    // REMOVED: Constructor since it's not a MonoBehaviour anymore
-    // public AdvancedMeshCombiner() { }
 
     public void AddMesh(Mesh mesh, Vector3 position, Quaternion rotation, Vector3 scale, Material material)
     {

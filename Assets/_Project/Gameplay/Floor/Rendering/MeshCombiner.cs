@@ -1,11 +1,19 @@
+// MeshCombiner.cs
 using UnityEngine;
 using System.Collections.Generic;
 
+/// <summary>
+/// Utility class for combining multiple meshes into single mesh objects for performance optimization.
+/// Handles vertex limits and chunking automatically.
+/// </summary>
 public class MeshCombiner
 {
+    /// <summary>
+    /// Creates a combined mesh from a list of positions, handling vertex limits automatically.
+    /// </summary>
     public GameObject CreateCombinedMesh(List<Vector3> positions, string name, Transform parent)
     {
-        if (positions.Count == 0) 
+        if (positions == null || positions.Count == 0) 
         {
             Debug.LogWarning($"No positions provided for mesh: {name}");
             return null;
@@ -56,25 +64,7 @@ public class MeshCombiner
         else if (meshFilters.Count == 1)
         {
             // Handle single mesh case
-            var containerFilter = container.GetComponent<MeshFilter>();
-            if (containerFilter == null)
-                containerFilter = container.AddComponent<MeshFilter>();
-                
-            MeshRenderer containerRenderer = container.GetComponent<MeshRenderer>();
-            if (containerRenderer == null)
-                containerRenderer = container.AddComponent<MeshRenderer>();
-            
-            containerFilter.mesh = meshFilters[0].sharedMesh;
-            
-            // Copy material from the cube
-            var cubeRenderer = meshFilters[0].GetComponent<Renderer>();
-            if (cubeRenderer != null)
-            {
-                containerRenderer.sharedMaterial = cubeRenderer.sharedMaterial;
-            }
-            
-            // Destroy the child cube
-            Object.DestroyImmediate(meshFilters[0].gameObject);
+            SetupSingleMeshContainer(container, meshFilters[0]);
         }
         else
         {
@@ -84,6 +74,29 @@ public class MeshCombiner
         }
         
         return container;
+    }
+
+    private void SetupSingleMeshContainer(GameObject container, MeshFilter meshFilter)
+    {
+        var containerFilter = container.GetComponent<MeshFilter>();
+        if (containerFilter == null)
+            containerFilter = container.AddComponent<MeshFilter>();
+            
+        MeshRenderer containerRenderer = container.GetComponent<MeshRenderer>();
+        if (containerRenderer == null)
+            containerRenderer = container.AddComponent<MeshRenderer>();
+        
+        containerFilter.mesh = meshFilter.sharedMesh;
+        
+        // Copy material from the cube
+        var cubeRenderer = meshFilter.GetComponent<Renderer>();
+        if (cubeRenderer != null)
+        {
+            containerRenderer.sharedMaterial = cubeRenderer.sharedMaterial;
+        }
+        
+        // Destroy the child cube
+        Object.DestroyImmediate(meshFilter.gameObject);
     }
 
     private GameObject CreateSplitMeshes(List<Vector3> positions, string name, Transform parent, int maxCubesPerChunk)
@@ -132,7 +145,7 @@ public class MeshCombiner
 
         if (combineInstances.Count == 0) return;
 
-        // FIX: Check if we'll exceed vertex limit and use chunking if needed
+        // Check if we'll exceed vertex limit and use chunking if needed
         int totalVertices = CalculateTotalVertices(combineInstances);
         
         if (totalVertices > 60000) // Safe margin below 65k
@@ -151,12 +164,20 @@ public class MeshCombiner
         // Create combined mesh
         Mesh combinedMesh = new Mesh();
         
-        // FIX: Set index format to support more vertices
+        // Set index format to support more vertices
         combinedMesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
         
         combinedMesh.CombineMeshes(combineInstances.ToArray());
         
         // Set up the container with combined mesh
+        SetupContainerWithMesh(container, combinedMesh);
+        
+        // Destroy individual child objects
+        DestroyChildObjects(container);
+    }
+
+    private void SetupContainerWithMesh(GameObject container, Mesh combinedMesh)
+    {
         MeshFilter containerFilter = container.GetComponent<MeshFilter>();
         if (containerFilter == null)
             containerFilter = container.AddComponent<MeshFilter>();
@@ -176,12 +197,6 @@ public class MeshCombiner
                 containerRenderer.sharedMaterial = firstRenderer.sharedMaterial;
             }
         }
-        
-        // Destroy individual child objects
-        for (int i = container.transform.childCount - 1; i >= 0; i--)
-        {
-            Object.DestroyImmediate(container.transform.GetChild(i).gameObject);
-        }
     }
 
     private void CombineMeshesInChunks(GameObject container, List<CombineInstance> combineInstances)
@@ -192,10 +207,7 @@ public class MeshCombiner
         int chunkIndex = 0;
 
         // Clear existing components from container
-        var existingFilter = container.GetComponent<MeshFilter>();
-        var existingRenderer = container.GetComponent<MeshRenderer>();
-        if (existingFilter != null) Object.DestroyImmediate(existingFilter);
-        if (existingRenderer != null) Object.DestroyImmediate(existingRenderer);
+        ClearContainerComponents(container);
 
         for (int i = 0; i < combineInstances.Count; i++)
         {
@@ -222,12 +234,17 @@ public class MeshCombiner
         }
 
         // Destroy individual child objects
-        for (int i = container.transform.childCount - 1; i >= 0; i--)
-        {
-            Object.DestroyImmediate(container.transform.GetChild(i).gameObject);
-        }
+        DestroyChildObjects(container);
 
         Debug.Log($"Created {chunkIndex + 1} mesh chunks to avoid vertex limit");
+    }
+
+    private void ClearContainerComponents(GameObject container)
+    {
+        var existingFilter = container.GetComponent<MeshFilter>();
+        var existingRenderer = container.GetComponent<MeshRenderer>();
+        if (existingFilter != null) Object.DestroyImmediate(existingFilter);
+        if (existingRenderer != null) Object.DestroyImmediate(existingRenderer);
     }
 
     private void CreateChunkMesh(GameObject container, List<CombineInstance> combineInstances, int chunkIndex)
@@ -251,18 +268,28 @@ public class MeshCombiner
         chunkFilter.mesh = combinedMesh;
 
         // Copy material from first combine instance if possible
-        if (container.transform.childCount > 0)
+        CopyMaterialToChunk(container, chunkRenderer);
+    }
+
+    private void CopyMaterialToChunk(GameObject container, MeshRenderer chunkRenderer)
+    {
+        // Try to find a renderer in the original children to copy material from
+        foreach (Transform child in container.transform)
         {
-            // Try to find a renderer in the original children to copy material from
-            foreach (Transform child in container.transform)
+            var renderer = child.GetComponent<Renderer>();
+            if (renderer != null)
             {
-                var renderer = child.GetComponent<Renderer>();
-                if (renderer != null)
-                {
-                    chunkRenderer.sharedMaterial = renderer.sharedMaterial;
-                    break;
-                }
+                chunkRenderer.sharedMaterial = renderer.sharedMaterial;
+                break;
             }
+        }
+    }
+
+    private void DestroyChildObjects(GameObject container)
+    {
+        for (int i = container.transform.childCount - 1; i >= 0; i--)
+        {
+            Object.DestroyImmediate(container.transform.GetChild(i).gameObject);
         }
     }
 

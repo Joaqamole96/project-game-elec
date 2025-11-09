@@ -1,7 +1,11 @@
+// GizmoWallRenderer.cs
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
 
+/// <summary>
+/// Renders walls in Gizmo mode using colored cubes for debugging and visualization.
+/// </summary>
 public class GizmoWallRenderer : IWallRenderer
 {
     private MaterialManager _materialManager;
@@ -13,8 +17,17 @@ public class GizmoWallRenderer : IWallRenderer
         _meshCombiner = new MeshCombiner();
     }
 
+    /// <summary>
+    /// Renders walls as combined meshes grouped by wall type for optimal performance.
+    /// </summary>
     public List<GameObject> RenderCombinedWallsByType(LevelModel layout, Transform parent)
     {
+        if (layout?.AllWallTiles == null || layout.WallTypes == null)
+        {
+            Debug.LogError("Cannot render combined walls: layout data is null");
+            return new List<GameObject>();
+        }
+
         var wallGroups = GroupWallTilesByType(layout);
         var meshContainers = new List<GameObject>();
 
@@ -23,25 +36,36 @@ public class GizmoWallRenderer : IWallRenderer
             if (wallGroup.Value.Count > 0)
             {
                 var combinedMesh = _meshCombiner.CreateCombinedMesh(wallGroup.Value, $"Walls_{wallGroup.Key}", parent);
-                ApplyWallMaterial(combinedMesh, wallGroup.Key);
-                meshContainers.Add(combinedMesh);
+                if (combinedMesh != null)
+                {
+                    ApplyWallMaterial(combinedMesh, wallGroup.Key);
+                    meshContainers.Add(combinedMesh);
+                }
             }
         }
 
         return meshContainers;
     }
 
+    /// <summary>
+    /// Renders walls as individual cubes for detailed debugging.
+    /// </summary>
     public void RenderIndividualWalls(LevelModel layout, Transform parent, bool enableCollision)
     {
+        if (layout?.AllWallTiles == null || layout.WallTypes == null) return;
+
         foreach (var wallPos in layout.AllWallTiles)
         {
             if (layout.WallTypes.TryGetValue(wallPos, out var wallType))
             {
                 var wall = CreateWallAtPosition(wallPos, wallType);
-                wall.transform.SetParent(parent);
-                
-                if (enableCollision)
-                    AddCollisionToObject(wall, "Wall");
+                if (wall != null)
+                {
+                    wall.transform.SetParent(parent);
+                    
+                    if (enableCollision)
+                        AddCollisionToObject(wall, "Wall");
+                }
             }
         }
     }
@@ -77,6 +101,8 @@ public class GizmoWallRenderer : IWallRenderer
 
     private void ApplyWallMaterial(GameObject obj, WallType wallType)
     {
+        if (obj == null) return;
+        
         var renderer = obj.GetComponent<Renderer>();
         if (renderer != null)
         {

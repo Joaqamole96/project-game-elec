@@ -1,6 +1,10 @@
+// GizmoDoorRenderer.cs
 using UnityEngine;
 using System.Collections.Generic;
 
+/// <summary>
+/// Renders doors in Gizmo mode using colored cubes for debugging and visualization.
+/// </summary>
 public class GizmoDoorRenderer : IDoorRenderer
 {
     private MaterialManager _materialManager;
@@ -10,6 +14,9 @@ public class GizmoDoorRenderer : IDoorRenderer
         _materialManager = materialManager;
     }
 
+    /// <summary>
+    /// Renders all doors in the layout as individual cubes.
+    /// </summary>
     public void RenderDoors(LevelModel layout, Transform parent, bool enableCollision)
     {
         if (layout?.AllDoorTiles == null) return;
@@ -17,11 +24,14 @@ public class GizmoDoorRenderer : IDoorRenderer
         foreach (var doorPos in layout.AllDoorTiles)
         {
             var door = CreateDoorAtPosition(doorPos);
-            door.transform.SetParent(parent);
-            
-            if (enableCollision && door != null) 
+            if (door != null)
             {
-                AddCollisionToObject(door, "Door");
+                door.transform.SetParent(parent);
+                
+                if (enableCollision && door != null) 
+                {
+                    AddCollisionToObject(door, "Door");
+                }
             }
         }
     }
@@ -39,6 +49,8 @@ public class GizmoDoorRenderer : IDoorRenderer
 
     private void ApplyDoorMaterial(GameObject obj)
     {
+        if (obj == null) return;
+        
         var renderer = obj.GetComponent<Renderer>();
         if (renderer != null)
         {
