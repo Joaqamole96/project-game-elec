@@ -1,84 +1,102 @@
+// WallTypeCalculator.cs
+using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
-using UnityEngine;
 
+/// <summary>
+/// Determines the specific type of wall (corner, edge, interior, etc.) based on position and context.
+/// </summary>
 public static class WallTypeCalculator
 {
+    /// <summary>
+    /// Determines the wall type for a given position based on room geometry and adjacent tiles.
+    /// </summary>
     public static WallType DetermineWallType(Vector2Int pos, List<RoomModel> rooms, HashSet<Vector2Int> allFloorTiles)
     {
-        // First, check if this is a corridor wall (not adjacent to any room)
+        // Check for corridor walls first
         if (IsCorridorWall(pos, rooms, allFloorTiles))
         {
             return WallType.Corridor;
         }
 
-        // Then check if this is a corner or edge wall for rooms
-        foreach (var room in rooms)
+        // Then check for room perimeter walls
+        var roomWallType = DetermineRoomWallType(pos, rooms);
+        if (roomWallType != WallType.Interior)
         {
-            if (room?.Bounds == null) continue;
-
-            var bounds = room.Bounds;
-            bool isNorth = pos.y == bounds.yMax - 1;
-            bool isSouth = pos.y == bounds.yMin;
-            bool isEast = pos.x == bounds.xMax - 1;
-            bool isWest = pos.x == bounds.xMin;
-
-            // Check if this position is actually on the room's perimeter
-            bool isRoomPerimeter = (isNorth || isSouth || isEast || isWest) && 
-                                  room.ContainsPosition(new Vector2Int(pos.x, pos.y));
-
-            if (isRoomPerimeter)
-            {
-                if (isNorth && isWest) return WallType.NorthWestCorner;
-                if (isNorth && isEast) return WallType.NorthEastCorner;
-                if (isSouth && isWest) return WallType.SouthWestCorner;
-                if (isSouth && isEast) return WallType.SouthEastCorner;
-                
-                if (isNorth) return WallType.North;
-                if (isSouth) return WallType.South;
-                if (isEast) return WallType.East;
-                if (isWest) return WallType.West;
-            }
+            return roomWallType;
         }
 
-        // If it's not a corridor wall or room wall, it's interior
+        // Default to interior wall
         return WallType.Interior;
     }
 
     private static bool IsCorridorWall(Vector2Int pos, List<RoomModel> rooms, HashSet<Vector2Int> allFloorTiles)
     {
-        // A wall is a corridor wall if:
-        // 1. It's adjacent to a corridor floor tile
-        // 2. It's NOT part of any room's perimeter
+        bool adjacentToCorridor = IsAdjacentToCorridor(pos, allFloorTiles, rooms);
+        bool isRoomPerimeter = IsPartOfRoomPerimeter(pos, rooms);
         
-        // Check if this position is adjacent to any corridor floor tile
-        var neighbors = GetNeighbors(pos);
-        bool adjacentToCorridor = neighbors.Any(neighbor => 
-            allFloorTiles.Contains(neighbor) && !IsInAnyRoom(neighbor, rooms));
+        return adjacentToCorridor && !isRoomPerimeter;
+    }
 
-        // Check if this position is part of any room's perimeter
-        bool isRoomPerimeter = false;
-        foreach (var room in rooms)
+    private static bool IsAdjacentToCorridor(Vector2Int pos, HashSet<Vector2Int> allFloorTiles, List<RoomModel> rooms)
+    {
+        return GetCardinalNeighbors(pos).Any(neighbor => 
+            allFloorTiles.Contains(neighbor) && !IsInAnyRoom(neighbor, rooms));
+    }
+
+    private static bool IsPartOfRoomPerimeter(Vector2Int pos, List<RoomModel> rooms)
+    {
+        foreach (var room in rooms.Where(room => room?.Bounds != null))
         {
-            if (room?.Bounds == null) continue;
-            
-            var bounds = room.Bounds;
-            bool isNorth = pos.y == bounds.yMax - 1;
-            bool isSouth = pos.y == bounds.yMin;
-            bool isEast = pos.x == bounds.xMax - 1;
-            bool isWest = pos.x == bounds.xMin;
-            
-            bool onRoomEdge = (isNorth || isSouth || isEast || isWest);
-            bool inRoomBounds = room.ContainsPosition(new Vector2Int(pos.x, pos.y));
-            
-            if (onRoomEdge && inRoomBounds)
+            if (IsOnRoomEdge(pos, room) && room.ContainsPosition(new Vector2Int(pos.x, pos.y)))
             {
-                isRoomPerimeter = true;
-                break;
+                return true;
             }
         }
+        return false;
+    }
 
-        return adjacentToCorridor && !isRoomPerimeter;
+    private static WallType DetermineRoomWallType(Vector2Int pos, List<RoomModel> rooms)
+    {
+        foreach (var room in rooms.Where(room => room?.Bounds != null))
+        {
+            if (!IsOnRoomEdge(pos, room) || !room.ContainsPosition(new Vector2Int(pos.x, pos.y)))
+                continue;
+
+            return GetSpecificWallType(pos, room);
+        }
+
+        return WallType.Interior;
+    }
+
+    private static bool IsOnRoomEdge(Vector2Int pos, RoomModel room)
+    {
+        var bounds = room.Bounds;
+        return pos.y == bounds.yMax - 1 || pos.y == bounds.yMin || 
+               pos.x == bounds.xMax - 1 || pos.x == bounds.xMin;
+    }
+
+    private static WallType GetSpecificWallType(Vector2Int pos, RoomModel room)
+    {
+        var bounds = room.Bounds;
+        bool isNorth = pos.y == bounds.yMax - 1;
+        bool isSouth = pos.y == bounds.yMin;
+        bool isEast = pos.x == bounds.xMax - 1;
+        bool isWest = pos.x == bounds.xMin;
+
+        // Check corners first
+        if (isNorth && isWest) return WallType.NorthWestCorner;
+        if (isNorth && isEast) return WallType.NorthEastCorner;
+        if (isSouth && isWest) return WallType.SouthWestCorner;
+        if (isSouth && isEast) return WallType.SouthEastCorner;
+        
+        // Then edges
+        if (isNorth) return WallType.North;
+        if (isSouth) return WallType.South;
+        if (isEast) return WallType.East;
+        if (isWest) return WallType.West;
+
+        return WallType.Interior;
     }
 
     private static bool IsInAnyRoom(Vector2Int position, List<RoomModel> rooms)
@@ -86,7 +104,7 @@ public static class WallTypeCalculator
         return rooms.Any(room => room?.ContainsPosition(position) == true);
     }
 
-    private static List<Vector2Int> GetNeighbors(Vector2Int pos)
+    private static List<Vector2Int> GetCardinalNeighbors(Vector2Int pos)
     {
         return new List<Vector2Int>
         {
