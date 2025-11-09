@@ -1,129 +1,149 @@
-// Core/BiomeManager.cs
 using UnityEngine;
 using System.Collections.Generic;
 
 public class BiomeManager
 {
-    [System.Serializable]
-    public class BiomeSettings
-    {
-        public string Name;
-        public int StartLevel;
-        public int EndLevel;
-        public GameObject[] FloorVariations;
-        public GameObject[] WallVariations;
-        public GameObject[] DoorVariations;
-        public GameObject EntrancePrefab;
-        public GameObject ExitPrefab;
-        public GameObject ShopPrefab;
-        public GameObject TreasurePrefab;
-        public GameObject BossPrefab;
-    }
-
-    public List<BiomeSettings> Biomes = new List<BiomeSettings>();
+    public List<BiomeTheme> Themes = new List<BiomeTheme>();
     private System.Random _random;
+    private Dictionary<string, GameObject> _prefabCache;
 
     public BiomeManager()
     {
         _random = new System.Random();
-        InitializeDefaultBiomes();
+        _prefabCache = new Dictionary<string, GameObject>();
+        InitializeDefaultThemes();
     }
 
-    // In BiomeManager.cs - update the InitializeDefaultBiomes method
-    private void InitializeDefaultBiomes()
+    private void InitializeDefaultThemes()
     {
-        // Grasslands Biome (Levels 1-5)
-        Biomes.Add(new BiomeSettings
+        // Default Theme (for testing)
+        Themes.Add(new BiomeTheme("Default", 1, 100, 1.0f) // Set to cover all floors for testing
         {
-            Name = "Grasslands",
-            StartLevel = 1,
-            EndLevel = 5,
-            FloorVariations = LoadPrefabs("Floors/Grasslands"),
-            WallVariations = LoadPrefabs("Walls/Grasslands"), 
-            DoorVariations = LoadPrefabs("Doors/Grasslands"),
-            EntrancePrefab = Resources.Load<GameObject>("Special/Entrance_Prefab"),
-            ExitPrefab = Resources.Load<GameObject>("Special/Exit_Prefab"),
-            ShopPrefab = Resources.Load<GameObject>("Special/Shop_Tent"),
-            TreasurePrefab = Resources.Load<GameObject>("Special/Treasure_Chest")
+            // KEEP "Prefab" suffix since that's what you named them
+            FloorPrefabPath = "Themes/Default/FloorPrefab",
+            WallPrefabPath = "Themes/Default/WallPrefab",
+            DoorPrefabPath = "Themes/Default/DoorPrefab",
+            DoorTopPrefabPath = "Themes/Default/DoorTopPrefab",
+            EntrancePrefabPath = "Themes/Default/EntrancePrefab",
+            ExitPrefabPath = "Themes/Default/ExitPrefab",
+            ShopPrefabPath = "Themes/Default/ShopPrefab",
+            TreasurePrefabPath = "Themes/Default/TreasurePrefab",
+            BossPrefabPath = "Themes/Default/BossPrefab"
         });
     }
 
-    private GameObject[] LoadPrefabs(string resourcePath)
+    public BiomeTheme GetThemeForFloor(int floorLevel, int seed)
     {
-        // Load all prefabs from Resources folder
-        GameObject[] prefabs = Resources.LoadAll<GameObject>(resourcePath);
+        _random = new System.Random(seed + floorLevel);
         
-        // Log for debugging
-        if (prefabs.Length == 0)
+        // Get all themes valid for this floor level
+        var validThemes = Themes.FindAll(theme => floorLevel >= theme.StartLevel && floorLevel <= theme.EndLevel);
+        
+        if (validThemes.Count == 0)
         {
-            Debug.LogWarning($"No prefabs found at path: {resourcePath}");
+            Debug.LogWarning($"No theme found for floor {floorLevel}, using default");
+            return Themes[0];
+        }
+
+        // If only one theme, use it
+        if (validThemes.Count == 1)
+            return validThemes[0];
+
+        // Weighted random selection between multiple themes
+        float totalWeight = 0f;
+        foreach (var theme in validThemes)
+            totalWeight += theme.Weight;
+
+        float randomValue = (float)_random.NextDouble() * totalWeight;
+        float currentWeight = 0f;
+
+        foreach (var theme in validThemes)
+        {
+            currentWeight += theme.Weight;
+            if (randomValue <= currentWeight)
+            {
+                Debug.Log($"Selected theme '{theme.Name}' for floor {floorLevel} (weight: {theme.Weight})");
+                return theme;
+            }
+        }
+
+        return validThemes[0]; // Fallback
+    }
+
+    public GameObject GetPrefab(string prefabPath)
+    {
+        if (string.IsNullOrEmpty(prefabPath))
+        {
+            Debug.LogWarning("Empty prefab path provided!");
+            return null;
+        }
+
+        // Check cache first
+        if (_prefabCache.ContainsKey(prefabPath))
+        {
+            Debug.Log($"Found cached prefab: {prefabPath}");
+            return _prefabCache[prefabPath];
+        }
+
+        // Load from Resources
+        Debug.Log($"Loading prefab from Resources: {prefabPath}");
+        GameObject prefab = Resources.Load<GameObject>(prefabPath);
+        
+        if (prefab != null)
+        {
+            _prefabCache[prefabPath] = prefab;
+            Debug.Log($"Successfully loaded prefab: {prefabPath}");
         }
         else
         {
-            Debug.Log($"Loaded {prefabs.Length} prefabs from: {resourcePath}");
+            Debug.LogError($"Prefab not found at path: {prefabPath}");
+            // List available resources for debugging
+            var availableFloors = Resources.LoadAll<GameObject>("Themes/Default");
+            Debug.Log($"Available resources in Themes/Default: {availableFloors.Length}");
+            foreach (var resource in availableFloors)
+            {
+                Debug.Log($" - {resource.name}");
+            }
         }
-        
-        return prefabs;
+
+        return prefab;
     }
 
-    public GameObject GetFloorPrefab(RoomType roomType, Vector2Int position)
+    public GameObject GetSpecialRoomPrefab(RoomType roomType, BiomeTheme theme)
+{
+    if (theme == null) return null;
+    
+    string path = roomType switch
     {
-        var biome = GetCurrentBiome();
-        if (biome?.FloorVariations == null || biome.FloorVariations.Length == 0)
-            return null;
+        RoomType.Entrance => theme.EntrancePrefabPath,
+        RoomType.Exit => theme.ExitPrefabPath,
+        RoomType.Shop => theme.ShopPrefabPath,
+        RoomType.Treasure => theme.TreasurePrefabPath,
+        RoomType.Boss => theme.BossPrefabPath,
+        _ => null
+    };
+    
+    return GetPrefab(path);
+}
 
-        // Use position for deterministic variation selection
-        int variationIndex = Mathf.Abs(position.x * 31 + position.y * 17) % biome.FloorVariations.Length;
-        return biome.FloorVariations[variationIndex];
+    // Helper method to get specific prefabs with fallback
+    public GameObject GetFloorPrefab(BiomeTheme theme)
+    {
+        return GetPrefab(theme?.FloorPrefabPath) ?? GetPrefab("Themes/Default/FloorPrefab");
     }
 
-    public GameObject GetWallPrefab(WallType wallType, Vector2Int position)
+    public GameObject GetWallPrefab(BiomeTheme theme)
     {
-        var biome = GetCurrentBiome();
-        if (biome?.WallVariations == null || biome.WallVariations.Length == 0)
-            return null;
-
-        // You could have different variation sets for different wall types
-        // For now, we'll use the same variations but you can expand this
-        int variationIndex = Mathf.Abs(position.x * 23 + position.y * 29) % biome.WallVariations.Length;
-        
-        // Optional: Filter or select different prefabs based on wall type
-        GameObject selectedPrefab = biome.WallVariations[variationIndex];
-        
-        // You could add logic here like:
-        // if (wallType == WallType.Corridor) return GetCorridorWallPrefab(position);
-        // if (wallType.ToString().Contains("Corner")) return GetCornerWallPrefab(position);
-        
-        return selectedPrefab;
-    }
-    public GameObject GetDoorPrefab(Vector2Int position)
-    {
-        var biome = GetCurrentBiome();
-        if (biome?.DoorVariations == null || biome.DoorVariations.Length == 0)
-            return null;
-
-        int variationIndex = Mathf.Abs(position.x * 37 + position.y * 41) % biome.DoorVariations.Length;
-        return biome.DoorVariations[variationIndex];
+        return GetPrefab(theme?.WallPrefabPath) ?? GetPrefab("Themes/Default/WallPrefab");
     }
 
-    public GameObject GetSpecialRoomPrefab(RoomType roomType)
+    public GameObject GetDoorPrefab(BiomeTheme theme)
     {
-        var biome = GetCurrentBiome();
-        return roomType switch
-        {
-            RoomType.Entrance => biome?.EntrancePrefab,
-            RoomType.Exit => biome?.ExitPrefab,
-            RoomType.Shop => biome?.ShopPrefab,
-            RoomType.Treasure => biome?.TreasurePrefab,
-            RoomType.Boss => biome?.BossPrefab,
-            _ => null
-        };
+        return GetPrefab(theme?.DoorPrefabPath) ?? GetPrefab("Themes/Default/DoorPrefab");
     }
 
-    private BiomeSettings GetCurrentBiome()
+    public GameObject GetDoorTopPrefab(BiomeTheme theme)
     {
-        // In real implementation, get current floor level from game state
-        int currentLevel = 1; // This should come from your game state
-        return Biomes.Find(b => currentLevel >= b.StartLevel && currentLevel <= b.EndLevel);
+        return GetPrefab(theme?.DoorTopPrefabPath) ?? GetPrefab("Themes/Default/DoorTopPrefab");
     }
 }

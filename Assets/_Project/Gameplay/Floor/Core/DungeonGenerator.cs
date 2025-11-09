@@ -101,7 +101,7 @@ public class DungeonGenerator : MonoBehaviour
         Debug.Log("Phase 4: Rendering dungeon...");
         if (Renderer != null)
         {
-            Renderer.RenderDungeon(_layout, _rooms);
+            Renderer.RenderDungeon(_layout, _rooms, levelConfig.FloorLevel, levelConfig.Seed);
         }
         else
         {

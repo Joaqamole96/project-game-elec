@@ -13,12 +13,23 @@ public class DungeonRenderer : MonoBehaviour
     public GameObject DoorPrefab;
     public GameObject EntrancePrefab;
     public GameObject ExitPrefab;
+
+    [Header("Fallback Prefabs - Real Mode")]
+    public GameObject FallbackFloorPrefab;
+    public GameObject FallbackWallPrefab;
+    public GameObject FallbackDoorPrefab;
+    public GameObject FallbackDoorTopPrefab;
+
+    [Header("Environment Settings")]
+    public bool EnableCeiling = true;
+    public bool EnableVoid = true;
     
     [Header("Parent Transforms")]
     public Transform FloorsParent;
     public Transform WallsParent;
     public Transform DoorsParent;
     public Transform SpecialObjectsParent;
+    public Transform EnvironmentParent; // ADD THIS LINE - for ceiling and void
     
     [Header("Mobile Optimization")]
     public bool CombineMeshes = true;
@@ -37,9 +48,13 @@ public class DungeonRenderer : MonoBehaviour
     private IDoorRenderer _doorRenderer;
     private SpecialRoomRenderer _specialRenderer;
     private MaterialManager _materialManager;
-    
+
     // Combined mesh containers
     private List<GameObject> _spawnedContainers = new();
+    
+    // Optimized rendering
+    private OptimizedPrefabRenderer _optimizedRenderer;
+    private BiomeManager _biomeManager;
 
     public enum RenderMode
     {
@@ -55,8 +70,10 @@ public class DungeonRenderer : MonoBehaviour
     private void InitializeComponents()
     {
         _materialManager = new MaterialManager(DefaultFloorMaterial, DefaultWallMaterial, DefaultDoorMaterial);
+        _biomeManager = new BiomeManager();
+        _optimizedRenderer = new OptimizedPrefabRenderer(_biomeManager);
         
-        // FIX: Initialize appropriate renderer based on mode using interfaces
+        // FIXED: Pass BiomeManager to all renderers
         if (Mode == RenderMode.Gizmo)
         {
             _floorRenderer = new GizmoFloorRenderer(_materialManager);
@@ -65,12 +82,12 @@ public class DungeonRenderer : MonoBehaviour
         }
         else
         {
-            _floorRenderer = new PrefabFloorRenderer(FloorPrefab, _materialManager);
-            _wallRenderer = new PrefabWallRenderer(WallPrefab, _materialManager);
-            _doorRenderer = new PrefabDoorRenderer(DoorPrefab, _materialManager);
+            _floorRenderer = new PrefabFloorRenderer(FallbackFloorPrefab, _materialManager, _biomeManager);
+            _wallRenderer = new PrefabWallRenderer(FallbackWallPrefab, _materialManager, _biomeManager);
+            _doorRenderer = new PrefabDoorRenderer(FallbackDoorPrefab, _materialManager, _biomeManager);
         }
         
-        _specialRenderer = new SpecialRoomRenderer(EntrancePrefab, ExitPrefab);
+        _specialRenderer = new SpecialRoomRenderer(EntrancePrefab, ExitPrefab, _biomeManager);
     }
 
     private void EnsureComponentsInitialized()
@@ -81,26 +98,41 @@ public class DungeonRenderer : MonoBehaviour
         }
     }
 
-    public void RenderDungeon(LevelModel layout, List<RoomModel> rooms)
+    public void RenderDungeon(LevelModel layout, List<RoomModel> rooms, int floorLevel, int seed)
     {
         EnsureComponentsInitialized();
         ClearRendering();
         CreateParentContainers();
-        
+
         if (Mode == RenderMode.Gizmo)
         {
             _materialManager.InitializeMaterialCache();
+            RenderFloors(layout, rooms);
+            RenderWalls(layout);
+            RenderDoors(layout);
         }
-        
-        // Render floors, walls, and doors
-        RenderFloors(layout, rooms);
-        RenderWalls(layout);
-        RenderDoors(layout);
+        else // REAL MODE
+        {
+            _optimizedRenderer.SetThemeForFloor(floorLevel, seed);
+            
+            // Queue all geometry for combining
+            _optimizedRenderer.RenderFloorsOptimized(layout, FloorsParent);
+            _optimizedRenderer.RenderWallsOptimized(layout, WallsParent);
+            _optimizedRenderer.RenderDoorsOptimized(layout, DoorsParent);
+            
+            // ADD THIS LINE: Build all combined meshes
+            _optimizedRenderer.FinalizeRendering(FloorsParent);
+            
+            // Environment elements (these don't need combining)
+            if (EnableCeiling) _optimizedRenderer.RenderCeilingOptimized(layout, EnvironmentParent);
+            if (EnableVoid) _optimizedRenderer.RenderVoidPlane(layout, EnvironmentParent);
+        }
         
         // Render special room objects (entrance/exit)
         RenderSpecialObjects(layout, rooms);
         
-        Debug.Log($"Rendered dungeon in {Mode} mode with {_spawnedContainers.Count} combined mesh objects");
+        // ADD DEBUG: Check what actually got rendered
+        Debug.Log($"Rendering complete - Floors: {FloorsParent.childCount}, Walls: {WallsParent.childCount}, Doors: {DoorsParent.childCount}");
     }
 
     public void ClearRendering()
@@ -127,6 +159,7 @@ public class DungeonRenderer : MonoBehaviour
         ClearAllChildObjects(WallsParent);
         ClearAllChildObjects(DoorsParent);
         ClearAllChildObjects(SpecialObjectsParent);
+        ClearAllChildObjects(EnvironmentParent); // ADD THIS LINE
 
         CleanupMaterials();
     }
@@ -231,6 +264,7 @@ public class DungeonRenderer : MonoBehaviour
         if (WallsParent == null) WallsParent = CreateParent("Walls");
         if (DoorsParent == null) DoorsParent = CreateParent("Doors");
         if (SpecialObjectsParent == null) SpecialObjectsParent = CreateParent("SpecialObjects");
+        if (EnvironmentParent == null) EnvironmentParent = CreateParent("Environment"); // ADD THIS LINE
     }
 
     private Transform CreateParent(string name)

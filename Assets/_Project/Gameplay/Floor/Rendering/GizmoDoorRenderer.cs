@@ -1,0 +1,66 @@
+using UnityEngine;
+using System.Collections.Generic;
+
+public class GizmoDoorRenderer : IDoorRenderer
+{
+    private MaterialManager _materialManager;
+
+    public GizmoDoorRenderer(MaterialManager materialManager)
+    {
+        _materialManager = materialManager;
+    }
+
+    public void RenderDoors(LevelModel layout, Transform parent, bool enableCollision)
+    {
+        if (layout?.AllDoorTiles == null) return;
+        
+        foreach (var doorPos in layout.AllDoorTiles)
+        {
+            var door = CreateDoorAtPosition(doorPos);
+            door.transform.SetParent(parent);
+            
+            if (enableCollision && door != null) 
+            {
+                AddCollisionToObject(door, "Door");
+            }
+        }
+    }
+
+    private GameObject CreateDoorAtPosition(Vector2Int gridPos)
+    {
+        Vector3 worldPos = new Vector3(gridPos.x + 0.5f, 0.4f, gridPos.y + 0.5f);
+        var door = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        door.transform.position = worldPos;
+        door.transform.localScale = new Vector3(1f, 0.8f, 1f);
+        door.name = $"Door_{gridPos.x}_{gridPos.y}";
+        ApplyDoorMaterial(door);
+        return door;
+    }
+
+    private void ApplyDoorMaterial(GameObject obj)
+    {
+        var renderer = obj.GetComponent<Renderer>();
+        if (renderer != null)
+        {
+            renderer.sharedMaterial = _materialManager.GetDoorMaterial();
+        }
+    }
+
+    private void AddCollisionToObject(GameObject obj, string objectType)
+    {
+        if (obj == null) return;
+
+        if (obj.GetComponent<Collider>() == null)
+            obj.AddComponent<BoxCollider>();
+
+        if (objectType == "Door")
+        {
+            var rb = obj.GetComponent<Rigidbody>();
+            if (rb == null)
+            {
+                rb = obj.AddComponent<Rigidbody>();
+                rb.isKinematic = true;
+            }
+        }
+    }
+}
