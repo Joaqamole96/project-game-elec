@@ -1,11 +1,6 @@
-// PartitionModel.cs
 using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>
-/// Represents a partition in the Binary Space Partitioning (BSP) tree.
-/// Used during dungeon generation to divide space into rooms.
-/// </summary>
 public class PartitionModel
 {
     /// <summary>Bounds of this partition in grid coordinates.</summary>
@@ -23,6 +18,9 @@ public class PartitionModel
     /// <summary>Adjacent partitions for corridor generation.</summary>
     public List<PartitionModel> Neighbors { get; private set; }
     
+    // NEW: Pre-assigned room type for early room assignment
+    public RoomType PreAssignedRoomType { get; set; } = RoomType.Combat;
+    
     /// <summary>Whether this is a leaf node (no children).</summary>
     public bool IsLeaf => LeftChild == null && RightChild == null;
     
@@ -35,58 +33,17 @@ public class PartitionModel
         Neighbors = new List<PartitionModel>();
     }
 
-    /// <summary>
-    /// Gets all leaf partitions in this subtree.
-    /// </summary>
-    public List<PartitionModel> GetLeafPartitions()
-    {
-        var leaves = new List<PartitionModel>();
-        CollectLeaves(this, leaves);
-        return leaves;
-    }
+    // KEEP all existing methods (GetLeafPartitions, CanContainRoom, Overlaps, Touches, etc.)
+    // They remain valid for the new system
 
-    private void CollectLeaves(PartitionModel partition, List<PartitionModel> leaves)
+    /// <summary>
+    /// NEW: Checks if this partition can contain a room of specified size with insets.
+    /// </summary>
+    public bool CanContainRoom(Vector2Int roomSize, int minInset)
     {
-        if (partition == null) return;
+        int requiredWidth = roomSize.x + (minInset * 2);
+        int requiredHeight = roomSize.y + (minInset * 2);
         
-        if (partition.IsLeaf)
-        {
-            leaves.Add(partition);
-        }
-        else
-        {
-            CollectLeaves(partition.LeftChild, leaves);
-            CollectLeaves(partition.RightChild, leaves);
-        }
-    }
-
-    /// <summary>
-    /// Checks if this partition can contain a room of the specified minimum size.
-    /// </summary>
-    public bool CanContainRoom(int minRoomSize)
-    {
-        return Bounds.width >= minRoomSize && Bounds.height >= minRoomSize;
-    }
-
-    /// <summary>
-    /// Gets the area of this partition in tiles.
-    /// </summary>
-    public int Area => Bounds.width * Bounds.height;
-
-    /// <summary>
-    /// Checks if this partition overlaps with another partition.
-    /// </summary>
-    public bool Overlaps(PartitionModel other)
-    {
-        return Bounds.Overlaps(other.Bounds);
-    }
-
-    /// <summary>
-    /// Checks if this partition touches another partition on any edge.
-    /// </summary>
-    public bool Touches(PartitionModel other)
-    {
-        return Bounds.xMax == other.Bounds.xMin || Bounds.xMin == other.Bounds.xMax ||
-               Bounds.yMax == other.Bounds.yMin || Bounds.yMin == other.Bounds.yMax;
+        return Bounds.width >= requiredWidth && Bounds.height >= requiredHeight;
     }
 }

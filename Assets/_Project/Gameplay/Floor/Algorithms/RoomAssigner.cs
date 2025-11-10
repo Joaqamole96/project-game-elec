@@ -1,264 +1,147 @@
-// RoomAssigner.cs
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
 /// <summary>
-/// Assigns room types and purposes based on dungeon progression and connectivity.
+/// EARLY room assignment - assigns room types to partitions BEFORE room creation.
+/// Enables predetermined room sizes based on room type.
 /// </summary>
 public class RoomAssigner
 {
     /// <summary>
-    /// Assigns room types based on dungeon progression and connectivity.
+    /// Pre-assigns room types to partitions for early size determination.
     /// </summary>
-    public List<RoomModel> AssignRooms(LevelModel layout, int floorLevel, System.Random random)
+    public void PreAssignRoomTypes(List<PartitionModel> partitions, int floorLevel, System.Random random)
     {
-        if (layout?.Rooms == null || layout.Rooms.Count == 0)
+        if (partitions == null || partitions.Count == 0)
         {
-            Debug.LogWarning("No rooms to assign!");
-            return CreateFallbackAssignments(layout?.Rooms);
-        }
-
-        layout.InitializeSpatialData();
-        var roomGraph = layout.RoomGraph;
-        
-        if (roomGraph.Count == 0)
-        {
-            Debug.LogWarning("No room connections found!");
-            return CreateFallbackAssignments(layout.Rooms);
-        }
-
-        var entranceRoom = FindOptimalEntranceRoom(layout.Rooms, roomGraph, layout);
-        var distances = CalculateDistancesFromRoom(roomGraph, entranceRoom);
-        
-        AssignDistanceValues(layout.Rooms, distances);
-        AssignCriticalRooms(layout.Rooms, distances, floorLevel, random);
-        AssignSpecialRooms(layout.Rooms, floorLevel, random);
-        AssignEmptyRooms(layout.Rooms, random);
-        
-        GenerateSpawnPositions(layout.Rooms);
-        
-        Debug.Log($"Room assignment complete: {GetRoomTypeSummary(layout.Rooms)}");
-        return layout.Rooms;
-    }
-
-    private RoomModel FindOptimalEntranceRoom(List<RoomModel> rooms, Dictionary<RoomModel, List<RoomModel>> graph, LevelModel layout)
-    {
-        return rooms.OrderBy(room => 
-        {
-            int connectionCount = graph.ContainsKey(room) ? graph[room].Count : int.MaxValue;
-            int edgeDistance = CalculateEdgeDistance(room, layout);
-            return connectionCount * 1000 + edgeDistance; // Prioritize well-connected edge rooms
-        }).FirstOrDefault() ?? rooms[0];
-    }
-
-    private int CalculateEdgeDistance(RoomModel room, LevelModel layout)
-    {
-        if (room?.Bounds == null || layout?.OverallBounds == null) return int.MaxValue;
-        
-        return Mathf.Min(
-            room.Bounds.xMin, 
-            layout.OverallBounds.size.x - room.Bounds.xMax,
-            room.Bounds.yMin, 
-            layout.OverallBounds.size.y - room.Bounds.yMax
-        );
-    }
-
-    private void AssignDistanceValues(List<RoomModel> rooms, Dictionary<RoomModel, int> distances)
-    {
-        if (rooms == null || distances == null) return;
-
-        foreach (var room in rooms)
-        {
-            if (room != null && distances.TryGetValue(room, out int distance))
-            {
-                room.DistanceFromEntrance = distance;
-            }
-        }
-    }
-
-    private void AssignCriticalRooms(List<RoomModel> rooms, Dictionary<RoomModel, int> distances, int floorLevel, System.Random random)
-    {
-        if (rooms == null || rooms.Count < 2) 
-        {
-            Debug.LogWarning("Not enough rooms to assign critical rooms!");
+            Debug.LogWarning("No partitions to assign room types!");
             return;
         }
 
-        var entranceRoom = rooms.OrderBy(r => distances.GetValueOrDefault(r, int.MaxValue)).First();
-        var exitRoom = rooms.OrderByDescending(r => distances.GetValueOrDefault(r, int.MinValue)).First();
-
-        // Ensure we have distinct rooms for entrance and exit
-        if (entranceRoom == exitRoom && rooms.Count > 1)
+        // Reset all partitions to combat type first
+        foreach (var partition in partitions)
         {
-            exitRoom = rooms.Where(r => r != entranceRoom)
-                          .OrderByDescending(r => distances.GetValueOrDefault(r, int.MinValue))
-                          .First();
+            partition.PreAssignedRoomType = RoomType.Combat;
         }
 
-        // Only assign if they're currently combat rooms (don't reassign already assigned rooms)
-        if (entranceRoom.Type == RoomType.Combat)
+        AssignCriticalRooms(partitions, floorLevel, random);
+        AssignSpecialRooms(partitions, floorLevel, random);
+        AssignEmptyRooms(partitions, random);
+
+        Debug.Log($"Pre-assigned room types: {GetRoomTypeSummary(partitions)}");
+    }
+
+    private void AssignCriticalRooms(List<PartitionModel> partitions, int floorLevel, System.Random random)
+    {
+        // Find optimal entrance (edge, well-connected)
+        var entrancePartition = FindOptimalEntrancePartition(partitions);
+        if (entrancePartition != null)
         {
-            entranceRoom.Type = RoomType.Entrance;
-            entranceRoom.State = RoomAccess.Open;
-            entranceRoom.IsRevealed = true;
-            Debug.Log($"Assigned Entrance: Room {entranceRoom.ID}");
+            entrancePartition.PreAssignedRoomType = RoomType.Entrance;
+            Debug.Log($"Assigned Entrance: Partition at {entrancePartition.Bounds.position}");
         }
 
-        if (exitRoom.Type == RoomType.Combat && exitRoom != entranceRoom)
+        // Find furthest partition for exit
+        var exitPartition = FindFurthestPartition(partitions, entrancePartition);
+        if (exitPartition != null && exitPartition != entrancePartition)
         {
-            exitRoom.Type = RoomType.Exit;
-            exitRoom.State = RoomAccess.Open;
-            exitRoom.IsRevealed = true;
-            Debug.Log($"Assigned Exit: Room {exitRoom.ID}");
+            exitPartition.PreAssignedRoomType = RoomType.Exit;
+            Debug.Log($"Assigned Exit: Partition at {exitPartition.Bounds.position}");
         }
 
+        // Boss room on boss floors
         if (floorLevel % 5 == 0)
         {
-            AssignBossRoom(rooms, exitRoom);
-        }
-        
-        // Log the final room distribution
-        Debug.Log($"Room assignment - Entrance: {entranceRoom.ID}, Exit: {exitRoom?.ID}, Total rooms: {rooms.Count}");
-    }
-
-    private void AssignBossRoom(List<RoomModel> rooms, RoomModel exitRoom)
-    {
-        if (exitRoom == null) return;
-
-        var bossCandidate = rooms
-            .Where(r => r != null && r.Type == RoomType.Combat && r.ConnectedRooms.Contains(exitRoom))
-            .OrderByDescending(r => r.DistanceFromEntrance)
-            .FirstOrDefault();
-
-        bossCandidate ??= rooms
-            .Where(r => r != null && r.Type == RoomType.Combat)
-            .OrderByDescending(r => r.DistanceFromEntrance)
-            .FirstOrDefault();
-
-        if (bossCandidate != null)
-        {
-            bossCandidate.Type = RoomType.Boss;
-            bossCandidate.State = RoomAccess.Closed;
-        }
-    }
-
-    private void AssignSpecialRooms(List<RoomModel> rooms, int floorLevel, System.Random random)
-    {
-        var combatRooms = rooms.Where(r => r != null && r.Type == RoomType.Combat).ToList();
-        if (combatRooms.Count < 2) return;
-
-        // These would come from GameConfig in the real implementation
-        int targetShopRooms = 1;
-        int targetTreasureRooms = 1;
-
-        var midProgressRooms = combatRooms
-            .OrderBy(r => Mathf.Abs(r.DistanceFromEntrance - (float)combatRooms.Average(room => room.DistanceFromEntrance)))
-            .ToList();
-
-        // Assign shop rooms
-        for (int i = 0; i < targetShopRooms && i < midProgressRooms.Count; i++)
-        {
-            midProgressRooms[i].Type = RoomType.Shop;
-            midProgressRooms[i].State = RoomAccess.Open;
-        }
-
-        // Assign treasure rooms
-        int treasureStart = targetShopRooms;
-        for (int i = 0; i < targetTreasureRooms && treasureStart + i < midProgressRooms.Count; i++)
-        {
-            midProgressRooms[treasureStart + i].Type = RoomType.Treasure;
-            midProgressRooms[treasureStart + i].State = RoomAccess.Open;
-        }
-    }
-
-    private void AssignEmptyRooms(List<RoomModel> rooms, System.Random random)
-    {
-        var combatRooms = rooms.Where(r => r != null && r.Type == RoomType.Combat).ToList();
-        if (combatRooms.Count == 0) return;
-
-        int emptyRoomCount = Mathf.Max(1, combatRooms.Count / 4);
-        var roomsToMakeEmpty = combatRooms
-            .OrderBy(r => random.NextDouble())
-            .Take(emptyRoomCount)
-            .ToList();
-
-        foreach (var room in roomsToMakeEmpty)
-        {
-            room.Type = RoomType.Empty;
-            room.State = RoomAccess.Open;
-        }
-    }
-
-    private void GenerateSpawnPositions(List<RoomModel> rooms)
-    {
-        // This would use GameConfig.EnemiesPerCombatRoom in real implementation
-        int enemiesPerRoom = 3;
-        
-        foreach (var room in rooms)
-        {
-            if (room != null && (room.Type == RoomType.Combat || room.Type == RoomType.Boss))
+            var bossPartition = FindBossPartition(partitions, exitPartition);
+            if (bossPartition != null)
             {
-                room.GenerateSpawnPositions(enemiesPerRoom);
+                bossPartition.PreAssignedRoomType = RoomType.Boss;
+                Debug.Log($"Assigned Boss: Partition at {bossPartition.Bounds.position}");
             }
         }
     }
 
-    private Dictionary<RoomModel, int> CalculateDistancesFromRoom(Dictionary<RoomModel, List<RoomModel>> graph, RoomModel startRoom)
+    private PartitionModel FindOptimalEntrancePartition(List<PartitionModel> partitions)
     {
-        var distances = new Dictionary<RoomModel, int>();
-        
-        if (graph == null || !graph.ContainsKey(startRoom)) 
-            return distances;
-
-        var visited = new HashSet<RoomModel>();
-        var queue = new Queue<(RoomModel, int)>();
-        
-        queue.Enqueue((startRoom, 0));
-        visited.Add(startRoom);
-        
-        while (queue.Count > 0)
+        return partitions.OrderBy(p => 
         {
-            var (current, distance) = queue.Dequeue();
-            distances[current] = distance;
-            
-            if (graph.ContainsKey(current))
-            {
-                foreach (var neighbor in graph[current])
-                {
-                    if (neighbor != null && !visited.Contains(neighbor))
-                    {
-                        visited.Add(neighbor);
-                        queue.Enqueue((neighbor, distance + 1));
-                    }
-                }
-            }
-        }
+            int edgeDistance = CalculateEdgeDistance(p);
+            int neighborCount = p.Neighbors.Count;
+            return edgeDistance * 10 + neighborCount; // Prefer edge partitions with some connections
+        }).FirstOrDefault();
+    }
+
+    private int CalculateEdgeDistance(PartitionModel partition)
+    {
+        // Simple edge distance calculation
+        return Mathf.Min(
+            partition.Bounds.x,
+            partition.Bounds.y
+        );
+    }
+
+    private PartitionModel FindFurthestPartition(List<PartitionModel> partitions, PartitionModel fromPartition)
+    {
+        if (fromPartition == null) return partitions.FirstOrDefault();
         
-        return distances;
+        return partitions.OrderByDescending(p => 
+            Vector2Int.Distance(p.Center, fromPartition.Center)
+        ).FirstOrDefault();
     }
 
-    private List<RoomModel> CreateFallbackAssignments(List<RoomModel> rooms)
+    private PartitionModel FindBossPartition(List<PartitionModel> partitions, PartitionModel exitPartition)
     {
-        if (rooms == null || rooms.Count == 0)
-            return new List<RoomModel>();
+        if (exitPartition == null) return partitions.FirstOrDefault();
+        
+        // Find a partition adjacent to the exit room
+        return partitions.FirstOrDefault(p => 
+            p.Neighbors.Contains(exitPartition) && 
+            p.PreAssignedRoomType == RoomType.Combat
+        ) ?? partitions.FirstOrDefault(p => p.PreAssignedRoomType == RoomType.Combat);
+    }
 
-        for (int i = 0; i < rooms.Count; i++)
+    private void AssignSpecialRooms(List<PartitionModel> partitions, int floorLevel, System.Random random)
+    {
+        var combatPartitions = partitions.Where(p => p.PreAssignedRoomType == RoomType.Combat).ToList();
+        if (combatPartitions.Count < 2) return;
+
+        // Assign shop rooms (1 per floor)
+        if (combatPartitions.Count > 0)
         {
-            if (rooms[i] != null)
-            {
-                rooms[i].Type = i == 0 ? RoomType.Entrance : 
-                              i == rooms.Count - 1 ? RoomType.Exit : RoomType.Combat;
-            }
+            var shopPartition = combatPartitions[random.Next(combatPartitions.Count)];
+            shopPartition.PreAssignedRoomType = RoomType.Shop;
+            combatPartitions.Remove(shopPartition);
         }
-        return rooms;
+
+        // Assign treasure rooms (1 per floor)  
+        if (combatPartitions.Count > 0)
+        {
+            var treasurePartition = combatPartitions[random.Next(combatPartitions.Count)];
+            treasurePartition.PreAssignedRoomType = RoomType.Treasure;
+        }
     }
 
-    private string GetRoomTypeSummary(List<RoomModel> rooms)
+    private void AssignEmptyRooms(List<PartitionModel> partitions, System.Random random)
     {
-        if (rooms == null) return "No rooms";
-        return string.Join(", ", rooms.Where(r => r != null)
-                                    .GroupBy(r => r.Type)
-                                    .Select(g => $"{g.Key}: {g.Count()}"));
+        var combatPartitions = partitions.Where(p => p.PreAssignedRoomType == RoomType.Combat).ToList();
+        int emptyRoomCount = Mathf.Max(1, combatPartitions.Count / 4);
+
+        for (int i = 0; i < emptyRoomCount && combatPartitions.Count > 0; i++)
+        {
+            var emptyPartition = combatPartitions[random.Next(combatPartitions.Count)];
+            emptyPartition.PreAssignedRoomType = RoomType.Empty;
+            combatPartitions.Remove(emptyPartition);
+        }
     }
+
+    private string GetRoomTypeSummary(List<PartitionModel> partitions)
+    {
+        return string.Join(", ", partitions
+            .GroupBy(p => p.PreAssignedRoomType)
+            .Select(g => $"{g.Key}: {g.Count()}"));
+    }
+
+    // KEEP the old AssignRooms method but mark it obsolete or remove if unused
+    // We'll update the pipeline to use pre-assignment instead
 }
