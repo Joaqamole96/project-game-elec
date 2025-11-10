@@ -153,7 +153,7 @@ public class OptimizedPrefabRenderer
             {
                 foreach (var doorPos in layout.AllDoorTiles)
                 {
-                    Vector3 worldPos = new Vector3(doorPos.x + 0.5f, 1f, doorPos.y + 0.5f);
+                    Vector3 worldPos = new Vector3(doorPos.x + 0.5f, 2f, doorPos.y + 0.5f);
                     Quaternion rotation = GetDoorRotation(layout, doorPos);
                     _meshCombiner.AddMesh(doorMesh, worldPos, rotation, doorScale, doorMaterial);
                 }
@@ -267,9 +267,14 @@ public class OptimizedPrefabRenderer
 
     private Quaternion GetDoorRotation(LevelModel layout, Vector2Int doorPos)
     {
-        // Check adjacent tiles to determine which way the door should face
-        // Door should face INTO the room (away from corridors)
-        
+        // First, determine which wall the door is actually on
+        var adjacentRoom = FindAdjacentRoom(layout, doorPos);
+        if (adjacentRoom != null)
+        {
+            return GetDoorRotationFromRoom(adjacentRoom, doorPos);
+        }
+
+        // Fallback: analyze adjacent tiles to guess orientation
         Vector2Int[] directions = new Vector2Int[]
         {
             new Vector2Int(0, 1),  // North
@@ -278,34 +283,17 @@ public class OptimizedPrefabRenderer
             new Vector2Int(-1, 0)  // West
         };
 
-        // Check which adjacent positions are rooms vs corridors
         foreach (var dir in directions)
         {
             Vector2Int checkPos = doorPos + dir;
-            Vector2Int oppositePos = doorPos - dir;
+            bool isRoom = layout.GetRoomAtPosition(checkPos) != null;
             
-            bool checkIsRoom = layout.GetRoomAtPosition(checkPos) != null;
-            bool oppositeIsRoom = layout.GetRoomAtPosition(oppositePos) != null;
-            
-            // If one side is room and other side is corridor, face into the room
-            if (checkIsRoom && !oppositeIsRoom)
+            // If this direction leads to a room, the door should face away from it
+            if (isRoom)
             {
-                // Face away from the room (toward corridor)
+                // Door should face OPPOSITE the room (toward corridor)
                 return GetRotationFromDirection(-dir);
             }
-            else if (!checkIsRoom && oppositeIsRoom)
-            {
-                // Face toward the room (away from corridor)
-                return GetRotationFromDirection(dir);
-            }
-        }
-
-        // Fallback: Check if door is on room perimeter
-        var room = FindAdjacentRoom(layout, doorPos);
-        if (room != null)
-        {
-            // Determine which wall the door is on and face inward
-            return GetDoorRotationFromRoom(room, doorPos);
         }
 
         // Ultimate fallback: face north
@@ -314,12 +302,14 @@ public class OptimizedPrefabRenderer
 
     private Quaternion GetRotationFromDirection(Vector2Int direction)
     {
-        if (direction == new Vector2Int(0, 1)) return Quaternion.Euler(0, 0, 0);    // North
-        if (direction == new Vector2Int(0, -1)) return Quaternion.Euler(0, 180, 0);  // South
-        if (direction == new Vector2Int(1, 0)) return Quaternion.Euler(0, 90, 0);    // East  
-        if (direction == new Vector2Int(-1, 0)) return Quaternion.Euler(0, 270, 0);  // West
+        // Doors should be parallel to the wall they're on
+        // If door is on north/south wall, it should face east/west (90° rotation)
+        // If door is on east/west wall, it should face north/south (0° rotation)
         
-        return Quaternion.identity;
+        if (direction == new Vector2Int(0, 1) || direction == new Vector2Int(0, -1)) 
+            return Quaternion.Euler(0, 90, 0);   // North/South walls - face east/west
+        else 
+            return Quaternion.Euler(0, 0, 0);    // East/West walls - face north/south
     }
 
     private RoomModel FindAdjacentRoom(LevelModel layout, Vector2Int doorPos)
@@ -343,13 +333,11 @@ public class OptimizedPrefabRenderer
     {
         var bounds = room.Bounds;
         
-        // Determine which wall the door is on and face inward
-        if (doorPos.y == bounds.yMax - 1) return Quaternion.Euler(0, 180, 0); // North wall - face south
-        if (doorPos.y == bounds.yMin) return Quaternion.Euler(0, 0, 0);       // South wall - face north
-        if (doorPos.x == bounds.xMax - 1) return Quaternion.Euler(0, 270, 0); // East wall - face west  
-        if (doorPos.x == bounds.xMin) return Quaternion.Euler(0, 90, 0);      // West wall - face east
-        
-        return Quaternion.Euler(0, 0, 0);
+        // Determine which wall the door is on and make door parallel to that wall
+        if (doorPos.y == bounds.yMax - 1 || doorPos.y == bounds.yMin) 
+            return Quaternion.Euler(0, 90, 0);   // North/South wall - face east/west
+        else 
+            return Quaternion.Euler(0, 0, 0);    // East/West wall - face north/south
     }
 
     private Quaternion GetWallRotation(WallType wallType)
