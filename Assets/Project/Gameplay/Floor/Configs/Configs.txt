@@ -1,0 +1,530 @@
+// GameConfig.cs
+using UnityEngine;
+
+/// <summary>
+/// Configuration settings for core gameplay mechanics and balancing.
+/// </summary>
+[System.Serializable]
+public class GameConfig
+{
+    [Header("Geometry Settings")]
+    [Tooltip("Simplify geometry for better performance on mobile devices")]
+    public bool SimplifyGeometry = true;
+
+    [Header("Gameplay Balance")]
+    [Range(1, 10)]
+    [Tooltip("Number of enemies spawned in each combat room")]
+    public int EnemiesPerCombatRoom = 3;
+
+    [Range(0, 5)]
+    [Tooltip("Maximum number of treasure rooms per floor")]
+    public int TreasureRoomsPerFloor = 1;
+
+    [Range(0, 3)]
+    [Tooltip("Maximum number of shop rooms per floor")]
+    public int ShopRoomsPerFloor = 1;
+
+    [Header("Player Progression")]
+    [Range(1, 100)]
+    [Tooltip("Base player health at start of game")]
+    public int PlayerBaseHealth = 100;
+
+    [Range(1f, 10f)]
+    [Tooltip("Player movement speed in units per second")]
+    public float PlayerMovementSpeed = 5f;
+
+    /// <summary>
+    /// Creates a deep copy of this GameConfig instance.
+    /// </summary>
+    public GameConfig Clone()
+    {
+        return new GameConfig
+        {
+            SimplifyGeometry = SimplifyGeometry,
+            EnemiesPerCombatRoom = EnemiesPerCombatRoom,
+            TreasureRoomsPerFloor = TreasureRoomsPerFloor,
+            ShopRoomsPerFloor = ShopRoomsPerFloor,
+            PlayerBaseHealth = PlayerBaseHealth,
+            PlayerMovementSpeed = PlayerMovementSpeed
+        };
+    }
+
+    /// <summary>
+    /// Validates all configuration values to ensure they are within reasonable ranges.
+    /// </summary>
+    public void Validate()
+    {
+        EnemiesPerCombatRoom = Mathf.Clamp(EnemiesPerCombatRoom, 1, 10);
+        TreasureRoomsPerFloor = Mathf.Clamp(TreasureRoomsPerFloor, 0, 5);
+        ShopRoomsPerFloor = Mathf.Clamp(ShopRoomsPerFloor, 0, 3);
+        PlayerBaseHealth = Mathf.Clamp(PlayerBaseHealth, 1, 100);
+        PlayerMovementSpeed = Mathf.Clamp(PlayerMovementSpeed, 1f, 10f);
+    }
+}
+
+// LevelConfig.cs
+using UnityEngine;
+
+/// <summary>
+/// Configuration settings for floor generation, size, and progression.
+/// </summary>
+[System.Serializable]
+public class LevelConfig
+{
+    [Header("Randomization")]
+    [Tooltip("Seed for deterministic dungeon generation (0 for random)")]
+    public int Seed = 0;
+
+    [Header("Floor Progression")]
+    [Range(1, 100)]
+    [Tooltip("Current floor level (affects difficulty and theme)")]
+    public int FloorLevel = 1;
+
+    [Header("Floor Dimensions")]
+    [Range(50, 1000)]
+    [Tooltip("Width of the dungeon in tiles")]
+    public int Width = 150;
+
+    [Range(50, 1000)]
+    [Tooltip("Height of the dungeon in tiles")]
+    public int Height = 150;
+
+    [Header("Progression Scaling")]
+    [Range(5, 50)]
+    [Tooltip("How much the floor grows each level")]
+    public int FloorGrowth = 20;
+
+    [Range(50, 200)]
+    [Tooltip("Minimum floor size for generation")]
+    public int MinFloorSize = 100;
+
+    [Range(200, 2000)]
+    [Tooltip("Maximum floor size to prevent performance issues")]
+    public int MaxFloorSize = 1000;
+
+    /// <summary>
+    /// Gets the floor area in tiles (width × height).
+    /// </summary>
+    public int Area => Width * Height;
+
+    /// <summary>
+    /// Gets the aspect ratio of the floor (width / height).
+    /// </summary>
+    public float AspectRatio => (float)Width / Height;
+
+    /// <summary>
+    /// Creates a deep copy of this LevelConfig instance.
+    /// </summary>
+    public LevelConfig Clone()
+    {
+        return new LevelConfig
+        {
+            Seed = Seed,
+            FloorLevel = FloorLevel,
+            Width = Width,
+            Height = Height,
+            FloorGrowth = FloorGrowth,
+            MinFloorSize = MinFloorSize,
+            MaxFloorSize = MaxFloorSize
+        };
+    }
+
+    /// <summary>
+    /// Validates all configuration values to ensure they are within reasonable ranges.
+    /// </summary>
+    public void Validate()
+    {
+        Seed = Mathf.Max(0, Seed);
+        FloorLevel = Mathf.Clamp(FloorLevel, 1, 100);
+        Width = Mathf.Clamp(Width, 50, 1000);
+        Height = Mathf.Clamp(Height, 50, 1000);
+        FloorGrowth = Mathf.Clamp(FloorGrowth, 5, 50);
+        MinFloorSize = Mathf.Clamp(MinFloorSize, 50, 200);
+        MaxFloorSize = Mathf.Clamp(MaxFloorSize, 200, 2000);
+
+        // Ensure min is less than max
+        if (MinFloorSize >= MaxFloorSize)
+        {
+            MinFloorSize = MaxFloorSize - 50;
+        }
+    }
+
+    /// <summary>
+    /// Grows the floor size based on progression settings.
+    /// </summary>
+    /// <param name="growWidth">If true, grow width; otherwise grow height.</param>
+    public void GrowFloor(bool growWidth)
+    {
+        if (growWidth)
+        {
+            Width = Mathf.Min(Width + FloorGrowth, MaxFloorSize);
+        }
+        else
+        {
+            Height = Mathf.Min(Height + FloorGrowth, MaxFloorSize);
+        }
+    }
+
+    /// <summary>
+    /// Checks if the floor has reached maximum size.
+    /// </summary>
+    public bool IsAtMaxSize => Width >= MaxFloorSize && Height >= MaxFloorSize;
+}
+
+// PartitionConfig.cs
+using UnityEngine;
+
+/// <summary>
+/// Configuration settings for Binary Space Partitioning (BSP) algorithm.
+/// Controls how the dungeon space is divided into partitions.
+/// </summary>
+[System.Serializable]
+public class PartitionConfig
+{
+    [Header("Partition Size Limits")]
+    [Range(10, 50)]
+    [Tooltip("Minimum size for partitions (smaller values create more rooms)")]
+    public int MinPartitionSize = 25;
+
+    [Range(20, 100)]
+    [Tooltip("Maximum size for partitions (larger values create bigger rooms)")]
+    public int MaxPartitionSize = 35;
+
+    [Header("Connectivity")]
+    [Range(0, 10)]
+    [Tooltip("Extra corridor connections beyond minimum spanning tree")]
+    public int ExtraConnections = 3;
+
+    [Header("Split Behavior")]
+    [Range(0.3f, 0.7f)]
+    [Tooltip("Minimum split ratio for balanced partitions (0.3 = 30/70 split)")]
+    public float MinSplitRatio = 0.35f;
+
+    [Range(0.3f, 0.7f)]
+    [Tooltip("Maximum split ratio for balanced partitions (0.7 = 70/30 split)")]
+    public float MaxSplitRatio = 0.65f;
+
+    /// <summary>
+    /// Gets a random split ratio within configured bounds.
+    /// </summary>
+    public float GetRandomSplitRatio(System.Random random)
+    {
+        return (float)(random.NextDouble() * (MaxSplitRatio - MinSplitRatio) + MinSplitRatio);
+    }
+
+    /// <summary>
+    /// Creates a deep copy of this PartitionConfig instance.
+    /// </summary>
+    public PartitionConfig Clone()
+    {
+        return new PartitionConfig
+        {
+            MinPartitionSize = MinPartitionSize,
+            MaxPartitionSize = MaxPartitionSize,
+            ExtraConnections = ExtraConnections,
+            MinSplitRatio = MinSplitRatio,
+            MaxSplitRatio = MaxSplitRatio
+        };
+    }
+
+    /// <summary>
+    /// Validates all configuration values to ensure they are within reasonable ranges.
+    /// </summary>
+    public void Validate()
+    {
+        MinPartitionSize = Mathf.Clamp(MinPartitionSize, 10, 50);
+        MaxPartitionSize = Mathf.Clamp(MaxPartitionSize, 20, 100);
+        ExtraConnections = Mathf.Clamp(ExtraConnections, 0, 10);
+        MinSplitRatio = Mathf.Clamp(MinSplitRatio, 0.3f, 0.7f);
+        MaxSplitRatio = Mathf.Clamp(MaxSplitRatio, 0.3f, 0.7f);
+
+        // Ensure min is less than max
+        if (MinPartitionSize >= MaxPartitionSize)
+        {
+            MinPartitionSize = MaxPartitionSize - 5;
+        }
+
+        if (MinSplitRatio >= MaxSplitRatio)
+        {
+            MinSplitRatio = MaxSplitRatio - 0.1f;
+        }
+    }
+
+    /// <summary>
+    /// Checks if a partition of given size should be split.
+    /// </summary>
+    public bool ShouldSplitPartition(int partitionSize, bool isVertical)
+    {
+        int threshold = isVertical ? MaxPartitionSize : MaxPartitionSize;
+        return partitionSize > threshold;
+    }
+
+    /// <summary>
+    /// Checks if a partition is too small to split further.
+    /// </summary>
+    public bool IsPartitionTooSmall(int size)
+    {
+        return size <= MinPartitionSize;
+    }
+}
+
+// RoomConfig.cs
+using UnityEngine;
+
+/// <summary>
+/// Configuration settings for room generation, sizing, and placement.
+/// </summary>
+[System.Serializable]
+public class RoomConfig
+{
+    [Header("Room Inset Settings")]
+    [Range(1, 10)]
+    [Tooltip("Minimum inset from partition bounds for room creation")]
+    public int MinInset = 4;
+
+    [Range(5, 15)]
+    [Tooltip("Maximum inset from partition bounds for room creation")]
+    public int MaxInset = 8;
+
+    [Header("Room Size Limits")]
+    [Range(5, 30)]
+    [Tooltip("Minimum room size in tiles (must be at least 3x3 for valid rooms)")]
+    public int MinRoomSize = 20;
+
+    [Range(15, 50)]
+    [Tooltip("Maximum room size in tiles")]
+    public int MaxRoomSize = 30;
+
+    [Header("Room Count")]
+    [Range(5, 50)]
+    [Tooltip("Maximum number of rooms to generate per floor")]
+    public int MaxRooms = 20;
+
+    [Header("Room Padding")]
+    [Range(1, 5)]
+    [Tooltip("Padding around room edges for spawn positions and gameplay")]
+    public int SpawnPadding = 2;
+
+    /// <summary>
+    /// Gets the minimum room dimension including insets.
+    /// </summary>
+    public int MinRoomDimension => MinRoomSize + (MinInset * 2);
+
+    /// <summary>
+    /// Creates a deep copy of this RoomConfig instance.
+    /// </summary>
+    public RoomConfig Clone()
+    {
+        return new RoomConfig
+        {
+            MinInset = MinInset,
+            MaxInset = MaxInset,
+            MinRoomSize = MinRoomSize,
+            MaxRoomSize = MaxRoomSize,
+            MaxRooms = MaxRooms,
+            SpawnPadding = SpawnPadding
+        };
+    }
+
+    /// <summary>
+    /// Validates all configuration values to ensure they are within reasonable ranges.
+    /// </summary>
+    public void Validate()
+    {
+        MinInset = Mathf.Clamp(MinInset, 1, 10);
+        MaxInset = Mathf.Clamp(MaxInset, 5, 15);
+        MinRoomSize = Mathf.Max(3, MinRoomSize); // Ensure at least 3x3 rooms
+        MinRoomSize = Mathf.Clamp(MinRoomSize, 5, 30);
+        MaxRoomSize = Mathf.Clamp(MaxRoomSize, 15, 50);
+        MaxRooms = Mathf.Clamp(MaxRooms, 5, 50);
+        SpawnPadding = Mathf.Clamp(SpawnPadding, 1, 5);
+
+        // Ensure min is less than max
+        if (MinInset >= MaxInset)
+        {
+            MinInset = MaxInset - 2;
+        }
+
+        if (MinRoomSize >= MaxRoomSize)
+        {
+            MinRoomSize = MaxRoomSize - 5;
+        }
+
+        // Ensure rooms can actually be created with these settings
+        if (MinRoomSize < 3)
+        {
+            MinRoomSize = 3;
+            Debug.LogWarning("RoomConfig: MinRoomSize increased to 3 to ensure valid rooms");
+        }
+    }
+
+    /// <summary>
+    /// Gets a random inset value within configured bounds.
+    /// </summary>
+    public int GetRandomInset(System.Random random)
+    {
+        return random.Next(MinInset, MaxInset + 1);
+    }
+
+    /// <summary>
+    /// Calculates the actual room size after applying insets to partition bounds.
+    /// </summary>
+    public int CalculateRoomSize(int partitionSize, int leftInset, int rightInset)
+    {
+        return partitionSize - (leftInset + rightInset);
+    }
+
+    /// <summary>
+    /// Checks if a room of given size is valid according to configuration.
+    /// </summary>
+    public bool IsValidRoomSize(int width, int height)
+    {
+        return width >= MinRoomSize && height >= MinRoomSize &&
+               width <= MaxRoomSize && height <= MaxRoomSize;
+    }
+
+    /// <summary>
+    /// Checks if a partition can contain a valid room with current settings.
+    /// </summary>
+    public bool CanPartitionContainRoom(int partitionWidth, int partitionHeight)
+    {
+        int minRequiredWidth = MinRoomSize + (MinInset * 2);
+        int minRequiredHeight = MinRoomSize + (MinInset * 2);
+        
+        return partitionWidth >= minRequiredWidth && partitionHeight >= minRequiredHeight;
+    }
+}
+
+// RuntimeConfigs.cs
+using UnityEngine;
+
+/// <summary>
+/// Container for runtime copies of configuration objects to allow modification without affecting original assets.
+/// </summary>
+public class RuntimeConfigs
+{
+    public GameConfig GameConfig { get; private set; }
+    public LevelConfig LevelConfig { get; private set; }
+    public PartitionConfig PartitionConfig { get; private set; }
+    public RoomConfig RoomConfig { get; private set; }
+
+    /// <summary>
+    /// Creates deep copies of all configuration objects for runtime use.
+    /// </summary>
+    public RuntimeConfigs(GameConfig gameConfig, LevelConfig levelConfig, PartitionConfig partitionConfig, RoomConfig roomConfig)
+    {
+        GameConfig = CreateConfigCopy(gameConfig);
+        LevelConfig = CreateConfigCopy(levelConfig);
+        PartitionConfig = CreateConfigCopy(partitionConfig);
+        RoomConfig = CreateConfigCopy(roomConfig);
+        
+        ValidateAllConfigs();
+        
+        Debug.Log($"Runtime configs created - Level: {LevelConfig.Width}x{LevelConfig.Height}, Floor: {LevelConfig.FloorLevel}");
+    }
+
+    private T CreateConfigCopy<T>(T original) where T : class, new()
+    {
+        if (original == null)
+        {
+            Debug.LogWarning($"Null config provided, creating default instance for {typeof(T).Name}");
+            return new T();
+        }
+
+        // Use clone method if available, otherwise create new instance
+        if (original is IConfigCloneable cloneable)
+        {
+            return (T)cloneable.Clone();
+        }
+
+        // Fallback to manual copying for specific types
+        return ManualConfigCopy(original);
+    }
+
+    private T ManualConfigCopy<T>(T original) where T : class, new()
+    {
+        var copy = new T();
+        
+        if (original is GameConfig originalGame && copy is GameConfig copyGame)
+        {
+            copyGame.SimplifyGeometry = originalGame.SimplifyGeometry;
+            copyGame.EnemiesPerCombatRoom = originalGame.EnemiesPerCombatRoom;
+            copyGame.TreasureRoomsPerFloor = originalGame.TreasureRoomsPerFloor;
+            copyGame.ShopRoomsPerFloor = originalGame.ShopRoomsPerFloor;
+        }
+        else if (original is LevelConfig originalLevel && copy is LevelConfig copyLevel)
+        {
+            copyLevel.Seed = originalLevel.Seed;
+            copyLevel.FloorLevel = originalLevel.FloorLevel;
+            copyLevel.Width = originalLevel.Width;
+            copyLevel.Height = originalLevel.Height;
+            copyLevel.FloorGrowth = originalLevel.FloorGrowth;
+            copyLevel.MinFloorSize = originalLevel.MinFloorSize;
+            copyLevel.MaxFloorSize = originalLevel.MaxFloorSize;
+        }
+        else if (original is PartitionConfig originalPartition && copy is PartitionConfig copyPartition)
+        {
+            copyPartition.MinPartitionSize = originalPartition.MinPartitionSize;
+            copyPartition.MaxPartitionSize = originalPartition.MaxPartitionSize;
+            copyPartition.ExtraConnections = originalPartition.ExtraConnections;
+            copyPartition.MinSplitRatio = originalPartition.MinSplitRatio;
+            copyPartition.MaxSplitRatio = originalPartition.MaxSplitRatio;
+        }
+        else if (original is RoomConfig originalRoom && copy is RoomConfig copyRoom)
+        {
+            copyRoom.MinInset = originalRoom.MinInset;
+            copyRoom.MaxInset = originalRoom.MaxInset;
+            copyRoom.MinRoomSize = originalRoom.MinRoomSize;
+            copyRoom.MaxRoomSize = originalRoom.MaxRoomSize;
+            copyRoom.MaxRooms = originalRoom.MaxRooms;
+            copyRoom.SpawnPadding = originalRoom.SpawnPadding;
+        }
+        else
+        {
+            Debug.LogWarning($"No manual copy implementation for {typeof(T).Name}, using default values");
+        }
+        
+        return copy;
+    }
+
+    private void ValidateAllConfigs()
+    {
+        GameConfig?.Validate();
+        LevelConfig?.Validate();
+        PartitionConfig?.Validate();
+        RoomConfig?.Validate();
+    }
+
+    /// <summary>
+    /// Updates the level configuration for progression to the next floor.
+    /// </summary>
+    public void ProgressToNextFloor(System.Random random)
+    {
+        LevelConfig.FloorLevel++;
+        LevelConfig.GrowFloor(random.NextDouble() > 0.5);
+        LevelConfig.Validate();
+        
+        Debug.Log($"Progressed to floor {LevelConfig.FloorLevel}, new size: {LevelConfig.Width}x{LevelConfig.Height}");
+    }
+
+    /// <summary>
+    /// Resets all configurations to their original state.
+    /// </summary>
+    public void Reset(GameConfig gameConfig, LevelConfig levelConfig, PartitionConfig partitionConfig, RoomConfig roomConfig)
+    {
+        GameConfig = CreateConfigCopy(gameConfig);
+        LevelConfig = CreateConfigCopy(levelConfig);
+        PartitionConfig = CreateConfigCopy(partitionConfig);
+        RoomConfig = CreateConfigCopy(roomConfig);
+        
+        ValidateAllConfigs();
+    }
+}
+
+/// <summary>
+/// Interface for configuration objects that support cloning.
+/// </summary>
+public interface IConfigCloneable
+{
+    object Clone();
+}

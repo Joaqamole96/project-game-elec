@@ -1,0 +1,91 @@
+// BiomeTheme.cs
+using UnityEngine;
+
+/// <summary>
+/// Defines a biome theme with prefab paths and visual properties for dungeon generation.
+/// </summary>
+[System.Serializable]
+public class BiomeTheme
+{
+    [Header("Basic Settings")]
+    public string Name;
+    public int StartLevel;
+    public int EndLevel;
+    
+    [Tooltip("Weight for random selection between multiple themes in same level range")]
+    public float Weight = 1.0f;
+    
+    [Header("Prefab Paths")]
+    public string FloorPrefabPath;
+    public string WallPrefabPath;
+    public string DoorPrefabPath;
+    public string DoorTopPrefabPath;
+    
+    [Header("Special Room Prefabs")]
+    public string EntrancePrefabPath;
+    public string ExitPrefabPath;
+    public string ShopPrefabPath;
+    public string TreasurePrefabPath;
+    public string BossPrefabPath;
+    
+    [Header("Materials (Optimization)")]
+    public Material FloorMaterial;
+    public Material WallMaterial;
+
+    /// <summary>
+    /// Creates a new biome theme with the specified level range and weight.
+    /// </summary>
+    public BiomeTheme(string name, int startLevel, int endLevel, float weight = 1.0f)
+    {
+        Name = name;
+        StartLevel = startLevel;
+        EndLevel = endLevel;
+        Weight = weight;
+    }
+
+    /// <summary>
+    /// Checks if this theme is valid for the specified floor level.
+    /// </summary>
+    public bool IsValidForFloor(int floorLevel)
+    {
+        return floorLevel >= StartLevel && floorLevel <= EndLevel;
+    }
+}
+
+// PathfindingNode.cs
+using UnityEngine;
+
+/// <summary>
+/// Represents a node in the A* pathfinding algorithm with position and cost data.
+/// </summary>
+public class PathfindingNode
+{
+    public Vector2Int Position { get; }
+    public float GCost { get; set; }  // Cost from start node
+    public float HCost { get; set; }  // Heuristic cost to target
+    public float FCost => GCost + HCost;  // Total cost
+    public PathfindingNode Parent { get; set; }
+
+    public PathfindingNode(Vector2Int position)
+    {
+        Position = position;
+    }
+
+    /// <summary>
+    /// Resets the node costs and parent for reuse.
+    /// </summary>
+    public void Reset()
+    {
+        GCost = 0;
+        HCost = 0;
+        Parent = null;
+    }
+
+    /// <summary>
+    /// Calculates heuristic distance to target position using Manhattan distance.
+    /// </summary>
+    public float CalculateHeuristic(Vector2Int target)
+    {
+        return Mathf.Abs(Position.x - target.x) + Mathf.Abs(Position.y - target.y);
+    }
+}

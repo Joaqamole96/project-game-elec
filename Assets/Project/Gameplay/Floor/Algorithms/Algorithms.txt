@@ -1,0 +1,945 @@
+// RoomAssigner.cs
+using System.Collections.Generic;
+using System.Linq;
+using UnityEngine;
+
+/// <summary>
+/// Assigns room types and purposes based on dungeon progression and connectivity.
+/// </summary>
+public class RoomAssigner
+{
+    /// <summary>
+    /// Assigns room types based on dungeon progression and connectivity.
+    /// </summary>
+    public List<RoomModel> AssignRooms(LevelModel layout, int floorLevel, System.Random random)
+    {
+        if (layout?.Rooms == null || layout.Rooms.Count == 0)
+        {
+            Debug.LogWarning("No rooms to assign!");
+            return CreateFallbackAssignments(layout?.Rooms);
+        }
+
+        layout.InitializeSpatialData();
+        var roomGraph = layout.RoomGraph;
+        
+        if (roomGraph.Count == 0)
+        {
+            Debug.LogWarning("No room connections found!");
+            return CreateFallbackAssignments(layout.Rooms);
+        }
+
+        var entranceRoom = FindOptimalEntranceRoom(layout.Rooms, roomGraph, layout);
+        var distances = CalculateDistancesFromRoom(roomGraph, entranceRoom);
+        
+        AssignDistanceValues(layout.Rooms, distances);
+        AssignCriticalRooms(layout.Rooms, distances, floorLevel, random);
+        AssignSpecialRooms(layout.Rooms, floorLevel, random);
+        AssignEmptyRooms(layout.Rooms, random);
+        
+        GenerateSpawnPositions(layout.Rooms);
+        
+        Debug.Log($"Room assignment complete: {GetRoomTypeSummary(layout.Rooms)}");
+        return layout.Rooms;
+    }
+
+    private RoomModel FindOptimalEntranceRoom(List<RoomModel> rooms, Dictionary<RoomModel, List<RoomModel>> graph, LevelModel layout)
+    {
+        return rooms.OrderBy(room => 
+        {
+            int connectionCount = graph.ContainsKey(room) ? graph[room].Count : int.MaxValue;
+            int edgeDistance = CalculateEdgeDistance(room, layout);
+            return connectionCount * 1000 + edgeDistance; // Prioritize well-connected edge rooms
+        }).FirstOrDefault() ?? rooms[0];
+    }
+
+    private int CalculateEdgeDistance(RoomModel room, LevelModel layout)
+    {
+        if (room?.Bounds == null || layout?.OverallBounds == null) return int.MaxValue;
+        
+        return Mathf.Min(
+            room.Bounds.xMin, 
+            layout.OverallBounds.size.x - room.Bounds.xMax,
+            room.Bounds.yMin, 
+            layout.OverallBounds.size.y - room.Bounds.yMax
+        );
+    }
+
+    private void AssignDistanceValues(List<RoomModel> rooms, Dictionary<RoomModel, int> distances)
+    {
+        if (rooms == null || distances == null) return;
+
+        foreach (var room in rooms)
+        {
+            if (room != null && distances.TryGetValue(room, out int distance))
+            {
+                room.DistanceFromEntrance = distance;
+            }
+        }
+    }
+
+    private void AssignCriticalRooms(List<RoomModel> rooms, Dictionary<RoomModel, int> distances, int floorLevel, System.Random random)
+    {
+        if (rooms == null || rooms.Count < 2) 
+        {
+            Debug.LogWarning("Not enough rooms to assign critical rooms!");
+            return;
+        }
+
+        var entranceRoom = rooms.OrderBy(r => distances.GetValueOrDefault(r, int.MaxValue)).First();
+        var exitRoom = rooms.OrderByDescending(r => distances.GetValueOrDefault(r, int.MinValue)).First();
+
+        // Ensure we have distinct rooms for entrance and exit
+        if (entranceRoom == exitRoom && rooms.Count > 1)
+        {
+            exitRoom = rooms.Where(r => r != entranceRoom)
+                          .OrderByDescending(r => distances.GetValueOrDefault(r, int.MinValue))
+                          .First();
+        }
+
+        // Only assign if they're currently combat rooms (don't reassign already assigned rooms)
+        if (entranceRoom.Type == RoomType.Combat)
+        {
+            entranceRoom.Type = RoomType.Entrance;
+            entranceRoom.State = RoomAccess.Open;
+            entranceRoom.IsRevealed = true;
+            Debug.Log($"Assigned Entrance: Room {entranceRoom.ID}");
+        }
+
+        if (exitRoom.Type == RoomType.Combat && exitRoom != entranceRoom)
+        {
+            exitRoom.Type = RoomType.Exit;
+            exitRoom.State = RoomAccess.Open;
+            exitRoom.IsRevealed = true;
+            Debug.Log($"Assigned Exit: Room {exitRoom.ID}");
+        }
+
+        if (floorLevel % 5 == 0)
+        {
+            AssignBossRoom(rooms, exitRoom);
+        }
+        
+        // Log the final room distribution
+        Debug.Log($"Room assignment - Entrance: {entranceRoom.ID}, Exit: {exitRoom?.ID}, Total rooms: {rooms.Count}");
+    }
+
+    private void AssignBossRoom(List<RoomModel> rooms, RoomModel exitRoom)
+    {
+        if (exitRoom == null) return;
+
+        var bossCandidate = rooms
+            .Where(r => r != null && r.Type == RoomType.Combat && r.ConnectedRooms.Contains(exitRoom))
+            .OrderByDescending(r => r.DistanceFromEntrance)
+            .FirstOrDefault();
+
+        bossCandidate ??= rooms
+            .Where(r => r != null && r.Type == RoomType.Combat)
+            .OrderByDescending(r => r.DistanceFromEntrance)
+            .FirstOrDefault();
+
+        if (bossCandidate != null)
+        {
+            bossCandidate.Type = RoomType.Boss;
+            bossCandidate.State = RoomAccess.Closed;
+        }
+    }
+
+    private void AssignSpecialRooms(List<RoomModel> rooms, int floorLevel, System.Random random)
+    {
+        var combatRooms = rooms.Where(r => r != null && r.Type == RoomType.Combat).ToList();
+        if (combatRooms.Count < 2) return;
+
+        // These would come from GameConfig in the real implementation
+        int targetShopRooms = 1;
+        int targetTreasureRooms = 1;
+
+        var midProgressRooms = combatRooms
+            .OrderBy(r => Mathf.Abs(r.DistanceFromEntrance - (float)combatRooms.Average(room => room.DistanceFromEntrance)))
+            .ToList();
+
+        // Assign shop rooms
+        for (int i = 0; i < targetShopRooms && i < midProgressRooms.Count; i++)
+        {
+            midProgressRooms[i].Type = RoomType.Shop;
+            midProgressRooms[i].State = RoomAccess.Open;
+        }
+
+        // Assign treasure rooms
+        int treasureStart = targetShopRooms;
+        for (int i = 0; i < targetTreasureRooms && treasureStart + i < midProgressRooms.Count; i++)
+        {
+            midProgressRooms[treasureStart + i].Type = RoomType.Treasure;
+            midProgressRooms[treasureStart + i].State = RoomAccess.Open;
+        }
+    }
+
+    private void AssignEmptyRooms(List<RoomModel> rooms, System.Random random)
+    {
+        var combatRooms = rooms.Where(r => r != null && r.Type == RoomType.Combat).ToList();
+        if (combatRooms.Count == 0) return;
+
+        int emptyRoomCount = Mathf.Max(1, combatRooms.Count / 4);
+        var roomsToMakeEmpty = combatRooms
+            .OrderBy(r => random.NextDouble())
+            .Take(emptyRoomCount)
+            .ToList();
+
+        foreach (var room in roomsToMakeEmpty)
+        {
+            room.Type = RoomType.Empty;
+            room.State = RoomAccess.Open;
+        }
+    }
+
+    private void GenerateSpawnPositions(List<RoomModel> rooms)
+    {
+        // This would use GameConfig.EnemiesPerCombatRoom in real implementation
+        int enemiesPerRoom = 3;
+        
+        foreach (var room in rooms)
+        {
+            if (room != null && (room.Type == RoomType.Combat || room.Type == RoomType.Boss))
+            {
+                room.GenerateSpawnPositions(enemiesPerRoom);
+            }
+        }
+    }
+
+    private Dictionary<RoomModel, int> CalculateDistancesFromRoom(Dictionary<RoomModel, List<RoomModel>> graph, RoomModel startRoom)
+    {
+        var distances = new Dictionary<RoomModel, int>();
+        
+        if (graph == null || !graph.ContainsKey(startRoom)) 
+            return distances;
+
+        var visited = new HashSet<RoomModel>();
+        var queue = new Queue<(RoomModel, int)>();
+        
+        queue.Enqueue((startRoom, 0));
+        visited.Add(startRoom);
+        
+        while (queue.Count > 0)
+        {
+            var (current, distance) = queue.Dequeue();
+            distances[current] = distance;
+            
+            if (graph.ContainsKey(current))
+            {
+                foreach (var neighbor in graph[current])
+                {
+                    if (neighbor != null && !visited.Contains(neighbor))
+                    {
+                        visited.Add(neighbor);
+                        queue.Enqueue((neighbor, distance + 1));
+                    }
+                }
+            }
+        }
+        
+        return distances;
+    }
+
+    private List<RoomModel> CreateFallbackAssignments(List<RoomModel> rooms)
+    {
+        if (rooms == null || rooms.Count == 0)
+            return new List<RoomModel>();
+
+        for (int i = 0; i < rooms.Count; i++)
+        {
+            if (rooms[i] != null)
+            {
+                rooms[i].Type = i == 0 ? RoomType.Entrance : 
+                              i == rooms.Count - 1 ? RoomType.Exit : RoomType.Combat;
+            }
+        }
+        return rooms;
+    }
+
+    private string GetRoomTypeSummary(List<RoomModel> rooms)
+    {
+        if (rooms == null) return "No rooms";
+        return string.Join(", ", rooms.Where(r => r != null)
+                                    .GroupBy(r => r.Type)
+                                    .Select(g => $"{g.Key}: {g.Count()}"));
+    }
+}
+
+// MinimumSpanningTree.cs
+using System.Collections.Generic;
+using System.Linq;
+using UnityEngine;
+
+/// <summary>
+/// Applies Minimum Spanning Tree algorithm to create efficient room connectivity.
+/// Uses Kruskal's algorithm with union-find data structure.
+/// </summary>
+public static class MinimumSpanningTree
+{
+    /// <summary>
+    /// Applies Minimum Spanning Tree to select the most efficient corridor connections.
+    /// </summary>
+    /// <param name="corridors">All possible corridors between rooms.</param>
+    /// <param name="rooms">All rooms in the level.</param>
+    /// <returns>Minimal set of corridors that connect all rooms.</returns>
+    public static List<CorridorModel> Apply(List<CorridorModel> corridors, List<RoomModel> rooms)
+    {
+        if (rooms == null || rooms.Count == 0 || corridors == null)
+            return corridors ?? new List<CorridorModel>();
+        
+        var parentIds = InitializeUnionFind(rooms.Count);
+        var spanningTreeCorridors = new List<CorridorModel>();
+
+        // Sort corridors by distance (shorter corridors first)
+        corridors.Sort((a, b) =>
+        {
+            if (a == null || b == null) return 0;
+            float distA = Vector2.Distance(a.StartRoom.Bounds.center, a.EndRoom.Bounds.center);
+            float distB = Vector2.Distance(b.StartRoom.Bounds.center, b.EndRoom.Bounds.center);
+            return distA.CompareTo(distB);
+        });
+
+        foreach (var corridor in corridors)
+        {
+            if (corridor?.StartRoom == null || corridor.EndRoom == null) continue;
+                
+            int roomAIndex = rooms.IndexOf(corridor.StartRoom);
+            int roomBIndex = rooms.IndexOf(corridor.EndRoom);
+            
+            if (roomAIndex < 0 || roomBIndex < 0) continue;
+
+            if (FindRoot(roomAIndex, parentIds) != FindRoot(roomBIndex, parentIds))
+            {
+                spanningTreeCorridors.Add(corridor);
+                UnionSets(roomAIndex, roomBIndex, parentIds);
+            }
+        }
+
+        Debug.Log($"MST applied: {spanningTreeCorridors.Count} corridors selected from {corridors.Count} possible");
+        return spanningTreeCorridors;
+    }
+
+    private static int[] InitializeUnionFind(int roomCount)
+    {
+        var parentIds = new int[roomCount];
+        for (int i = 0; i < roomCount; i++)
+            parentIds[i] = i;
+        return parentIds;
+    }
+
+    private static int FindRoot(int elementId, int[] parentIds)
+    {
+        if (parentIds[elementId] != elementId)
+            parentIds[elementId] = FindRoot(parentIds[elementId], parentIds);
+        return parentIds[elementId];
+    }
+
+    private static void UnionSets(int a, int b, int[] parentIds)
+    {
+        int rootA = FindRoot(a, parentIds);
+        int rootB = FindRoot(b, parentIds);
+        if (rootA != rootB)
+            parentIds[rootB] = rootA;
+    }
+
+    /// <summary>
+    /// Checks if all rooms are connected by the given corridors.
+    /// </summary>
+    public static bool AreAllRoomsConnected(List<RoomModel> rooms, List<CorridorModel> corridors)
+    {
+        if (rooms == null || rooms.Count == 0) return true;
+        if (corridors == null) return false;
+        
+        var parentIds = InitializeUnionFind(rooms.Count);
+        
+        foreach (var corridor in corridors)
+        {
+            if (corridor?.StartRoom == null || corridor.EndRoom == null) continue;
+                
+            int roomAIndex = rooms.IndexOf(corridor.StartRoom);
+            int roomBIndex = rooms.IndexOf(corridor.EndRoom);
+            
+            if (roomAIndex >= 0 && roomBIndex >= 0)
+            {
+                UnionSets(roomAIndex, roomBIndex, parentIds);
+            }
+        }
+
+        // Check if all rooms have the same root
+        int firstRoot = FindRoot(0, parentIds);
+        for (int i = 1; i < rooms.Count; i++)
+        {
+            if (FindRoot(i, parentIds) != firstRoot)
+                return false;
+        }
+        
+        return true;
+    }
+
+    /// <summary>
+    /// Validates if a corridor can be used in the MST algorithm.
+    /// </summary>
+    private static bool IsValidCorridor(CorridorModel corridor, List<RoomModel> rooms)
+    {
+        return corridor?.StartRoom != null && 
+               corridor.EndRoom != null && 
+               rooms.Contains(corridor.StartRoom) && 
+               rooms.Contains(corridor.EndRoom);
+    }
+}
+
+// CorridorGenerator.cs
+using System.Collections.Generic;
+using System.Linq;
+using UnityEngine;
+
+/// <summary>
+/// Generates corridors between rooms using L-shaped paths and door placement.
+/// </summary>
+public class CorridorGenerator
+{
+    /// <summary>
+    /// Generates all possible corridors between neighboring room partitions.
+    /// </summary>
+    public List<CorridorModel> GenerateAllPossibleCorridors(List<PartitionModel> partitions, System.Random random)
+    {
+        if (partitions == null || random == null)
+        {
+            Debug.LogError("CorridorGenerator: Null parameters provided");
+            return new List<CorridorModel>();
+        }
+
+        var allCorridors = new List<CorridorModel>();
+        var roomFloorTiles = CollectRoomFloorTiles(partitions);
+        var connectedPairs = new HashSet<(int, int)>();
+        
+        foreach (var partition in partitions)
+        {
+            if (partition?.Neighbors == null) continue;
+            
+            foreach (var neighbor in partition.Neighbors)
+            {
+                if (neighbor == null) continue;
+                if (partition.Room == null || neighbor.Room == null) continue;
+                
+                var roomA = partition.Room;
+                var roomB = neighbor.Room;
+                
+                var pairKey = (Mathf.Min(roomA.ID, roomB.ID), Mathf.Max(roomA.ID, roomB.ID));
+                if (connectedPairs.Contains(pairKey)) continue;
+                
+                var corridor = CreateCorridorBetweenRooms(roomA, roomB, roomFloorTiles, random);
+                if (corridor != null)
+                {
+                    allCorridors.Add(corridor);
+                    connectedPairs.Add(pairKey);
+                }
+            }
+        }
+        
+        Debug.Log($"Generated {allCorridors.Count} possible corridors");
+        return allCorridors;
+    }
+
+    private HashSet<Vector2Int> CollectRoomFloorTiles(List<PartitionModel> partitions)
+    {
+        var floorTiles = new HashSet<Vector2Int>();
+        
+        foreach (var partition in partitions)
+        {
+            if (partition?.Room != null)
+            {
+                foreach (var floorPos in partition.Room.GetFloorTiles())
+                    floorTiles.Add(floorPos);
+            }
+        }
+        
+        return floorTiles;
+    }
+
+    private CorridorModel CreateCorridorBetweenRooms(RoomModel roomA, RoomModel roomB, HashSet<Vector2Int> roomFloorTiles, System.Random random)
+    {
+        if (roomA == null || roomB == null) return null;
+
+        var (doorA, doorB) = FindAlignedDoorPositions(roomA, roomB, random);
+        
+        // Fallback strategies if aligned positions not found
+        if (doorA == null || doorB == null)
+        {
+            doorA = FindClosestWallPosition(roomA, roomB.Center);
+            doorB = FindClosestWallPosition(roomB, roomA.Center);
+        }
+
+        // Ultimate fallback
+        if (doorA == null) doorA = FindAnyValidWallPosition(roomA);
+        if (doorB == null) doorB = FindAnyValidWallPosition(roomB);
+
+        if (doorA == null || doorB == null)
+        {
+            Debug.LogWarning($"Failed to find door positions between rooms {roomA.ID} and {roomB.ID}");
+            return null;
+        }
+
+        var corridorTiles = CreateLShapedCorridor(doorA.Value, doorB.Value, roomFloorTiles);
+        
+        if (corridorTiles.Count == 0)
+        {
+            Debug.LogWarning($"Failed to create corridor between rooms {roomA.ID} and {roomB.ID}");
+            return null;
+        }
+
+        return new CorridorModel(corridorTiles, roomA, roomB, doorA.Value, doorB.Value);
+    }
+
+    private (Vector2Int?, Vector2Int?) FindAlignedDoorPositions(RoomModel roomA, RoomModel roomB, System.Random random)
+    {
+        if (roomA?.Bounds == null || roomB?.Bounds == null) return (null, null);
+
+        var boundsA = roomA.Bounds;
+        var boundsB = roomB.Bounds;
+
+        // Check for horizontal alignment (rooms above/below each other)
+        if (boundsA.yMax <= boundsB.yMin || boundsB.yMax <= boundsA.yMin)
+        {
+            int overlapStart = Mathf.Max(boundsA.xMin, boundsB.xMin);
+            int overlapEnd = Mathf.Min(boundsA.xMax, boundsB.xMax);
+
+            if (overlapStart < overlapEnd - 2) // Need at least 3 tiles overlap for a door
+            {
+                int doorX = random.Next(overlapStart + 1, overlapEnd - 1);
+                bool roomAIsAbove = boundsA.yMax <= boundsB.yMin;
+
+                Vector2Int doorA = roomAIsAbove ?
+                    new Vector2Int(doorX, boundsA.yMax - 1) :
+                    new Vector2Int(doorX, boundsA.yMin);
+
+                Vector2Int doorB = roomAIsAbove ?
+                    new Vector2Int(doorX, boundsB.yMin) :
+                    new Vector2Int(doorX, boundsB.yMax - 1);
+
+                return (doorA, doorB);
+            }
+        }
+
+        // Check for vertical alignment (rooms left/right of each other)
+        if (boundsA.xMax <= boundsB.xMin || boundsB.xMax <= boundsA.xMin)
+        {
+            int overlapStart = Mathf.Max(boundsA.yMin, boundsB.yMin);
+            int overlapEnd = Mathf.Min(boundsA.yMax, boundsB.yMax);
+
+            if (overlapStart < overlapEnd - 2) // Need at least 3 tiles overlap for a door
+            {
+                int doorY = random.Next(overlapStart + 1, overlapEnd - 1);
+                bool roomAIsLeft = boundsA.xMax <= boundsB.xMin;
+
+                Vector2Int doorA = roomAIsLeft ?
+                    new Vector2Int(boundsA.xMax - 1, doorY) :
+                    new Vector2Int(boundsA.xMin, doorY);
+
+                Vector2Int doorB = roomAIsLeft ?
+                    new Vector2Int(boundsB.xMin, doorY) :
+                    new Vector2Int(boundsB.xMax - 1, doorY);
+
+                return (doorA, doorB);
+            }
+        }
+
+        return (null, null);
+    }
+
+    private Vector2Int? FindClosestWallPosition(RoomModel room, Vector2Int target)
+    {
+        if (room?.Bounds == null) return null;
+
+        var candidates = new List<Vector2Int>();
+        var bounds = room.Bounds;
+
+        // Collect all valid wall positions (excluding corners)
+        for (int x = bounds.xMin + 1; x < bounds.xMax - 1; x++)
+        {
+            candidates.Add(new Vector2Int(x, bounds.yMax - 1)); // Top wall
+            candidates.Add(new Vector2Int(x, bounds.yMin));     // Bottom wall
+        }
+
+        for (int y = bounds.yMin + 1; y < bounds.yMax - 1; y++)
+        {
+            candidates.Add(new Vector2Int(bounds.xMax - 1, y)); // Right wall
+            candidates.Add(new Vector2Int(bounds.xMin, y));     // Left wall
+        }
+
+        return candidates.OrderBy(pos => Vector2Int.Distance(pos, target)).FirstOrDefault();
+    }
+
+    private Vector2Int? FindAnyValidWallPosition(RoomModel room)
+    {
+        if (room?.Bounds == null) return null;
+
+        var bounds = room.Bounds;
+        if (bounds.width >= 3 && bounds.height >= 3)
+        {
+            return new Vector2Int(bounds.xMin + 1, bounds.yMin + 1);
+        }
+        return null;
+    }
+
+    private List<Vector2Int> CreateLShapedCorridor(Vector2Int start, Vector2Int end, HashSet<Vector2Int> roomFloorTiles)
+    {
+        var tiles = new List<Vector2Int>();
+        
+        // Horizontal segment first
+        int dx = Mathf.Clamp(end.x - start.x, -1, 1);
+        for (int x = start.x; x != end.x; x += dx)
+        {
+            var pos = new Vector2Int(x, start.y);
+            if (!roomFloorTiles.Contains(pos))
+                tiles.Add(pos);
+        }
+        
+        // Vertical segment
+        int dy = Mathf.Clamp(end.y - start.y, -1, 1);
+        for (int y = start.y; y != end.y; y += dy)
+        {
+            var pos = new Vector2Int(end.x, y);
+            if (!roomFloorTiles.Contains(pos))
+                tiles.Add(pos);
+        }
+        
+        // Add the end position
+        tiles.Add(end);
+        return tiles;
+    }
+
+    /// <summary>
+    /// Adds extra corridor connections beyond the minimum spanning tree for more connectivity.
+    /// </summary>
+    public List<CorridorModel> AddExtraConnections(List<CorridorModel> allCorridors, List<CorridorModel> mstCorridors, int extraCount, System.Random random)
+    {
+        if (allCorridors == null || mstCorridors == null || random == null)
+            return new List<CorridorModel>();
+
+        var extraCorridors = new List<CorridorModel>();
+        var availableCorridors = allCorridors.Except(mstCorridors).Where(c => c != null).ToList();
+        
+        // Shuffle available corridors for random selection
+        availableCorridors = availableCorridors.OrderBy(x => random.Next()).ToList();
+        
+        for (int i = 0; i < Mathf.Min(extraCount, availableCorridors.Count); i++)
+        {
+            extraCorridors.Add(availableCorridors[i]);
+        }
+        
+        Debug.Log($"Added {extraCorridors.Count} extra corridor connections");
+        return extraCorridors;
+    }
+}
+
+// BSPGenerator.cs
+using System.Collections.Generic;
+using UnityEngine;
+
+/// <summary>
+/// Generates dungeon layout using Binary Space Partitioning (BSP) algorithm.
+/// Divides space recursively to create balanced room distributions.
+/// </summary>
+public class BSPGenerator
+{
+    /// <summary>
+    /// Generates the complete BSP tree for the level.
+    /// </summary>
+    public PartitionModel GeneratePartitionTree(LevelConfig levelConfig, PartitionConfig partitionConfig, System.Random random)
+    {
+        if (levelConfig == null || partitionConfig == null || random == null)
+        {
+            Debug.LogError("BSPGenerator: Null parameters provided to GeneratePartitionTree");
+            return null;
+        }
+
+        var rootBounds = new RectInt(0, 0, levelConfig.Width, levelConfig.Height);
+        var root = new PartitionModel(rootBounds);
+        
+        SplitPartition(root, partitionConfig, random);
+        return root;
+    }
+
+    private void SplitPartition(PartitionModel partition, PartitionConfig config, System.Random random)
+    {
+        if (partition == null || config == null) return;
+
+        // FIX: Ensure partitions are large enough to split
+        bool canSplitVertically = partition.Bounds.width > config.MaxPartitionSize;
+        bool canSplitHorizontally = partition.Bounds.height > config.MaxPartitionSize;
+        
+        // If already within desired range, don't split
+        if (partition.Bounds.width <= config.MaxPartitionSize && 
+            partition.Bounds.height <= config.MaxPartitionSize)
+            return;
+
+        // If too small, don't split
+        if (partition.Bounds.width <= config.MinPartitionSize || 
+            partition.Bounds.height <= config.MinPartitionSize)
+            return;
+
+        bool splitVertically;
+        
+        // Prefer splitting the larger dimension
+        if (canSplitVertically && canSplitHorizontally)
+        {
+            splitVertically = partition.Bounds.width > partition.Bounds.height;
+        }
+        else if (canSplitVertically)
+        {
+            splitVertically = true;
+        }
+        else if (canSplitHorizontally)
+        {
+            splitVertically = false;
+        }
+        else
+        {
+            return; // Cannot split in either direction
+        }
+
+        // FIX: Use safer split ratio and ensure minimum sizes
+        float splitRatio = (float)(random.NextDouble() * 0.3f + 0.35f); // 0.35-0.65
+        
+        if (splitVertically)
+        {
+            SplitVertically(partition, config, splitRatio, random);
+        }
+        else
+        {
+            SplitHorizontally(partition, config, splitRatio, random);
+        }
+
+        // Recursively split children
+        SplitPartition(partition.LeftChild, config, random);
+        SplitPartition(partition.RightChild, config, random);
+    }
+
+    private void SplitVertically(PartitionModel partition, PartitionConfig config, float splitRatio, System.Random random)
+    {
+        int minSplit = config.MinPartitionSize;
+        int maxSplit = partition.Bounds.width - config.MinPartitionSize;
+        
+        if (maxSplit <= minSplit) return; // Cannot split safely
+        
+        int splitPoint = Mathf.Clamp(
+            Mathf.RoundToInt(partition.Bounds.width * splitRatio),
+            minSplit,
+            maxSplit
+        );
+
+        partition.LeftChild = new PartitionModel(new RectInt(
+            partition.Bounds.x, partition.Bounds.y, splitPoint, partition.Bounds.height));
+        partition.RightChild = new PartitionModel(new RectInt(
+            partition.Bounds.x + splitPoint, partition.Bounds.y, 
+            partition.Bounds.width - splitPoint, partition.Bounds.height));
+    }
+
+    private void SplitHorizontally(PartitionModel partition, PartitionConfig config, float splitRatio, System.Random random)
+    {
+        int minSplit = config.MinPartitionSize;
+        int maxSplit = partition.Bounds.height - config.MinPartitionSize;
+        
+        if (maxSplit <= minSplit) return; // Cannot split safely
+        
+        int splitPoint = Mathf.Clamp(
+            Mathf.RoundToInt(partition.Bounds.height * splitRatio),
+            minSplit,
+            maxSplit
+        );
+
+        partition.LeftChild = new PartitionModel(new RectInt(
+            partition.Bounds.x, partition.Bounds.y, partition.Bounds.width, splitPoint));
+        partition.RightChild = new PartitionModel(new RectInt(
+            partition.Bounds.x, partition.Bounds.y + splitPoint, 
+            partition.Bounds.width, partition.Bounds.height - splitPoint));
+    }
+
+    /// <summary>
+    /// Collects all leaf partitions from the BSP tree.
+    /// </summary>
+    public List<PartitionModel> CollectLeafPartitions(PartitionModel root)
+    {
+        var leaves = new List<PartitionModel>();
+        CollectLeavesRecursive(root, leaves);
+        return leaves;
+    }
+
+    private void CollectLeavesRecursive(PartitionModel partition, List<PartitionModel> leaves)
+    {
+        if (partition == null) return;
+        
+        if (partition.LeftChild == null && partition.RightChild == null)
+            leaves.Add(partition);
+        else
+        {
+            CollectLeavesRecursive(partition.LeftChild, leaves);
+            CollectLeavesRecursive(partition.RightChild, leaves);
+        }
+    }
+
+    /// <summary>
+    /// Creates rooms within leaf partitions using room configuration.
+    /// </summary>
+    public List<RoomModel> CreateRoomsFromPartitions(List<PartitionModel> leaves, RoomConfig roomConfig, System.Random random)
+    {
+        var rooms = new List<RoomModel>();
+        int roomIdCounter = 0;
+        
+        foreach (var leaf in leaves)
+        {
+            if (leaf == null) continue;
+
+            var room = CreateRoomInPartition(leaf, roomConfig, random, roomIdCounter);
+            if (room != null)
+            {
+                rooms.Add(room);
+                leaf.Room = room;
+                roomIdCounter++;
+            }
+        }
+        
+        Debug.Log($"Created {rooms.Count} rooms from {leaves.Count} partitions");
+        return rooms;
+    }
+
+    private RoomModel CreateRoomInPartition(PartitionModel leaf, RoomConfig roomConfig, System.Random random, int roomId)
+    {
+        // Calculate maximum possible insets
+        int maxHorizontalInset = (leaf.Bounds.width - roomConfig.MinRoomSize) / 2;
+        int maxVerticalInset = (leaf.Bounds.height - roomConfig.MinRoomSize) / 2;
+        
+        // Clamp insets to safe values
+        int leftInset = Mathf.Clamp(random.Next(roomConfig.MinInset, roomConfig.MaxInset + 1), 1, maxHorizontalInset);
+        int rightInset = Mathf.Clamp(random.Next(roomConfig.MinInset, roomConfig.MaxInset + 1), 1, maxHorizontalInset);
+        int bottomInset = Mathf.Clamp(random.Next(roomConfig.MinInset, roomConfig.MaxInset + 1), 1, maxVerticalInset);
+        int topInset = Mathf.Clamp(random.Next(roomConfig.MinInset, roomConfig.MaxInset + 1), 1, maxVerticalInset);
+
+        // Ensure we have at least a minimum room size
+        int roomWidth = leaf.Bounds.width - (leftInset + rightInset);
+        int roomHeight = leaf.Bounds.height - (bottomInset + topInset);
+        
+        // FIX: Force minimum room size and ensure we have at least 3x3 for floors
+        if (roomWidth < 3 || roomHeight < 3)
+        {
+            Debug.LogWarning($"Partition too small for room: {leaf.Bounds}. Adjusting insets...");
+            
+            // Use minimal insets to create smallest possible room
+            leftInset = 1;
+            rightInset = 1;
+            bottomInset = 1;
+            topInset = 1;
+            
+            roomWidth = Mathf.Max(3, leaf.Bounds.width - 2);
+            roomHeight = Mathf.Max(3, leaf.Bounds.height - 2);
+        }
+
+        // Ensure room meets minimum size requirements
+        if (roomWidth < roomConfig.MinRoomSize || roomHeight < roomConfig.MinRoomSize)
+        {
+            // Adjust insets to meet minimum size
+            int neededWidth = roomConfig.MinRoomSize - roomWidth;
+            int neededHeight = roomConfig.MinRoomSize - roomHeight;
+            
+            leftInset = Mathf.Max(1, leftInset - neededWidth / 2);
+            rightInset = Mathf.Max(1, rightInset - neededWidth / 2);
+            bottomInset = Mathf.Max(1, bottomInset - neededHeight / 2);
+            topInset = Mathf.Max(1, topInset - neededHeight / 2);
+            
+            roomWidth = leaf.Bounds.width - (leftInset + rightInset);
+            roomHeight = leaf.Bounds.height - (bottomInset + topInset);
+        }
+
+        RectInt roomBounds = new RectInt(
+            leaf.Bounds.x + leftInset,
+            leaf.Bounds.y + bottomInset,
+            roomWidth,
+            roomHeight
+        );
+
+        // Final safety check
+        if (roomBounds.width >= 3 && roomBounds.height >= 3)
+        {
+            var room = new RoomModel(roomBounds, roomId, RoomType.Combat);
+            Debug.Log($"Created room {room.ID}: {roomBounds} (Size: {roomBounds.width}x{roomBounds.height})");
+            return room;
+        }
+        else
+        {
+            Debug.LogWarning($"Skipped room creation - bounds too small: {roomBounds}");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Finds and assigns neighboring partitions for corridor generation.
+    /// </summary>
+    public void FindAndAssignNeighbors(List<PartitionModel> partitions)
+    {
+        if (partitions == null) return;
+
+        foreach (var partition in partitions)
+            partition.Neighbors.Clear();
+
+        var rightEdgeMap = new Dictionary<int, List<PartitionModel>>();
+        var bottomEdgeMap = new Dictionary<int, List<PartitionModel>>();
+
+        // Build edge maps for efficient neighbor finding
+        foreach (var partition in partitions)
+        {
+            if (partition == null) continue;
+
+            // Right edge mapping
+            if (!rightEdgeMap.ContainsKey(partition.Bounds.xMax))
+                rightEdgeMap[partition.Bounds.xMax] = new List<PartitionModel>();
+            rightEdgeMap[partition.Bounds.xMax].Add(partition);
+            
+            // Bottom edge mapping
+            if (!bottomEdgeMap.ContainsKey(partition.Bounds.yMax))
+                bottomEdgeMap[partition.Bounds.yMax] = new List<PartitionModel>();
+            bottomEdgeMap[partition.Bounds.yMax].Add(partition);
+        }
+
+        // Find horizontal neighbors
+        foreach (var partition in partitions)
+        {
+            if (partition == null) continue;
+
+            if (rightEdgeMap.TryGetValue(partition.Bounds.xMin, out var horizontalCandidates))
+            {
+                FindValidNeighbors(partition, horizontalCandidates);
+            }
+
+            if (bottomEdgeMap.TryGetValue(partition.Bounds.yMin, out var verticalCandidates))
+            {
+                FindValidNeighbors(partition, verticalCandidates);
+            }
+        }
+    }
+
+    private void FindValidNeighbors(PartitionModel partition, List<PartitionModel> candidates)
+    {
+        foreach (var candidate in candidates)
+        {
+            if (candidate == null || candidate == partition) continue;
+
+            if (ArePartitionsNeighbors(partition.Bounds, candidate.Bounds))
+            {
+                if (!partition.Neighbors.Contains(candidate))
+                    partition.Neighbors.Add(candidate);
+                if (!candidate.Neighbors.Contains(partition))
+                    candidate.Neighbors.Add(partition);
+            }
+        }
+    }
+
+    private bool ArePartitionsNeighbors(RectInt boundsA, RectInt boundsB)
+    {
+        bool touchHorizontally = boundsA.xMax == boundsB.xMin || boundsB.xMax == boundsA.xMin;
+        bool touchVertically = boundsA.yMax == boundsB.yMin || boundsB.yMax == boundsA.yMin;
+
+        bool overlapX = boundsA.xMin < boundsB.xMax && boundsB.xMin < boundsA.xMax;
+        bool overlapY = boundsA.yMin < boundsB.yMax && boundsB.yMin < boundsA.yMax;
+
+        return (touchHorizontally && overlapY) || (touchVertically && overlapX);
+    }
+}
