@@ -37,7 +37,7 @@ public class DungeonRenderer : MonoBehaviour
     public Transform EnvironmentParent;
     
     [Header("Mobile Optimization")]
-    public bool CombineMeshes = true;
+    public bool CombineMeshes = false;
     public bool EnableFloorCollision = true;
     public bool EnableWallCollision = true;
     public bool EnableDoorCollision = false;
@@ -133,13 +133,16 @@ public class DungeonRenderer : MonoBehaviour
         RenderDoors(layout);
     }
 
+    // In DungeonRenderer.cs - Update RenderRealMode method
     private void RenderRealMode(LevelModel layout, int floorLevel, int seed)
     {
         _optimizedRenderer.SetThemeForFloor(floorLevel, seed);
         
-        // Queue all geometry for combining
+        // Queue geometry for combining (floors and walls)
         _optimizedRenderer.RenderFloorsOptimized(layout, FloorsParent);
         _optimizedRenderer.RenderWallsOptimized(layout, WallsParent);
+        
+        // Render doors as individual objects (not combined)
         _optimizedRenderer.RenderDoorsOptimized(layout, DoorsParent);
         
         // Build all combined meshes

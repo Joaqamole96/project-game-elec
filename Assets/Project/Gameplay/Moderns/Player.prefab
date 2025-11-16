@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &6479472440949649752
+--- !u!1 &7775857927895358861
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,48 +8,49 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 1960706831974598444}
-  - component: {fileID: 3514550450913501234}
-  - component: {fileID: 1603560928424637864}
-  - component: {fileID: 1998843746839908473}
-  - component: {fileID: 7962999373423542380}
+  - component: {fileID: 4937471850064171367}
+  - component: {fileID: 9184487629680199488}
+  - component: {fileID: 2055791874131972815}
+  - component: {fileID: 1456795504850920138}
+  - component: {fileID: 3512475727159274978}
+  - component: {fileID: 8611942497636186138}
   m_Layer: 0
-  m_Name: DoorPrefab
-  m_TagString: Untagged
+  m_Name: Player
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &1960706831974598444
+--- !u!4 &4937471850064171367
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6479472440949649752}
+  m_GameObject: {fileID: 7775857927895358861}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1.5, z: 0}
-  m_LocalScale: {x: 0.1, y: 3, z: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 0.5, y: 0.5, z: 0.5}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!33 &3514550450913501234
+--- !u!33 &9184487629680199488
 MeshFilter:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6479472440949649752}
-  m_Mesh: {fileID: 10202, guid: 0000000000000000e000000000000000, type: 0}
---- !u!23 &1603560928424637864
+  m_GameObject: {fileID: 7775857927895358861}
+  m_Mesh: {fileID: 10208, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!23 &2055791874131972815
 MeshRenderer:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6479472440949649752}
+  m_GameObject: {fileID: 7775857927895358861}
   m_Enabled: 1
   m_CastShadows: 1
   m_ReceiveShadows: 1
@@ -85,32 +86,52 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!65 &1998843746839908473
-BoxCollider:
+--- !u!136 &1456795504850920138
+CapsuleCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6479472440949649752}
+  m_GameObject: {fileID: 7775857927895358861}
   m_Material: {fileID: 0}
   m_IsTrigger: 0
   m_Enabled: 1
-  serializedVersion: 2
-  m_Size: {x: 1, y: 1, z: 1}
+  m_Radius: 0.5
+  m_Height: 2
+  m_Direction: 1
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &7962999373423542380
+--- !u!54 &3512475727159274978
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7775857927895358861}
+  serializedVersion: 2
+  m_Mass: 1
+  m_Drag: 0
+  m_AngularDrag: 0.05
+  m_UseGravity: 1
+  m_IsKinematic: 0
+  m_Interpolate: 0
+  m_Constraints: 112
+  m_CollisionDetection: 0
+--- !u!114 &8611942497636186138
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6479472440949649752}
+  m_GameObject: {fileID: 7775857927895358861}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fbecad036615347449d845446cb10106, type: 3}
+  m_Script: {fileID: 11500000, guid: 4aaa4e8528eeffb418877ed9f5b4ea19, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  isLocked: 0
-  requiredKey: 0
-  doorModel: {fileID: 6479472440949649752}
-  doorCollider: {fileID: 1998843746839908473}
+  moveSpeed: 5
+  rotationSpeed: 10
+  maxHealth: 100
+  currentHealth: 0
+  rb: {fileID: 3512475727159274978}
+  animator: {fileID: 0}
+  weapon: {fileID: 0}

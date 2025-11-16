@@ -43,6 +43,11 @@ public class GizmoDoorRenderer : IDoorRenderer
         door.transform.position = worldPos;
         door.transform.localScale = new Vector3(1f, 0.8f, 1f);
         door.name = $"Door_{gridPos.x}_{gridPos.y}";
+        
+        // Add DoorController and configure
+        var doorController = door.AddComponent<DoorController>();
+        doorController.doorModel = door; // The cube itself is the model
+        
         ApplyDoorMaterial(door);
         return door;
     }
