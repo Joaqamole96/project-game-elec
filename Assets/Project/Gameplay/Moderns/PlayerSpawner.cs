@@ -17,7 +17,6 @@ public class PlayerSpawner : MonoBehaviour
     
     private void SpawnPlayer()
     {
-        // Remove existing player if any
         if (currentPlayer != null)
         {
             Destroy(currentPlayer);
@@ -25,24 +24,15 @@ public class PlayerSpawner : MonoBehaviour
         
         if (playerPrefab != null)
         {
-            // Get spawn position from dungeon generator
             DungeonGenerator generator = GetComponent<DungeonGenerator>();
             Vector3 spawnPosition = generator.GetEntranceRoomPosition();
             
-            // Instantiate player
             currentPlayer = Instantiate(playerPrefab, spawnPosition, Quaternion.identity);
             
-            // Setup camera follow
             if (cameraFollow != null)
             {
                 cameraFollow.SetTarget(currentPlayer.transform);
             }
-            
-            Debug.Log($"Player spawned at entrance: {spawnPosition}");
-        }
-        else
-        {
-            Debug.LogError("Player prefab not assigned in PlayerSpawner!");
         }
     }
     

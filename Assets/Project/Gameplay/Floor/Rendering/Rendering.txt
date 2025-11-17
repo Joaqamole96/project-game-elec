@@ -939,39 +939,23 @@ public class OptimizedPrefabRenderer
     {
         if (_currentTheme == null || layout?.AllDoorTiles == null) return;
 
-        // Doors
+        // Always render doors as individual prefabs (never combine)
         var doorPrefab = _biomeManager.GetDoorPrefab(_currentTheme);
         if (doorPrefab != null)
         {
-            Mesh doorMesh = GetPrefabMesh(doorPrefab);
-            Material doorMaterial = GetPrefabMaterial(doorPrefab);
-            Vector3 doorScale = doorPrefab.transform.localScale;
-
-            if (doorMesh != null && doorMaterial != null)
+            foreach (var doorPos in layout.AllDoorTiles)
             {
-                foreach (var doorPos in layout.AllDoorTiles)
+                Vector3 worldPos = new Vector3(doorPos.x + 0.5f, 1f, doorPos.y + 0.5f); // Adjusted height
+                Quaternion rotation = GetDoorRotation(layout, doorPos);
+                
+                var door = GameObject.Instantiate(doorPrefab, worldPos, rotation, parent);
+                door.name = $"Door_{doorPos.x}_{doorPos.y}";
+                
+                // Ensure DoorController is properly configured
+                var doorController = door.GetComponent<DoorController>();
+                if (doorController == null)
                 {
-                    Vector3 worldPos = new Vector3(doorPos.x + 0.5f, 2f, doorPos.y + 0.5f);
-                    Quaternion rotation = GetDoorRotation(layout, doorPos);
-                    _meshCombiner.AddMesh(doorMesh, worldPos, rotation, doorScale, doorMaterial);
-                }
-            }
-        }
-
-        // Door tops
-        var doorTopPrefab = _biomeManager.GetDoorTopPrefab(_currentTheme);
-        if (doorTopPrefab != null)
-        {
-            Mesh doorTopMesh = GetPrefabMesh(doorTopPrefab);
-            Material doorTopMaterial = GetPrefabMaterial(doorTopPrefab);
-            Vector3 doorTopScale = doorTopPrefab.transform.localScale;
-
-            if (doorTopMesh != null && doorTopMaterial != null)
-            {
-                foreach (var doorPos in layout.AllDoorTiles)
-                {
-                    Vector3 worldPos = new Vector3(doorPos.x + 0.5f, 6f, doorPos.y + 0.5f);
-                    _meshCombiner.AddMesh(doorTopMesh, worldPos, Quaternion.identity, doorTopScale, doorTopMaterial);
+                    doorController = door.AddComponent<DoorController>();
                 }
             }
         }

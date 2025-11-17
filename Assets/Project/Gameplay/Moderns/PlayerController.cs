@@ -8,18 +8,22 @@ public class PlayerController : MonoBehaviour
     
     [Header("Combat")]
     public int maxHealth = 100;
-    public int currentHealth;
+    public int playerDamage = 15;
+    public float attackRange = 2f;
+    public float attackCooldown = 1f;
+    public LayerMask enemyLayer = 1;
     
     [Header("References")]
     public Rigidbody rb;
     public Animator animator;
-    public GameObject weapon;
+    
+    // Properties
+    public static PlayerController Instance { get; private set; }
+    public int CurrentHealth { get; private set; }
     
     private Vector3 movement;
     private bool isMoving;
-    
-    // Singleton for easy access
-    public static PlayerController Instance { get; private set; }
+    private float lastAttackTime = 0f;
     
     void Awake()
     {
@@ -36,17 +40,17 @@ public class PlayerController : MonoBehaviour
     
     void Start()
     {
-        currentHealth = maxHealth;
+        CurrentHealth = maxHealth;
         rb = GetComponent<Rigidbody>();
-        
-        // Spawn at dungeon entrance
         SpawnAtEntrance();
     }
     
     void Update()
     {
         HandleInput();
+        HandleCombatInput();
         UpdateAnimations();
+        UpdateRoomDetection();
     }
     
     void FixedUpdate()
@@ -56,15 +60,16 @@ public class PlayerController : MonoBehaviour
     
     private void HandleInput()
     {
-        // Keyboard input (we'll add touch later)
         float horizontal = Input.GetAxisRaw("Horizontal");
         float vertical = Input.GetAxisRaw("Vertical");
         
         movement = new Vector3(horizontal, 0, vertical).normalized;
         isMoving = movement.magnitude > 0.1f;
-        
-        // Simple attack input
-        if (Input.GetKeyDown(KeyCode.Space))
+    }
+    
+    private void HandleCombatInput()
+    {
+        if (Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0))
         {
             PerformAttack();
         }
@@ -74,18 +79,37 @@ public class PlayerController : MonoBehaviour
     {
         if (isMoving)
         {
-            // Move the player
             Vector3 moveVelocity = movement * moveSpeed;
             rb.velocity = new Vector3(moveVelocity.x, rb.velocity.y, moveVelocity.z);
             
-            // Rotate towards movement direction
             Quaternion targetRotation = Quaternion.LookRotation(movement);
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.fixedDeltaTime);
         }
         else
         {
-            // Stop movement but maintain Y velocity for gravity
             rb.velocity = new Vector3(0, rb.velocity.y, 0);
+        }
+    }
+    
+    private void PerformAttack()
+    {
+        if (Time.time < lastAttackTime + attackCooldown) return;
+        
+        lastAttackTime = Time.time;
+        
+        if (animator != null)
+        {
+            animator.SetTrigger("Attack");
+        }
+        
+        Collider[] hitEnemies = Physics.OverlapSphere(transform.position, attackRange, enemyLayer);
+        foreach (Collider enemy in hitEnemies)
+        {
+            EnemyController enemyController = enemy.GetComponent<EnemyController>();
+            if (enemyController != null)
+            {
+                enemyController.TakeDamage(playerDamage);
+            }
         }
     }
     
@@ -98,23 +122,29 @@ public class PlayerController : MonoBehaviour
         }
     }
     
-    private void PerformAttack()
+    private void UpdateRoomDetection()
     {
-        if (animator != null)
+        if (Time.frameCount % 30 == 0)
         {
-            animator.SetTrigger("Attack");
+            RoomManager roomManager = FindObjectOfType<RoomManager>();
+            if (roomManager != null)
+            {
+                roomManager.UpdatePlayerRoom(transform.position);
+            }
         }
-        
-        // Simple attack logic - we'll expand this later
-        Debug.Log("Player attacked!");
     }
     
     public void TakeDamage(int damage)
     {
-        currentHealth -= damage;
-        Debug.Log($"Player took {damage} damage. Health: {currentHealth}");
+        CurrentHealth -= damage;
+        CurrentHealth = Mathf.Max(0, CurrentHealth);
         
-        if (currentHealth <= 0)
+        if (animator != null)
+        {
+            animator.SetTrigger("TakeDamage");
+        }
+        
+        if (CurrentHealth <= 0)
         {
             Die();
         }
@@ -122,9 +152,13 @@ public class PlayerController : MonoBehaviour
     
     private void Die()
     {
-        Debug.Log("Player died!");
-        // We'll add respawn/Game Over logic later
-        gameObject.SetActive(false);
+        if (animator != null)
+        {
+            animator.SetTrigger("Die");
+        }
+        
+        Debug.Log("Player died - Game Over!");
+        // GameManager can handle respawn/restart logic later
     }
     
     private void SpawnAtEntrance()
@@ -134,16 +168,10 @@ public class PlayerController : MonoBehaviour
         {
             Vector3 spawnPosition = generator.GetEntranceRoomPosition();
             transform.position = spawnPosition;
-            Debug.Log($"Player spawned at: {spawnPosition}");
-        }
-        else
-        {
-            Debug.LogWarning("DungeonGenerator not found! Spawning at default position.");
-            transform.position = new Vector3(0, 1, 0);
         }
     }
     
-    // For mobile controls (we'll implement tomorrow)
+    // Mobile controls interface
     public void SetMovementInput(Vector2 input)
     {
         movement = new Vector3(input.x, 0, input.y);
@@ -153,5 +181,11 @@ public class PlayerController : MonoBehaviour
     public void OnAttackButtonPressed()
     {
         PerformAttack();
+    }
+    
+    void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(transform.position, attackRange);
     }
 }

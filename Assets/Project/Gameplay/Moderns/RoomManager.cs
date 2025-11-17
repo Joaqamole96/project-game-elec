@@ -4,7 +4,8 @@ public class RoomManager : MonoBehaviour
 {
     public static RoomManager Instance { get; private set; }
     
-    private RoomModel currentRoom;
+    public RoomModel CurrentRoom { get; private set; }
+    
     private LevelModel currentLevel;
     
     void Awake()
@@ -18,6 +19,7 @@ public class RoomManager : MonoBehaviour
     public void SetCurrentLevel(LevelModel level)
     {
         currentLevel = level;
+        Debug.Log($"RoomManager: Tracking {level.Rooms.Count} rooms");
     }
     
     public void UpdatePlayerRoom(Vector3 playerPosition)
@@ -31,28 +33,34 @@ public class RoomManager : MonoBehaviour
         
         RoomModel newRoom = currentLevel.GetRoomAtPosition(gridPos);
         
-        if (newRoom != null && newRoom != currentRoom)
+        if (newRoom != null && newRoom != CurrentRoom)
         {
-            currentRoom = newRoom;
-            Debug.Log($"Entered room: {currentRoom.Type} (ID: {currentRoom.ID})");
-            
-            // Here we can trigger room events (spawn enemies, etc.)
-            OnRoomEntered(currentRoom);
+            CurrentRoom = newRoom;
+            OnRoomEntered(CurrentRoom);
         }
     }
     
     private void OnRoomEntered(RoomModel room)
     {
-        // We'll expand this later for combat rooms
+        Debug.Log($"Entered {room.Type} room (ID: {room.ID})");
+        
         if (room.Type == RoomType.Combat && !room.IsCleared)
         {
-            Debug.Log("Combat room entered - enemies will spawn here!");
-            // TODO: Spawn enemies
+            StartCombatInRoom(room);
         }
     }
     
-    public RoomModel GetCurrentRoom()
+    private void StartCombatInRoom(RoomModel room)
     {
-        return currentRoom;
+        Debug.Log("Combat started!");
+        // Future: Close doors, spawn enemies if not already present
+    }
+    
+    public void MarkRoomCleared(RoomModel room)
+    {
+        if (room != null)
+        {
+            room.MarkAsCleared();
+        }
     }
 }

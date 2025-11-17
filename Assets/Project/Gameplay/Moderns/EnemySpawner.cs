@@ -1,0 +1,64 @@
+using UnityEngine;
+using System.Collections;
+
+public class EnemySpawner : MonoBehaviour
+{
+    [Header("Enemy Prefabs")]
+    public GameObject enemyPrefab;
+    
+    [Header("Spawning Settings")]
+    public int maxEnemiesPerRoom = 2;
+    
+    private LevelModel currentLevel;
+    
+    void Start()
+    {
+        StartCoroutine(InitializeSpawning());
+    }
+    
+    private IEnumerator InitializeSpawning()
+    {
+        yield return new WaitForSeconds(1f);
+        
+        DungeonGenerator generator = FindObjectOfType<DungeonGenerator>();
+        if (generator != null && generator.CurrentLayout != null)
+        {
+            currentLevel = generator.CurrentLayout;
+            SpawnEnemiesInCombatRooms();
+        }
+    }
+    
+    private void SpawnEnemiesInCombatRooms()
+    {
+        if (currentLevel == null || enemyPrefab == null) return;
+        
+        int totalEnemies = 0;
+        
+        foreach (var room in currentLevel.Rooms)
+        {
+            if (room.Type == RoomType.Combat && !room.IsCleared)
+            {
+                totalEnemies += SpawnEnemiesInRoom(room);
+            }
+        }
+        
+        Debug.Log($"Spawned {totalEnemies} enemies across dungeon");
+    }
+    
+    private int SpawnEnemiesInRoom(RoomModel room)
+    {
+        int enemyCount = Random.Range(1, maxEnemiesPerRoom + 1);
+        
+        for (int i = 0; i < enemyCount; i++)
+        {
+            Vector2Int spawnPos = room.GetRandomSpawnPosition();
+            if (spawnPos != Vector2Int.zero)
+            {
+                Vector3 worldPos = new Vector3(spawnPos.x + 0.5f, 0, spawnPos.y + 0.5f);
+                Instantiate(enemyPrefab, worldPos, Quaternion.identity, transform);
+            }
+        }
+        
+        return enemyCount;
+    }
+}

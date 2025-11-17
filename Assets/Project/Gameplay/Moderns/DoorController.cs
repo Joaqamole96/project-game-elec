@@ -4,7 +4,7 @@ public class DoorController : MonoBehaviour
 {
     [Header("Door Settings")]
     public bool isLocked = false;
-    public bool isOpen = false; // Made public for debugging
+    public bool isOpen = false;
     public KeyType requiredKey = KeyType.None;
     
     [Header("References")]
@@ -14,11 +14,10 @@ public class DoorController : MonoBehaviour
     
     void Start()
     {
-        // Ensure we have references
         if (blockingCollider == null)
             blockingCollider = GetComponent<Collider>();
             
-        if (doorModel == null)
+        if (doorModel == null && transform.childCount > 0)
             doorModel = transform.GetChild(0).gameObject;
             
         SetupTriggerCollider();
@@ -26,7 +25,6 @@ public class DoorController : MonoBehaviour
     
     private void SetupTriggerCollider()
     {
-        // Check if we already have a trigger collider
         Collider[] colliders = GetComponents<Collider>();
         foreach (Collider col in colliders)
         {
@@ -37,7 +35,6 @@ public class DoorController : MonoBehaviour
             }
         }
         
-        // Create a trigger collider if none exists
         BoxCollider trigger = gameObject.AddComponent<BoxCollider>();
         trigger.isTrigger = true;
         trigger.size = new Vector3(1.5f, 2f, 1.5f);
@@ -61,10 +58,6 @@ public class DoorController : MonoBehaviour
             {
                 OpenDoor();
             }
-            else
-            {
-                Debug.Log("Door is locked! Need key: " + requiredKey);
-            }
         }
         else
         {
@@ -74,7 +67,8 @@ public class DoorController : MonoBehaviour
     
     private bool PlayerHasRequiredKey()
     {
-        return true; // Temporary - we'll implement inventory later
+        // Will be implemented with inventory system
+        return true;
     }
     
     private void OpenDoor()
@@ -116,5 +110,13 @@ public class DoorController : MonoBehaviour
     {
         isLocked = false;
         requiredKey = KeyType.None;
+    }
+    
+    public void Interact()
+    {
+        if (isOpen)
+            CloseDoor();
+        else
+            TryOpenDoor();
     }
 }
