@@ -63,8 +63,29 @@ public class PlayerController : MonoBehaviour
         float horizontal = Input.GetAxisRaw("Horizontal");
         float vertical = Input.GetAxisRaw("Vertical");
         
-        movement = new Vector3(horizontal, 0, vertical).normalized;
+        // Get camera-relative movement direction
+        movement = GetCameraRelativeMovement(new Vector3(horizontal, 0, vertical));
         isMoving = movement.magnitude > 0.1f;
+    }
+    
+    private Vector3 GetCameraRelativeMovement(Vector3 input)
+    {
+        if (Camera.main != null)
+        {
+            // Get camera's forward and right vectors (ignore Y for ground movement)
+            Vector3 cameraForward = Camera.main.transform.forward;
+            Vector3 cameraRight = Camera.main.transform.right;
+            
+            cameraForward.y = 0;
+            cameraRight.y = 0;
+            cameraForward.Normalize();
+            cameraRight.Normalize();
+            
+            // Combine input with camera direction
+            return (cameraForward * input.z) + (cameraRight * input.x);
+        }
+        
+        return input; // Fallback to original input
     }
     
     private void HandleCombatInput()
@@ -75,6 +96,7 @@ public class PlayerController : MonoBehaviour
         }
     }
     
+    // Alternative HandleMovement method - Player faces camera direction
     private void HandleMovement()
     {
         if (isMoving)
@@ -82,8 +104,18 @@ public class PlayerController : MonoBehaviour
             Vector3 moveVelocity = movement * moveSpeed;
             rb.velocity = new Vector3(moveVelocity.x, rb.velocity.y, moveVelocity.z);
             
-            Quaternion targetRotation = Quaternion.LookRotation(movement);
-            transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.fixedDeltaTime);
+            Debug.Log($"Movement: {movement}, Current Rotation: {transform.rotation.eulerAngles}");
+            
+            if (movement != Vector3.zero)
+            {
+                Quaternion targetRotation = Quaternion.LookRotation(movement);
+                Debug.Log($"Target Rotation: {targetRotation.eulerAngles}");
+                
+                // Force the rotation
+                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.fixedDeltaTime);
+                
+                Debug.Log($"New Rotation: {transform.rotation.eulerAngles}");
+            }
         }
         else
         {
@@ -102,7 +134,10 @@ public class PlayerController : MonoBehaviour
             animator.SetTrigger("Attack");
         }
         
-        Collider[] hitEnemies = Physics.OverlapSphere(transform.position, attackRange, enemyLayer);
+        // Attack in the direction player is facing
+        Vector3 attackDirection = transform.forward;
+        Collider[] hitEnemies = Physics.OverlapSphere(transform.position + attackDirection * 1f, attackRange, enemyLayer);
+        
         foreach (Collider enemy in hitEnemies)
         {
             EnemyController enemyController = enemy.GetComponent<EnemyController>();
@@ -158,7 +193,6 @@ public class PlayerController : MonoBehaviour
         }
         
         Debug.Log("Player died - Game Over!");
-        // GameManager can handle respawn/restart logic later
     }
     
     private void SpawnAtEntrance()
@@ -174,7 +208,7 @@ public class PlayerController : MonoBehaviour
     // Mobile controls interface
     public void SetMovementInput(Vector2 input)
     {
-        movement = new Vector3(input.x, 0, input.y);
+        movement = GetCameraRelativeMovement(new Vector3(input.x, 0, input.y));
         isMoving = movement.magnitude > 0.1f;
     }
     
@@ -186,6 +220,10 @@ public class PlayerController : MonoBehaviour
     void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, attackRange);
+        Gizmos.DrawWireSphere(transform.position + transform.forward * 1f, attackRange);
+        
+        // Draw movement direction
+        Gizmos.color = Color.blue;
+        Gizmos.DrawRay(transform.position, movement * 2f);
     }
 }
