@@ -1,0 +1,87 @@
+// ConfigRegistry.cs
+using UnityEngine;
+
+/// <summary>
+/// Container for runtime copies of configuration objects to allow modification without affecting original assets.
+/// </summary>
+public class ConfigRegistry
+{
+    public GameConfig GameConfig;
+    public LevelConfig LevelConfig;
+    public PartitionConfig PartitionConfig;
+    public RoomConfig RoomConfig;
+
+    /// <summary> Creates deep copies of all configuration objects for runtime use. </summary>
+    public ConfigRegistry(GameConfig gameConfig, LevelConfig levelConfig, PartitionConfig partitionConfig, RoomConfig roomConfig)
+    {
+        GameConfig = CreateConfigCopy(gameConfig);
+        LevelConfig = CreateConfigCopy(levelConfig);
+        PartitionConfig = CreateConfigCopy(partitionConfig);
+        RoomConfig = CreateConfigCopy(roomConfig);
+        
+        ValidateAllConfigs();
+        
+        Debug.Log($"Runtime configs created - Level: {LevelConfig.Width}x{LevelConfig.Height}, Floor: {LevelConfig.LevelNumber}");
+    }
+
+    private T CreateConfigCopy<T>(T original) where T : class, new()
+    {
+        if (original == null)
+        {
+            Debug.LogWarning($"Null config provided, creating default instance for {typeof(T).Name}");
+            return new T();
+        }
+
+        // Use clone method if available, otherwise create new instance
+        if (original is ICloneable<T> cloneable)
+            return cloneable.Clone();
+
+        // Fallback to manual copying for specific types
+        return ManualConfigCopy(original);
+    }
+
+    private T ManualConfigCopy<T>(T original) where T : class, new()
+    {
+        var copy = new T();
+        
+        if (original is GameConfig originalGame && copy is GameConfig copyGame)
+            copyGame.SimplifyGeometry = originalGame.SimplifyGeometry;
+        else if (original is LevelConfig originalLevel && copy is LevelConfig copyLevel)
+        {
+            copyLevel.Seed = originalLevel.Seed;
+            copyLevel.LevelNumber = originalLevel.LevelNumber;
+            copyLevel.Width = originalLevel.Width;
+            copyLevel.Height = originalLevel.Height;
+            copyLevel.Growth = originalLevel.Growth;
+            copyLevel.MinSize = originalLevel.MinSize;
+            copyLevel.MaxSize = originalLevel.MaxSize;
+        }
+        else if (original is PartitionConfig originalPartition && copy is PartitionConfig copyPartition)
+        {
+            copyPartition.MinSize = originalPartition.MinSize;
+            copyPartition.MaxSize = originalPartition.MaxSize;
+            copyPartition.ExtraConnections = originalPartition.ExtraConnections;
+            copyPartition.MinSplitRatio = originalPartition.MinSplitRatio;
+            copyPartition.MaxSplitRatio = originalPartition.MaxSplitRatio;
+        }
+        else if (original is RoomConfig originalRoom && copy is RoomConfig copyRoom)
+        {
+            copyRoom.MinInset = originalRoom.MinInset;
+            copyRoom.MaxInset = originalRoom.MaxInset;
+            copyRoom.MinRoomSize = originalRoom.MinRoomSize;
+            copyRoom.MaxRoomSize = originalRoom.MaxRoomSize;
+            copyRoom.SpawnPadding = originalRoom.SpawnPadding;
+        }
+        else
+            Debug.LogWarning($"No manual copy implementation for {typeof(T).Name}, using default values");
+        
+        return copy;
+    }
+
+    private void ValidateAllConfigs()
+    {
+        LevelConfig.Validate();
+        PartitionConfig.Validate();
+        RoomConfig.Validate();
+    }
+}
