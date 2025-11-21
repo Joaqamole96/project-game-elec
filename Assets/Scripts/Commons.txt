@@ -1,0 +1,118 @@
+// -------------------- //
+// Script/Common/Enums/DoorEnum.cs
+// -------------------- //
+
+public enum DoorState { Open, Closed, Locked, Broken }
+
+public enum DoorKey { None, Key, }
+
+// -------------------- //
+// Script/Common/Enums/FloorEnum.cs
+// -------------------- //
+
+public enum FloorType { Normal, Impassable, }
+
+// -------------------- //
+// Script/Commons/Enums/RoomEnum.cs
+// -------------------- //
+
+public enum RoomAccess { Open, Closed, Locked }
+
+public enum RoomType
+{
+    // Critical path
+    Entrance, Exit,
+    // Standard rooms
+    Empty, Combat, Shop, reasure,
+    // Special rooms
+    Boss, Survival, Puzzle, Secret
+}
+
+// -------------------- //
+// Script/Commons/Enums/WeaponEnum.cs
+// -------------------- //
+
+public enum WeaponType { Melee, Ranged }
+
+public enum WeaponRarity { Common, Uncommon, Rare, Epic, Legendary }
+
+// -------------------- //
+// Script/Commons/Interfaces/IComponent.cs
+// -------------------- //
+
+public interface IValidateable
+{
+    public void Validate();
+}
+
+public interface ICloneable<T> 
+{
+    public T Clone();
+}
+
+public interface IConfig: IValidateable, ICloneable<IConfig> { }
+
+public interface IModel: IValidateable, ICloneable<IModel> { }
+
+// -------------------- //
+// Scripts/Commons/Interfaces/IEntity.cs
+// -------------------- //
+
+using UnityEngine;
+
+public interface IEntity : IDamageable
+{
+    public bool IsAlive { get; set; }
+    public bool IsActive { get; set; }
+}
+
+public interface IDamageable
+{
+    public int Health { get; set; }
+
+    public void TakeDmg(int dmg)
+    {
+        Health = Mathf.Max(Health - dmg, 0);
+        Debug.Log($"{GetType().Name} took {dmg} damage.");
+        if (Health == 0) Die();
+    }
+
+    public void Die();
+}
+
+// IRendererInterfaces.cs
+using UnityEngine;
+using System.Collections.Generic;
+
+/// <summary>
+/// Interface for floor rendering implementations.
+/// </summary>
+public interface IFloorRenderer
+{
+    /// <summary>Renders floors as combined meshes grouped by room type.</summary>
+    List<GameObject> RenderCombinedFloorsByRoomType(LevelModel layout, List<RoomModel> rooms, Transform parent);
+    
+    /// <summary>Renders floors as individual objects.</summary>
+    void RenderIndividualFloors(LevelModel layout, List<RoomModel> rooms, Transform parent, bool enableCollision);
+}
+
+/// <summary>
+/// Interface for wall rendering implementations.
+/// </summary>
+public interface IWallRenderer
+{
+    /// <summary>Renders walls as combined meshes grouped by wall type.</summary>
+    List<GameObject> RenderCombinedWallsByType(LevelModel layout, Transform parent);
+    
+    /// <summary>Renders walls as individual objects.</summary>
+    void RenderIndividualWalls(LevelModel layout, Transform parent, bool enableCollision);
+}
+
+/// <summary>
+/// Interface for door rendering implementations.
+/// </summary>
+public interface IDoorRenderer
+{
+    /// <summary>Renders all doors in the layout.</summary>
+    void RenderDoors(LevelModel layout, Transform parent, bool enableCollision);
+}

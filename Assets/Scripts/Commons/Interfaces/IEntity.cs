@@ -1,3 +1,7 @@
+// -------------------- //
+// Scripts/Commons/Interfaces/IEntity.cs
+// -------------------- //
+
 using UnityEngine;
 
 public interface IEntity : IDamageable

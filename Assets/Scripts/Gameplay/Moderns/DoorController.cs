@@ -5,7 +5,7 @@ public class DoorController : MonoBehaviour
     [Header("Door Settings")]
     public bool isLocked = false;
     public bool isOpen = false;
-    public KeyType requiredKey = KeyType.None;
+    public DoorKey requiredKey = DoorKey.None;
     
     [Header("References")]
     public GameObject doorModel;
@@ -99,7 +99,7 @@ public class DoorController : MonoBehaviour
         }
     }
     
-    public void LockDoor(KeyType keyType)
+    public void LockDoor(DoorKey keyType)
     {
         isLocked = true;
         requiredKey = keyType;
@@ -109,7 +109,7 @@ public class DoorController : MonoBehaviour
     public void UnlockDoor()
     {
         isLocked = false;
-        requiredKey = KeyType.None;
+        requiredKey = DoorKey.None;
     }
     
     public void Interact()

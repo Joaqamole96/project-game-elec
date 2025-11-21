@@ -1,14 +1,5 @@
-public enum WeaponType
-{
-    Melee,
-    Ranged
-}
+// Script/Commons/Enums/WeaponEnum.cs
 
-public enum WeaponRarity
-{
-    Common,
-    Uncommon,
-    Rare,
-    Epic,
-    Legendary
-}
+public enum WeaponType { Melee, Ranged }
+
+public enum WeaponRarity { Common, Uncommon, Rare, Epic, Legendary }

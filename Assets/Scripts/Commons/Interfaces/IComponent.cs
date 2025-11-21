@@ -1,3 +1,7 @@
+// -------------------- //
+// Script/Commons/Interfaces/IComponent.cs
+// -------------------- //
+
 public interface IValidateable
 {
     public void Validate();

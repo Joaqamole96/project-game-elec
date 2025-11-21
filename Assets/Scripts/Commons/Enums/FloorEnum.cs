@@ -1,7 +1,3 @@
-// FloorEnum.cs
+// Script/Common/Enums/FloorEnum.cs
 
-public enum FloorType
-{
-    Normal,
-    Impassable,
-}
+public enum FloorType { Normal, Impassable, }

@@ -197,7 +197,7 @@ public class PlayerController : MonoBehaviour
     
     private void SpawnAtEntrance()
     {
-        DungeonGenerator generator = FindObjectOfType<DungeonGenerator>();
+        DungeonManager generator = FindObjectOfType<DungeonManager>();
         if (generator != null)
         {
             Vector3 spawnPosition = generator.GetEntranceRoomPosition();

@@ -1,31 +1,13 @@
-/// <summary>
-/// Accessibility state of a room.
-/// </summary>
-public enum RoomAccess
-{
-    Open,
-    Closed,
-    Locked
-}
+// Script/Commons/Enums/RoomEnum.cs
 
-/// <summary>
-/// Purpose and functionality of a room.
-/// </summary>
+public enum RoomAccess { Open, Closed, Locked }
+
 public enum RoomType
 {
     // Critical path
-    Entrance,
-    Exit,
-
+    Entrance, Exit,
     // Standard rooms
-    Empty,
-    Combat,
-    Shop,
-    Treasure,
-
+    Empty, Combat, Shop, Treasure,
     // Special rooms
-    Boss,
-    Survival,
-    Puzzle,
-    Secret
+    Boss, Survival, Puzzle, Secret
 }

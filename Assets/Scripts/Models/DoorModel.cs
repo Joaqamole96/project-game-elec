@@ -1,11 +1,10 @@
-// DoorModel.cs
 using UnityEngine;
 
-public class DoorModel
+public readonly struct DoorModel
 {
-    public Vector2Int Position;
-    public DoorState State;
-    public DoorKey Key;
+    public readonly Vector2Int Position;
+    public readonly DoorState State;
+    public readonly DoorKey Key;
 
     public DoorModel(Vector2Int position, DoorState state = DoorState.Closed, DoorKey key = DoorKey.None)
     {

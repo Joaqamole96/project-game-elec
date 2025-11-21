@@ -24,7 +24,7 @@ public class PlayerSpawner : MonoBehaviour
         
         if (playerPrefab != null)
         {
-            DungeonGenerator generator = GetComponent<DungeonGenerator>();
+            DungeonManager generator = GetComponent<DungeonManager>();
             Vector3 spawnPosition = generator.GetEntranceRoomPosition();
             
             currentPlayer = Instantiate(playerPrefab, spawnPosition, Quaternion.identity);

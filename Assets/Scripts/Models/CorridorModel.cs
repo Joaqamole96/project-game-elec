@@ -1,4 +1,3 @@
-// CorridorModel.cs
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -17,11 +16,5 @@ public class CorridorModel
         EndRoom = endRoom;
         StartDoor = startDoor;
         EndDoor = endDoor;
-
-        if ((StartRoom != null) && (EndRoom != null) && (StartRoom != EndRoom))
-        {
-            StartRoom.AddConnectedRoom(EndRoom);
-            EndRoom.AddConnectedRoom(StartRoom);
-        }
     }
 }

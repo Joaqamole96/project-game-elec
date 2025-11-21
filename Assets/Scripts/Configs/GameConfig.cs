@@ -1,13 +1,24 @@
-// GameConfig.cs
+// -------------------- //
+// Scripts/Configs/GameConfig.cs
+// -------------------- //
+
 using UnityEngine;
 
-/// <summary>
-/// Configuration settings for core gameplay mechanics and balancing.
-/// </summary>
 [System.Serializable]
 public class GameConfig
 {
-    [Header("Geometry Settings")]
-    [Tooltip("Simplify geometry for better performance on mobile devices")]
+    [Header("Configurations")]
     public bool SimplifyGeometry = true;
+
+    // -------------------------------------------------- //
+
+    public void Validate() { Debug.Log("GameConfig.Validate(): Validated successfully."); }
+    public GameConfig Clone()
+    {
+        Debug.Log("GameConfig.Clone(): Cloning...");
+        return new()
+        {
+            SimplifyGeometry = SimplifyGeometry,
+        };
+    }
 }

@@ -20,7 +20,7 @@ public class EnemySpawner : MonoBehaviour
     {
         yield return new WaitForSeconds(1f);
         
-        DungeonGenerator generator = FindObjectOfType<DungeonGenerator>();
+        DungeonManager generator = FindObjectOfType<DungeonManager>();
         if (generator != null && generator.CurrentLayout != null)
         {
             currentLevel = generator.CurrentLayout;

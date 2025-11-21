@@ -1,17 +1,5 @@
-/// <summary> The possible states for a door. </summary>
-public enum DoorState
-{
-    Open,
-    Closed,
-    Locked,
-    Broken
-}
+// Script/Common/Enums/DoorEnum.cs
 
-/// <summary> The key type that a door needs to be unlocked. </summary>
-public enum DoorKey
-{
-    None,
-    Key,
-    MasterKey,
-    BossKey
-}
+public enum DoorState { Open, Closed, Locked, Broken }
+
+public enum DoorKey { None, Key, }

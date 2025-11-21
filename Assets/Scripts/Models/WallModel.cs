@@ -1,9 +1,8 @@
-// WallModel.cs
 using UnityEngine;
 
-public class WallModel
+public readonly struct WallModel
 {
-    public Vector2Int Position { get; private set; }
+    public readonly Vector2Int Position;
 
     public WallModel(Vector2Int position)
     {
