@@ -1,79 +1,82 @@
+// -------------------- //
+// Scripts/Generators/CorridorGenerator.cs
+// -------------------- //
+
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
 public class CorridorGenerator
 {
-    public List<CorridorModel> GenerateAllPossibleCorridors(List<PartitionModel> partitions, System.Random random)
+    public List<CorridorModel> GenerateTotalCorridors(List<PartitionModel> partitions, System.Random random)
     {
-        if (partitions == null || random == null)
-        {
-            Debug.LogError("CorridorGenerator: Null parameters provided");
-            return new List<CorridorModel>();
-        }
-
-        var allCorridors = new List<CorridorModel>();
-        var roomFloorTiles = CollectRoomFloorTiles(partitions);
-        var connectedPairs = new HashSet<(int, int)>();
+        var totalCorrs = new List<CorridorModel>();
+        var totalFloors = GetFloorTiles(partitions);
+        var roomPairs = new HashSet<(int, int)>();
         
-        foreach (var partition in partitions)
+        foreach (var part in partitions)
         {
-            if (partition?.Neighbors == null) continue;
+            if (part.Neighbors == null) continue;
             
-            foreach (var neighbor in partition.Neighbors)
+            foreach (var neighbor in part.Neighbors)
             {
+                // NOTE: If part.Neighbors wasn't null then for sure each neighbor in Neighbors isn't null.
+                // Keep it just in case, but remove in the future once sure.
                 if (neighbor == null) continue;
-                if (partition.Room == null || neighbor.Room == null) continue;
+                if (part.Room == null || neighbor.Room == null) continue;
                 
-                var roomA = partition.Room;
+                var roomA = part.Room;
                 var roomB = neighbor.Room;
-                var pairKey = (Mathf.Min(roomA.ID, roomB.ID), Mathf.Max(roomA.ID, roomB.ID));
+                var roomPairKey = (Mathf.Min(roomA.ID, roomB.ID), Mathf.Max(roomA.ID, roomB.ID));
                 
-                if (connectedPairs.Contains(pairKey)) continue;
+                if (roomPairs.Contains(roomPairKey)) continue;
                 
-                var corridor = CreateCorridorBetweenRooms(roomA, roomB, roomFloorTiles, random);
+                var corridor = GenerateCorridor(roomA, roomB, totalFloors, random);
                 if (corridor != null)
                 {
-                    allCorridors.Add(corridor);
-                    connectedPairs.Add(pairKey);
+                    totalCorrs.Add(corridor);
+                    roomPairs.Add(roomPairKey);
                 }
             }
         }
         
-        Debug.Log($"Generated {allCorridors.Count} possible corridors");
-        return allCorridors;
+        Debug.Log($"CorridorGenerator.GenerateTotalCorridors(): Generated all total corridors.");
+        return totalCorrs;
     }
 
-    private HashSet<Vector2Int> CollectRoomFloorTiles(List<PartitionModel> partitions)
+    private HashSet<Vector2Int> GetFloorTiles(List<PartitionModel> partitions)
     {
-        var floorTiles = new HashSet<Vector2Int>();
-        foreach (var partition in partitions)
-            if (partition?.Room != null)
-                foreach (var floorPos in GetRoomFloorTiles(partition.Room))
-                    floorTiles.Add(floorPos);
-        return floorTiles;
+        var totalFloors = new HashSet<Vector2Int>();
+
+        foreach (var part in partitions)
+            if (part.Room != null)
+                foreach (var floorPos in GetFloorTile(part.Room))
+                    totalFloors.Add(floorPos);
+        
+        Debug.Log($"CorridorGenerator.GetFloorTiles(): Collected all total floors.");
+        return totalFloors;
     }
 
-    private IEnumerable<Vector2Int> GetRoomFloorTiles(RoomModel room)
+    private IEnumerable<Vector2Int> GetFloorTile(RoomModel room)
     {
         for (int x = room.Bounds.xMin + 1; x < room.Bounds.xMax - 1; x++)
             for (int y = room.Bounds.yMin + 1; y < room.Bounds.yMax - 1; y++)
                 yield return new Vector2Int(x, y);
     }
 
-    private CorridorModel CreateCorridorBetweenRooms(RoomModel roomA, RoomModel roomB, HashSet<Vector2Int> roomFloorTiles, System.Random random)
+    private CorridorModel GenerateCorridor(RoomModel roomA, RoomModel roomB, HashSet<Vector2Int> totalFloors, System.Random random)
     {
         if (roomA == null || roomB == null) return null;
         
-        var (doorA, doorB) = FindAlignedDoorPositions(roomA, roomB, random);
+        var (doorA, doorB) = FindDoorAlignment(roomA, roomB, random);
         if (doorA == null || doorB == null)
         {
-            doorA = FindClosestWallPosition(roomA, roomB.Center);
-            doorB = FindClosestWallPosition(roomB, roomA.Center);
+            doorA = FindClosestWall(roomA, roomB.Center);
+            doorB = FindClosestWall(roomB, roomA.Center);
         }
         
-        if (doorA == null) doorA = FindAnyValidWallPosition(roomA);
-        if (doorB == null) doorB = FindAnyValidWallPosition(roomB);
+        if (doorA == null) doorA = FindAnyValidWall(roomA);
+        if (doorB == null) doorB = FindAnyValidWall(roomB);
         
         if (doorA == null || doorB == null)
         {
@@ -81,17 +84,17 @@ public class CorridorGenerator
             return null;
         }
 
-        var corridorTiles = CreateLShapedCorridor(doorA.Value, doorB.Value, roomFloorTiles);
-        if (corridorTiles.Count == 0)
+        var corrTiles = CreateLShapedCorridor(doorA.Value, doorB.Value, totalFloors);
+        if (corrTiles.Count == 0)
         {
             Debug.LogWarning($"Failed to create corridor between rooms {roomA.ID} and {roomB.ID}");
             return null;
         }
 
-        return new CorridorModel(corridorTiles, roomA, roomB, new DoorModel(doorA.Value), new DoorModel(doorB.Value));
+        return new CorridorModel(corrTiles, roomA, roomB, new DoorModel(doorA.Value), new DoorModel(doorB.Value));
     }
 
-    private (Vector2Int?, Vector2Int?) FindAlignedDoorPositions(RoomModel roomA, RoomModel roomB, System.Random random)
+    private (Vector2Int?, Vector2Int?) FindDoorAlignment(RoomModel roomA, RoomModel roomB, System.Random random)
     {
         if (roomA?.Bounds == null || roomB?.Bounds == null) return (null, null);
         
@@ -129,7 +132,7 @@ public class CorridorGenerator
         return (null, null);
     }
 
-    private Vector2Int? FindClosestWallPosition(RoomModel room, Vector2Int target)
+    private Vector2Int? FindClosestWall(RoomModel room, Vector2Int target)
     {
         if (room?.Bounds == null) return null;
         
@@ -150,7 +153,7 @@ public class CorridorGenerator
         return candidates.OrderBy(pos => Vector2Int.Distance(pos, target)).FirstOrDefault();
     }
 
-    private Vector2Int? FindAnyValidWallPosition(RoomModel room)
+    private Vector2Int? FindAnyValidWall(RoomModel room)
     {
         if (room?.Bounds == null) return null;
         
@@ -161,7 +164,7 @@ public class CorridorGenerator
         return null;
     }
 
-    private List<Vector2Int> CreateLShapedCorridor(Vector2Int start, Vector2Int end, HashSet<Vector2Int> roomFloorTiles)
+    private List<Vector2Int> CreateLShapedCorridor(Vector2Int start, Vector2Int end, HashSet<Vector2Int> totalFloors)
     {
         var tiles = new List<Vector2Int>();
         int dx = Mathf.Clamp(end.x - start.x, -1, 1);
@@ -169,7 +172,7 @@ public class CorridorGenerator
         for (int x = start.x; x != end.x; x += dx)
         {
             var pos = new Vector2Int(x, start.y);
-            if (!roomFloorTiles.Contains(pos))
+            if (!totalFloors.Contains(pos))
                 tiles.Add(pos);
         }
 
@@ -177,7 +180,7 @@ public class CorridorGenerator
         for (int y = start.y; y != end.y; y += dy)
         {
             var pos = new Vector2Int(end.x, y);
-            if (!roomFloorTiles.Contains(pos))
+            if (!totalFloors.Contains(pos))
                 tiles.Add(pos);
         }
 

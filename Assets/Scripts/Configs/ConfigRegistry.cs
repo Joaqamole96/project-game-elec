@@ -4,7 +4,10 @@
 
 using UnityEngine;
 
-// NOTE: Starting to doubt the necessity of a ConfigRegistry. It was initially made so that the Configs assigned to DungeonManager would not reset whenever Generate() is run. I am unsure if it still fulfills that function.
+// NOTE: Starting to doubt the necessity of a ConfigRegistry. 
+// It was initially made so that the Configs assigned to 
+// DungeonManager would not reset whenever Generate() is run. 
+// I am unsure if it still fulfills that function.
 public class ConfigRegistry
 {
     [Header("Configuration List")]

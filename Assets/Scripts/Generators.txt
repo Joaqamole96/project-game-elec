@@ -1,14 +1,14 @@
-// BSPGenerator.cs
+// PartitionGenerator.cs
 using System.Collections.Generic;
 using UnityEngine;
 
-public class BSPGenerator
+public class PartitionGenerator
 {
     public PartitionModel GeneratePartitionTree(LevelConfig levelConfig, PartitionConfig partitionConfig, System.Random random)
     {
         if (levelConfig == null || partitionConfig == null || random == null)
         {
-            Debug.LogError("BSPGenerator: Null parameters provided to GeneratePartitionTree");
+            Debug.LogError("PartitionGenerator: Null parameters provided to GeneratePartitionTree");
             return null;
         }
         RectInt rootBounds = new(0, 0, levelConfig.Width, levelConfig.Height);
@@ -229,7 +229,7 @@ using UnityEngine;
 
 public class CorridorGenerator
 {
-    public List<CorridorModel> GenerateAllPossibleCorridors(List<PartitionModel> partitions, System.Random random)
+    public List<CorridorModel> GenerateTotalCorridors(List<PartitionModel> partitions, System.Random random)
     {
         if (partitions == null || random == null)
         {
@@ -403,12 +403,12 @@ public class CorridorGenerator
     }
 }
 
-// GeometryGenerator.cs
+// LayoutGenerator.cs
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
 
-public class GeometryGenerator
+public class LayoutGenerator
 {
     public void BuildFinalGeometry(LevelModel layout)
     {

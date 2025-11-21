@@ -11,6 +11,10 @@ public class PartitionModel
     public PartitionModel RightChild;
     public RoomModel Room;
     public List<PartitionModel> Neighbors = new();
+    public int Width => Bounds.width;
+    public int Height => Bounds.height;
+    public int X => Bounds.x;
+    public int Y => Bounds.y;
     public bool IsLeaf => LeftChild == null && RightChild == null;
 
     public PartitionModel(RectInt bounds)
