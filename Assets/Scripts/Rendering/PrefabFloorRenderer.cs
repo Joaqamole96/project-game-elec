@@ -5,14 +5,14 @@ using System.Linq;
 
 /// <summary>
 /// Renders floors in Real mode using actual prefabs for gameplay.
-/// Supports biome themes and individual prefab instantiation.
+/// Supports biome biomes and individual prefab instantiation.
 /// </summary>
 public class PrefabFloorRenderer : IFloorRenderer
 {
     private GameObject _fallbackFloorPrefab;
     private MaterialManager _materialManager;
     private BiomeManager _biomeManager;
-    private BiomeModel _currentTheme;
+    private BiomeModel _currentBiome;
 
     public PrefabFloorRenderer(GameObject floorPrefab, MaterialManager materialManager, BiomeManager biomeManager)
     {
@@ -22,11 +22,11 @@ public class PrefabFloorRenderer : IFloorRenderer
     }
 
     /// <summary>
-    /// Sets the current biome theme for prefab selection.
+    /// Sets the current biome biome for prefab selection.
     /// </summary>
-    public void SetTheme(BiomeModel theme)
+    public void SetBiome(BiomeModel biome)
     {
-        _currentTheme = theme;
+        _currentBiome = biome;
     }
 
     /// <summary>
@@ -54,7 +54,7 @@ public class PrefabFloorRenderer : IFloorRenderer
         int floorsCreated = 0;
         foreach (var floorPos in layout.AllFloorTiles)
         {
-            var floorPrefab = _biomeManager.GetFloorPrefab(_currentTheme);
+            var floorPrefab = _biomeManager.GetFloorPrefab(_currentBiome);
             var floor = CreateFloorAtPosition(floorPos, floorPrefab);
             
             if (floor != null)

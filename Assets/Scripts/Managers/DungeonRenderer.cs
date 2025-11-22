@@ -73,7 +73,8 @@ public class DungeonRenderer : MonoBehaviour
     private void InitializeComponents()
     {
         _materialManager = new MaterialManager(DefaultFloorMaterial, DefaultWallMaterial, DefaultDoorMaterial);
-        _biomeManager = new BiomeManager();
+        // Need to pass RuntimeLevelConfig.Seed here somehow
+        _biomeManager = new BiomeManager(0);
         _optimizedRenderer = new OptimizedPrefabRenderer(_biomeManager);
         
         InitializeRenderers();
@@ -106,7 +107,7 @@ public class DungeonRenderer : MonoBehaviour
     /// <summary>
     /// Renders the complete dungeon using the specified layout and room data.
     /// </summary>
-    public void RenderDungeon(LevelModel layout, List<RoomModel> rooms, int floorLevel, int seed)
+    public void RenderDungeon(LevelModel layout, List<RoomModel> rooms, int floorLevel)
     {
         EnsureComponentsInitialized();
         ClearRendering();
@@ -118,7 +119,7 @@ public class DungeonRenderer : MonoBehaviour
         }
         else
         {
-            RenderRealMode(layout, floorLevel, seed);
+            RenderRealMode(layout, floorLevel);
         }
         
         RenderSpecialObjects(layout, rooms);
@@ -134,9 +135,9 @@ public class DungeonRenderer : MonoBehaviour
     }
 
     // In DungeonRenderer.cs - Update RenderRealMode method
-    private void RenderRealMode(LevelModel layout, int floorLevel, int seed)
+    private void RenderRealMode(LevelModel layout, int floorLevel)
     {
-        _optimizedRenderer.SetThemeForFloor(floorLevel, seed);
+        _optimizedRenderer.SetBiomeForFloor(floorLevel);
         
         // Queue geometry for combining (floors and walls)
         _optimizedRenderer.RenderFloorsOptimized(layout, FloorsParent);

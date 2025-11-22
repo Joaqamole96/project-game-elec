@@ -115,7 +115,7 @@ public class LayoutManager : MonoBehaviour
     {
         if (Renderer != null)
         {
-            Renderer.RenderDungeon(_layout, _rooms, _levelConfig.FloorLevel, _levelConfig.Seed);
+            Renderer.RenderDungeon(_layout, _rooms, _levelConfig.FloorLevel);
         }
         else
         {

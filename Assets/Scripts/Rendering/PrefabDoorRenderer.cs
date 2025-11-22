@@ -4,14 +4,14 @@ using System.Collections.Generic;
 
 /// <summary>
 /// Renders doors in Real mode using actual prefabs for gameplay.
-/// Supports biome themes and proper door placement.
+/// Supports biome biomes and proper door placement.
 /// </summary>
 public class PrefabDoorRenderer : IDoorRenderer
 {
     private GameObject _fallbackDoorPrefab;
     private MaterialManager _materialManager;
     private BiomeManager _biomeManager;
-    private BiomeModel _currentTheme;
+    private BiomeModel _currentBiome;
 
     public PrefabDoorRenderer(GameObject doorPrefab, MaterialManager materialManager, BiomeManager biomeManager)
     {
@@ -21,11 +21,11 @@ public class PrefabDoorRenderer : IDoorRenderer
     }
 
     /// <summary>
-    /// Sets the current biome theme for prefab selection.
+    /// Sets the current biome biome for prefab selection.
     /// </summary>
-    public void SetTheme(BiomeModel theme)
+    public void SetBiome(BiomeModel biome)
     {
-        _currentTheme = theme;
+        _currentBiome = biome;
     }
 
     /// <summary>
@@ -42,8 +42,8 @@ public class PrefabDoorRenderer : IDoorRenderer
         int doorsCreated = 0;
         foreach (var doorPos in layout.AllDoorTiles)
         {
-            // Use the current theme's door prefab
-            var doorPrefab = _biomeManager.GetDoorPrefab(_currentTheme);
+            // Use the current biome's door prefab
+            var doorPrefab = _biomeManager.GetDoorPrefab(_currentBiome);
             var door = CreateDoorAtPosition(doorPos, doorPrefab);
             
             if (door != null)

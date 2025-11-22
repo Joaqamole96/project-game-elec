@@ -4,12 +4,12 @@ using System.Collections.Generic;
 
 /// <summary>
 /// High-performance prefab renderer that uses mesh combining for optimal rendering.
-/// Supports biome themes and efficient geometry batching.
+/// Supports biome biomes and efficient geometry batching.
 /// </summary>
 public class OptimizedPrefabRenderer
 {
     private BiomeManager _biomeManager;
-    private BiomeModel _currentTheme;
+    private BiomeModel _currentBiome;
     private int _currentFloor;
     private AdvancedMeshCombiner _meshCombiner;
 
@@ -19,11 +19,11 @@ public class OptimizedPrefabRenderer
         _meshCombiner = new AdvancedMeshCombiner();
     }
 
-    public void SetThemeForFloor(int floorLevel, int seed)
+    public void SetBiomeForFloor(int floorLevel)
     {
         _currentFloor = floorLevel;
-        _currentTheme = _biomeManager.GetThemeForFloor(floorLevel, seed);
-        Debug.Log($"Using theme: {_currentTheme?.Name} for floor {floorLevel}");
+        _currentBiome = _biomeManager.GetBiomeForFloor(floorLevel);
+        Debug.Log($"Using biome: {_currentBiome?.Name} for floor {floorLevel}");
     }
 
     /// <summary>
@@ -31,9 +31,9 @@ public class OptimizedPrefabRenderer
     /// </summary>
     public void RenderFloorsOptimized(LevelModel layout, Transform parent)
     {
-        if (_currentTheme == null)
+        if (_currentBiome == null)
         {
-            Debug.LogError("Current theme is null in RenderFloorsOptimized!");
+            Debug.LogError("Current biome is null in RenderFloorsOptimized!");
             return;
         }
 
@@ -44,19 +44,19 @@ public class OptimizedPrefabRenderer
         }
 
         Debug.Log($"=== FLOOR RENDERING DEBUG ===");
-        Debug.Log($"Theme: {_currentTheme.Name}");
-        Debug.Log($"Floor prefab path: {_currentTheme.FloorPrefabPath}");
+        Debug.Log($"Biome: {_currentBiome.Name}");
+        Debug.Log($"Floor prefab path: {_currentBiome.FloorPrefabPath}");
         Debug.Log($"Floor tiles count: {layout.AllFloorTiles.Count}");
 
-        var floorPrefab = _biomeManager.GetFloorPrefab(_currentTheme);
+        var floorPrefab = _biomeManager.GetFloorPrefab(_currentBiome);
 
         if (floorPrefab == null)
         {
-            Debug.LogError($"Floor prefab is NULL for theme: {_currentTheme.Name}");
-            Debug.LogError($"Tried to load from: {_currentTheme.FloorPrefabPath}");
+            Debug.LogError($"Floor prefab is NULL for biome: {_currentBiome.Name}");
+            Debug.LogError($"Tried to load from: {_currentBiome.FloorPrefabPath}");
             
             // Test if Resources loading works at all
-            var testPrefab = Resources.Load<GameObject>("Themes/Default/FloorPrefab");
+            var testPrefab = Resources.Load<GameObject>("Biomes/Default/FloorPrefab");
             Debug.Log($"Direct Resources load result: {testPrefab != null}");
             
             RenderFloorsAsPrimitives(layout, parent);
@@ -106,9 +106,9 @@ public class OptimizedPrefabRenderer
     /// </summary>
     public void RenderWallsOptimized(LevelModel layout, Transform parent)
     {
-        if (_currentTheme == null || layout?.AllWallTiles == null) return;
+        if (_currentBiome == null || layout?.AllWallTiles == null) return;
 
-        var wallPrefab = _biomeManager.GetWallPrefab(_currentTheme);
+        var wallPrefab = _biomeManager.GetWallPrefab(_currentBiome);
 
         if (wallPrefab == null)
         {
@@ -139,10 +139,10 @@ public class OptimizedPrefabRenderer
     /// </summary>
     public void RenderDoorsOptimized(LevelModel layout, Transform parent)
     {
-        if (_currentTheme == null || layout?.AllDoorTiles == null) return;
+        if (_currentBiome == null || layout?.AllDoorTiles == null) return;
 
         // Always render doors as individual prefabs (never combine)
-        var doorPrefab = _biomeManager.GetDoorPrefab(_currentTheme);
+        var doorPrefab = _biomeManager.GetDoorPrefab(_currentBiome);
         if (doorPrefab != null)
         {
             foreach (var doorPos in layout.AllDoorTiles)

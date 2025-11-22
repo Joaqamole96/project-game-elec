@@ -5,14 +5,14 @@ using System.Linq;
 
 /// <summary>
 /// Renders walls in Real mode using actual prefabs for gameplay.
-/// Supports biome themes and proper wall orientation.
+/// Supports biome biomes and proper wall orientation.
 /// </summary>
 public class PrefabWallRenderer : IWallRenderer
 {
     private GameObject _fallbackWallPrefab;
     private MaterialManager _materialManager;
     private BiomeManager _biomeManager;
-    private BiomeModel _currentTheme;
+    private BiomeModel _currentBiome;
 
     public PrefabWallRenderer(GameObject wallPrefab, MaterialManager materialManager, BiomeManager biomeManager)
     {
@@ -22,11 +22,11 @@ public class PrefabWallRenderer : IWallRenderer
     }
 
     /// <summary>
-    /// Sets the current biome theme for prefab selection.
+    /// Sets the current biome biome for prefab selection.
     /// </summary>
-    public void SetTheme(BiomeModel theme)
+    public void SetBiome(BiomeModel biome)
     {
-        _currentTheme = theme;
+        _currentBiome = biome;
     }
 
     /// <summary>
@@ -56,7 +56,7 @@ public class PrefabWallRenderer : IWallRenderer
         {
             if (layout.WallTypes.TryGetValue(wallPos, out var wallType))
             {
-                var wallPrefab = _biomeManager.GetWallPrefab(_currentTheme);
+                var wallPrefab = _biomeManager.GetWallPrefab(_currentBiome);
                 var wall = CreateWallAtPosition(wallPos, wallType, wallPrefab);
                 
                 if (wall != null)

@@ -5,14 +5,14 @@ using System.Linq;
 
 /// <summary>
 /// Renders special room objects (entrance, exit, shop, treasure, boss) using prefabs.
-/// Supports biome themes and proper object placement.
+/// Supports biome biomes and proper object placement.
 /// </summary>
 public class SpecialRoomRenderer
 {
     private GameObject _defaultEntrancePrefab;
     private GameObject _defaultExitPrefab;
     private BiomeManager _biomeManager;
-    private BiomeModel _currentTheme;
+    private BiomeModel _currentBiome;
 
     public SpecialRoomRenderer(GameObject entrancePrefab, GameObject exitPrefab, BiomeManager biomeManager)
     {
@@ -22,11 +22,11 @@ public class SpecialRoomRenderer
     }
 
     /// <summary>
-    /// Sets the current biome theme for special room prefab selection.
+    /// Sets the current biome biome for special room prefab selection.
     /// </summary>
-    public void SetTheme(BiomeModel theme)
+    public void SetBiome(BiomeModel biome)
     {
-        _currentTheme = theme;
+        _currentBiome = biome;
     }
 
     /// <summary>
@@ -88,15 +88,14 @@ public class SpecialRoomRenderer
 
     private GameObject GetSpecialRoomPrefab(RoomType roomType)
     {
-        if (_currentTheme == null) return null;
+        if (_currentBiome == null) return null;
 
         return roomType switch
         {
-            RoomType.Entrance => _biomeManager.GetPrefab(_currentTheme.EntrancePrefabPath),
-            RoomType.Exit => _biomeManager.GetPrefab(_currentTheme.ExitPrefabPath),
-            RoomType.Shop => _biomeManager.GetPrefab(_currentTheme.ShopPrefabPath),
-            RoomType.Treasure => _biomeManager.GetPrefab(_currentTheme.TreasurePrefabPath),
-            RoomType.Boss => _biomeManager.GetPrefab(_currentTheme.BossPrefabPath),
+            RoomType.Entrance => _biomeManager.GetPrefab("Landmarks/EntrancePrefab"),
+            RoomType.Exit => _biomeManager.GetPrefab("Landmarks/ExitPrefab"),
+            RoomType.Shop => _biomeManager.GetPrefab("Landmarks/ShopPrefab"),
+            RoomType.Treasure => _biomeManager.GetPrefab("Landmarks/TreasurePrefab"),
             _ => null
         };
     }
