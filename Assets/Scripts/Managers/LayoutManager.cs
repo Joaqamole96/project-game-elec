@@ -9,6 +9,7 @@ using Debug = UnityEngine.Debug;
 /// Main dungeon generator that orchestrates the entire generation pipeline.
 /// Handles layout generation, room assignment, and rendering coordination.
 /// </summary>
+[RequireComponent(typeof(BiomeManager))]
 public class LayoutManager : MonoBehaviour
 {
     [Header("Configuration")]

@@ -5,9 +5,17 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-public class BiomeManager
+[System.Serializable]
+public class BiomeManager : MonoBehaviour
 {
-    public List<BiomeModel> Biomes = new();
+    // NOTE: Find a way to make populated Biome list appear in Inspector.
+    // Also use a BiomeConfig class instead of a List<> here.
+    [SerializeField]
+    public List<BiomeModel> Biomes = new()
+    {
+        new BiomeModel("Default", 1, 100),
+    };
+
     public Dictionary<string, GameObject> _prefabCache = new();
 
     private readonly System.Random _random;
@@ -17,13 +25,14 @@ public class BiomeManager
     public BiomeManager(int seed)
     {
         _random = new(seed);
-        InitializeDefaultBiomes();
+        // InitializeDefaultBiomes();
     }
 
-    private void InitializeDefaultBiomes()
-    {
-        Biomes.Add(new BiomeModel("Default", 1, 100, 1.0f));
-    }
+    // private void InitializeDefaultBiomes()
+    // {
+    //     Biomes.Add(new BiomeModel("Default", 1, 100));
+    //     // Biomes.Add(new BiomeModel("Grasslands", 1, 100));
+    // }
 
     public BiomeModel GetBiomeForFloor(int floorLevel)
     {
@@ -35,34 +44,36 @@ public class BiomeManager
         if (validBiomes.Count == 1) return validBiomes[0];
 
         // Weighted random selection
-        float totalWeight = CalculateTotalWeight(validBiomes);
-        float randomValue = (float)_random.NextDouble() * totalWeight;
+        // float totalWeight = CalculateTotalWeight(validBiomes);
+        // float randomValue = (float)_random.NextDouble() * totalWeight;
         
-        return SelectBiomeByWeight(validBiomes, randomValue);
+        // return SelectBiomeByWeight(validBiomes, randomValue);
+
+        return validBiomes[_random.Next(0, validBiomes.Count)];
     }
 
-    private float CalculateTotalWeight(List<BiomeModel> biomes)
-    {
-        float total = 0f;
+    // private float CalculateTotalWeight(List<BiomeModel> biomes)
+    // {
+    //     float total = 0f;
 
-        foreach (var biome in biomes) total += biome.Weight;
+    //     foreach (var biome in biomes) total += biome.Weight;
 
-        return total;
-    }
+    //     return total;
+    // }
 
-    private BiomeModel SelectBiomeByWeight(List<BiomeModel> biomes, float randomValue)
-    {
-        float currentWeight = 0f;
+    // private BiomeModel SelectBiomeByWeight(List<BiomeModel> biomes, float randomValue)
+    // {
+    //     float currentWeight = 0f;
 
-        foreach (var biome in biomes)
-        {
-            currentWeight += biome.Weight;
-            if (randomValue <= currentWeight)
-                return biome;
-        }
+    //     foreach (var biome in biomes)
+    //     {
+    //         currentWeight += biome.Weight;
+    //         if (randomValue <= currentWeight)
+    //             return biome;
+    //     }
 
-        return biomes[0];
-    }
+    //     return biomes[0];
+    // }
 
     public GameObject GetPrefab(string prefabPath)
     {

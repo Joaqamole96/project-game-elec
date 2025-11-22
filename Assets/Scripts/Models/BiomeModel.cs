@@ -10,7 +10,6 @@ public class BiomeModel
     public string Name;
     public int StartLevel;
     public int EndLevel;
-    public float Weight = 1.0f;
     
     public string FloorPrefabPath;
     public string WallPrefabPath;
@@ -26,12 +25,11 @@ public class BiomeModel
     // public Material FloorMaterial;
     // public Material WallMaterial;
 
-    public BiomeModel(string name, int startLevel, int endLevel, float weight = 1.0f)
+    public BiomeModel(string name, int startLevel, int endLevel)
     {
         Name = name;
         StartLevel = startLevel;
         EndLevel = endLevel;
-        Weight = weight;
 
         FloorPrefabPath = $"Biomes/{name}/FloorPrefab";
         WallPrefabPath = $"Biomes/{name}/WallPrefab";
