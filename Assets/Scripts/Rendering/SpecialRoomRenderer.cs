@@ -88,8 +88,6 @@ public class SpecialRoomRenderer
 
     private GameObject GetSpecialRoomPrefab(RoomType roomType)
     {
-        if (_currentBiome == null) return null;
-
         return roomType switch
         {
             RoomType.Entrance => _biomeManager.GetPrefab("Landmarks/EntrancePrefab"),
