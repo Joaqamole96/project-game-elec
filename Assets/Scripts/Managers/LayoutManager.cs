@@ -210,8 +210,8 @@ public class LayoutManager : MonoBehaviour
     {
         _optimizedRenderer.SetBiomeForFloor(floorLevel);
         
-        // Queue geometry for combining
-        _optimizedRenderer.RenderFloorsOptimized(layout, FloorsParent);
+        // Use room-based floor rendering instead of position-based
+        _optimizedRenderer.RenderFloorsByRoom(layout, _rooms, FloorsParent);
         _optimizedRenderer.RenderWallsOptimized(layout, WallsParent);
         _optimizedRenderer.RenderDoorsOptimized(layout, DoorsParent);
         

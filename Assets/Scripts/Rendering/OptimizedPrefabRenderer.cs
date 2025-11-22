@@ -469,5 +469,108 @@ public class OptimizedPrefabRenderer
         
         Debug.Log($"Created {layout.AllFloorTiles.Count} primitive floors as fallback");
     }
+
+    public void RenderFloorsByRoom(LevelModel layout, List<RoomModel> rooms, Transform parent)
+    {
+        if (_currentBiome == null || layout?.AllFloorTiles == null || rooms == null)
+        {
+            Debug.LogError("Cannot render floors by room: missing data");
+            return;
+        }
+
+        var floorPrefab = _biomeManager.GetFloorPrefab(_currentBiome);
+        if (floorPrefab == null)
+        {
+            Debug.LogError("Floor prefab is null!");
+            RenderFloorsAsPrimitives(layout, parent);
+            return;
+        }
+
+        Mesh floorMesh = GetPrefabMesh(floorPrefab);
+        Material floorMaterial = GetPrefabMaterial(floorPrefab);
+        Vector3 floorScale = floorPrefab.transform.localScale;
+
+        if (floorMesh == null || floorMaterial == null)
+        {
+            Debug.LogError("Could not get floor mesh or material");
+            return;
+        }
+
+        // Group floor tiles by room
+        Dictionary<RoomModel, List<Vector2Int>> roomFloorTiles = new();
+        
+        // Initialize dictionary with all rooms
+        foreach (var room in rooms)
+        {
+            roomFloorTiles[room] = new List<Vector2Int>();
+        }
+        
+        // Add corridor tiles to a separate group
+        List<Vector2Int> corridorTiles = new();
+
+        // Assign each floor tile to its room
+        foreach (var floorPos in layout.AllFloorTiles)
+        {
+            RoomModel containingRoom = null;
+            foreach (var room in rooms)
+            {
+                if (room.Bounds.Contains(floorPos))
+                {
+                    containingRoom = room;
+                    break;
+                }
+            }
+            
+            if (containingRoom != null)
+            {
+                roomFloorTiles[containingRoom].Add(floorPos);
+            }
+            else
+            {
+                corridorTiles.Add(floorPos);
+            }
+        }
+
+        // Create combined mesh for each room
+        foreach (var roomGroup in roomFloorTiles)
+        {
+            if (roomGroup.Value.Count > 0)
+            {
+                var roomCombiner = new AdvancedMeshCombiner();
+                
+                foreach (var floorPos in roomGroup.Value)
+                {
+                    Vector3 worldPos = new(floorPos.x + 0.5f, 0.5f, floorPos.y + 0.5f);
+                    roomCombiner.AddMesh(floorMesh, worldPos, Quaternion.identity, floorScale, floorMaterial);
+                }
+                
+                var roomMeshObjects = roomCombiner.BuildAllCombinedMeshes(parent);
+                foreach (var meshObj in roomMeshObjects)
+                {
+                    meshObj.name = $"Room_{roomGroup.Key.ID}_{roomGroup.Key.Type}_Floors";
+                }
+            }
+        }
+
+        // Create combined mesh for corridors
+        if (corridorTiles.Count > 0)
+        {
+            var corridorCombiner = new AdvancedMeshCombiner();
+            
+            foreach (var floorPos in corridorTiles)
+            {
+                Vector3 worldPos = new(floorPos.x + 0.5f, 0.5f, floorPos.y + 0.5f);
+                corridorCombiner.AddMesh(floorMesh, worldPos, Quaternion.identity, floorScale, floorMaterial);
+            }
+            
+            var corridorMeshObjects = corridorCombiner.BuildAllCombinedMeshes(parent);
+            foreach (var meshObj in corridorMeshObjects)
+            {
+                meshObj.name = "Corridor_Floors";
+            }
+        }
+
+        Debug.Log($"Rendered floors by room: {roomFloorTiles.Count} rooms, {corridorTiles.Count} corridor tiles");
+    }
     #endregion
 }
