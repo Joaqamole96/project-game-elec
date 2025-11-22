@@ -74,7 +74,12 @@ public class SpecialRoomRenderer
 
         if (prefab != null)
         {
-            Vector3 position = new(room.Center.x, 0, room.Center.y);
+            // Get the prefab's bounds to calculate proper height
+            Bounds prefabBounds = GetPrefabBounds(prefab);
+            float floorHeight = 1f; // Floor top surface
+            float objectHeight = prefabBounds.size.y;
+            
+            Vector3 position = new Vector3(room.Center.x, floorHeight + (objectHeight * 0.5f), room.Center.y);
             var specialObject = Object.Instantiate(prefab, position, Quaternion.identity, parent);
             specialObject.name = $"{room.Type}_{room.ID}";
             return true;
@@ -84,6 +89,18 @@ public class SpecialRoomRenderer
             Debug.LogWarning($"No prefab available for {room.Type} room {room.ID}");
             return false;
         }
+    }
+
+    private Bounds GetPrefabBounds(GameObject prefab)
+    {
+        Renderer renderer = prefab.GetComponentInChildren<Renderer>();
+        if (renderer != null)
+        {
+            return renderer.bounds;
+        }
+        
+        // Fallback bounds
+        return new Bounds(Vector3.zero, new Vector3(1f, 1f, 1f));
     }
 
     private GameObject GetSpecialRoomPrefab(RoomType roomType)
