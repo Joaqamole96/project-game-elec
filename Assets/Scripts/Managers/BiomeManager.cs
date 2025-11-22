@@ -5,12 +5,10 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-[System.Serializable]
 public class BiomeManager : MonoBehaviour
 {
     // NOTE: Find a way to make populated Biome list appear in Inspector.
     // Also use a BiomeConfig class instead of a List<> here.
-    [SerializeField]
     public List<BiomeModel> Biomes = new()
     {
         new BiomeModel("Default", 1, 100),

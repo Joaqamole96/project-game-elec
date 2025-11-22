@@ -1,4 +1,7 @@
-// LayoutManager.cs
+// -------------------------------------------------- //
+// Scripts/Managers/LayoutManager.cs
+// -------------------------------------------------- //
+
 using UnityEngine;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -6,76 +9,66 @@ using System.Linq;
 using Debug = UnityEngine.Debug;
 
 [RequireComponent(typeof(BiomeManager))]
+[RequireComponent(typeof(LayoutRenderer))]
 public class LayoutManager : MonoBehaviour
 {
-    [Header("Configuration")]
-    [SerializeField] private GameConfig _gameConfig;
-    [SerializeField] private LevelConfig _levelConfig;
-    [SerializeField] private PartitionConfig _partitionConfig;
-    [SerializeField] private RoomConfig _roomConfig;
+    public GameConfig GameConfig;
+    public LevelConfig LevelConfig;
+    public PartitionConfig PartitionConfig;
+    public RoomConfig RoomConfig;
+    public LayoutRenderer LayoutRenderer;
+    // public List<RoomModel> CurrentRooms => _rooms;
+    public LevelModel CurrentLayout => _layout;
     
-    [Header("References")]
-    public LayoutRenderer _layoutRenderer;
-    
-    // Algorithm components
     private PartitionGenerator _partitionGenerator;
     private CorridorGenerator _corridorGenerator;
     private RoomGenerator _roomGenerator;
     private LayoutGenerator _layoutGenerator;
-    
-    // Runtime state
     private LevelModel _layout;
     private List<RoomModel> _rooms;
     private System.Random _random;
     private ConfigService _configService;
     
     // Runtime config accessors
-    private GameConfig RuntimeGameConfig => _configService?.GameConfig ?? _gameConfig;
-    private LevelConfig RuntimeLevelConfig => _configService?.LevelConfig ?? _levelConfig;
-    private PartitionConfig RuntimePartitionConfig => _configService?.PartitionConfig ?? _partitionConfig;
-    private RoomConfig RuntimeRoomConfig => _configService?.RoomConfig ?? _roomConfig;
+    // private GameConfig RuntimeGameConfig => _configService.GameConfig ?? GameConfig;
+    private LevelConfig RuntimeLevelConfig => _configService?.LevelConfig ?? LevelConfig;
+    private PartitionConfig RuntimePartitionConfig => _configService?.PartitionConfig ?? PartitionConfig;
+    private RoomConfig RuntimeRoomConfig => _configService?.RoomConfig ?? RoomConfig;
+
+    // ------------------------- //
     
-    public List<RoomModel> CurrentRooms => _rooms;
-    public LevelModel CurrentLayout => _layout;
-    
+    // Move to GenerateDungeon(), change methods to initialize only when uninitialized, else return.
     void Awake()
     {
         InitializeComponents();
-        InitializeConfigService();
-        InitializeRandom();
     }
 
     void Start() => GenerateDungeon();
 
-    private void InitializeConfigService()
-    {
-        _configService = new ConfigService(_gameConfig, _levelConfig, _partitionConfig, _roomConfig);
-        Debug.Log($"Runtime configs initialized - Starting floor: {RuntimeLevelConfig.FloorLevel}");
-    }
+    // ------------------------- //
 
     private void InitializeComponents()
     {
         int seed = RuntimeLevelConfig.Seed;
+        LayoutRenderer = LayoutRenderer != null ? LayoutRenderer : GetComponent<LayoutRenderer>();
 
-        _partitionGenerator = new PartitionGenerator(seed);
-        _corridorGenerator = new CorridorGenerator(seed);
-        _roomGenerator = new(seed);
-        _layoutGenerator = new LayoutGenerator();
-    }
+        _partitionGenerator ??= new(seed);
+        _corridorGenerator ??= new(seed);
+        _roomGenerator ??= new(seed);
+        _layoutGenerator ??= new();
 
-    private void EnsureComponentsInitialized()
-    {
-        if (_partitionGenerator == null)
-            InitializeComponents();
+        _configService ??= new(GameConfig, LevelConfig, PartitionConfig, RoomConfig);
+
+        _random ??= new (RuntimeLevelConfig.Seed);
     }
 
     [ContextMenu("Generate Dungeon")]
     public void GenerateDungeon()
     {
-        EnsureComponentsInitialized();
-        InitializeRandom();
-        
+        InitializeComponents();
+
         var stopwatch = Stopwatch.StartNew();
+
         ClearPreviousGeneration();
         ValidateConfigs();
         
@@ -84,6 +77,7 @@ public class LayoutManager : MonoBehaviour
         ExecuteGenerationPipeline();
         
         stopwatch.Stop();
+
         Debug.Log($"Generated Floor {RuntimeLevelConfig.FloorLevel}: {GetRoomTypeBreakdown()} in {stopwatch.ElapsedMilliseconds}ms");
     }
 
@@ -110,9 +104,9 @@ public class LayoutManager : MonoBehaviour
 
     private void RenderDungeon()
     {
-        if (_layoutRenderer != null)
+        if (LayoutRenderer != null)
         {
-            _layoutRenderer.RenderDungeon(_layout, _rooms, _levelConfig.FloorLevel);
+            LayoutRenderer.RenderDungeon(_layout, _rooms, LevelConfig.FloorLevel);
         }
         else
         {
@@ -129,7 +123,6 @@ public class LayoutManager : MonoBehaviour
     public void GenerateNextFloor()
     {
         RuntimeLevelConfig.FloorLevel++;
-        _random = new System.Random(RuntimeLevelConfig.Seed);
 
         if (RuntimeLevelConfig.FloorLevel > 1)
         {
@@ -168,60 +161,38 @@ public class LayoutManager : MonoBehaviour
         return layout;
     }
 
-    #region Helper Methods
-    private void InitializeRandom() => _random ??= new System.Random(RuntimeLevelConfig.Seed);
-
     private void ValidateConfigs()
     {
-        RuntimeLevelConfig.Width = Mathf.Clamp(RuntimeLevelConfig.Width, 10, 1000);
-        RuntimeLevelConfig.Height = Mathf.Clamp(RuntimeLevelConfig.Height, 10, 1000);
-        RuntimePartitionConfig.MinPartitionSize = Mathf.Max(3, RuntimePartitionConfig.MinPartitionSize);
-        RuntimeRoomConfig.MinRoomSize = Mathf.Max(3, RuntimeRoomConfig.MinRoomSize);
-        RuntimeRoomConfig.MaxRooms = Mathf.Max(1, RuntimeRoomConfig.MaxRooms);
+        RuntimeLevelConfig.Validate();
+        RuntimePartitionConfig.Validate();
+        RuntimeRoomConfig.Validate();
     }
 
     private void ClearPreviousGeneration()
     {
         _layout = null;
         _rooms = null;
-        _layoutRenderer?.ClearRendering();
+        LayoutRenderer.ClearRendering();
     }
 
     private string GetRoomTypeBreakdown()
     {
         if (_rooms == null) return "No rooms";
-        return string.Join(", ", _rooms.GroupBy(r => r.Type).Select(g => $"{g.Key}: {g.Count()}"));
+        return string.Join(", ", _rooms
+            .GroupBy(r => r.Type)
+            .Select(g => $"{g.Key}: {g.Count()}")
+        );
     }
 
-    /// <summary>
-    /// Gets the world position of the entrance room for player spawning.
-    /// </summary>
     public Vector3 GetEntranceRoomPosition()
     {
-        if (_rooms == null) 
-        {
-            Debug.LogWarning("GetEntranceRoomPosition: _rooms is null");
-            return Vector3.zero;
-        }
+        if (_rooms == null) throw new("GetEntranceRoomPosition: _rooms is null");
         
-        var entrance = _rooms.FirstOrDefault(room => room.Type == RoomType.Entrance);
-        if (entrance == null)
-        {
-            Debug.LogWarning("GetEntranceRoomPosition: No entrance room found");
-            LogAvailableRooms();
-            return Vector3.zero;
-        }
-
+        var entrance = _rooms.FirstOrDefault(room => room.Type == RoomType.Entrance) ?? throw new("GetEntranceRoomPosition: No entrance room found");
         Vector2Int spawnTile = entrance.Center;
         Vector3 spawnPosition = new(spawnTile.x + 0.5f, 1f, spawnTile.y + 0.5f);
         
         Debug.Log($"Spawning at entrance room center: {spawnTile} -> {spawnPosition}");
         return spawnPosition;
     }
-
-    private void LogAvailableRooms()
-    {
-        Debug.LogWarning($"Available rooms: {_rooms.Count}, Types: {string.Join(", ", _rooms.Select(r => r.Type))}");
-    }
-    #endregion
 }
