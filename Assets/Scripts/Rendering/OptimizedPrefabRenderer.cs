@@ -12,11 +12,13 @@ public class OptimizedPrefabRenderer
     private BiomeModel _currentBiome;
     private int _currentFloor;
     private AdvancedMeshCombiner _meshCombiner;
+    private AdvancedMeshCombiner _wallCombiner;
 
     public OptimizedPrefabRenderer(BiomeManager biomeManager)
     {
         _biomeManager = biomeManager;
         _meshCombiner = new AdvancedMeshCombiner();
+        _wallCombiner = new AdvancedMeshCombiner();
     }
 
     public void SetBiomeForFloor(int floorLevel)
@@ -129,7 +131,7 @@ public class OptimizedPrefabRenderer
             {
                 Vector3 worldPos = new(wallPos.x + 0.5f, 4.5f, wallPos.y + 0.5f);
                 Quaternion rotation = GetWallRotation(wallType);
-                _meshCombiner.AddMesh(wallMesh, worldPos, rotation, wallScale, wallMaterial);
+                _wallCombiner.AddMesh(wallMesh, worldPos, rotation, wallScale, wallMaterial); // Use _wallCombiner
             }
         }
     }
@@ -166,11 +168,15 @@ public class OptimizedPrefabRenderer
     /// <summary>
     /// Finalizes all combined meshes and builds them in the scene.
     /// </summary>
-    public void FinalizeRendering(Transform parent)
+    public void FinalizeRendering(Transform floorParent, Transform wallParent)
     {
-        // Build all combined meshes at once
-        var combinedObjects = _meshCombiner.BuildAllCombinedMeshes(parent);
-        Debug.Log($"Finalized rendering with {combinedObjects.Count} combined mesh objects");
+        // Build floor combined meshes under floor parent
+        var floorObjects = _meshCombiner.BuildAllCombinedMeshes(floorParent);
+        
+        // Build wall combined meshes under wall parent  
+        var wallObjects = _wallCombiner.BuildAllCombinedMeshes(wallParent);
+        
+        Debug.Log($"Finalized rendering with {floorObjects.Count} floor meshes and {wallObjects.Count} wall meshes");
     }
 
     /// <summary>

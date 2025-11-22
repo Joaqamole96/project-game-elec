@@ -210,17 +210,14 @@ public class LayoutManager : MonoBehaviour
     {
         _optimizedRenderer.SetBiomeForFloor(floorLevel);
         
-        // Queue geometry for combining (floors and walls)
+        // Queue geometry for combining
         _optimizedRenderer.RenderFloorsOptimized(layout, FloorsParent);
         _optimizedRenderer.RenderWallsOptimized(layout, WallsParent);
-        
-        // Render doors as individual objects (not combined)
         _optimizedRenderer.RenderDoorsOptimized(layout, DoorsParent);
         
-        // Build all combined meshes
-        _optimizedRenderer.FinalizeRendering(FloorsParent);
+        // Build combined meshes with correct parents
+        _optimizedRenderer.FinalizeRendering(FloorsParent, WallsParent);
         
-        // Environment elements
         RenderEnvironment(layout);
     }
 
