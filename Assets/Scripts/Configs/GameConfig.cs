@@ -15,7 +15,9 @@ public class GameConfig
 
     [Range(0, 3)] public int ShopRoomsPerFloor = 1;
 
-    public GameConfig Clone() => this;
+    // ------------------------- //
+
+    // public GameConfig Clone() => this;
 
     public void Validate()
     {

@@ -11,6 +11,8 @@ public class PlayerConfig
 
     [Range(1f, 10f)] public float PlayerMovementSpeed = 5f;
 
+    // ------------------------- //
+
     public PlayerConfig Clone() => this;
 
     public void Validate()
