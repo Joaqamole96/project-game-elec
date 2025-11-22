@@ -5,10 +5,6 @@ using System.Diagnostics;
 using System.Linq;
 using Debug = UnityEngine.Debug;
 
-/// <summary>
-/// Main dungeon generator that orchestrates the entire generation pipeline.
-/// Handles layout generation, room assignment, and rendering coordination.
-/// </summary>
 [RequireComponent(typeof(BiomeManager))]
 public class LayoutManager : MonoBehaviour
 {
@@ -19,7 +15,7 @@ public class LayoutManager : MonoBehaviour
     [SerializeField] private RoomConfig _roomConfig;
     
     [Header("References")]
-    public DungeonRenderer Renderer;
+    public LayoutRenderer _layoutRenderer;
     
     // Algorithm components
     private PartitionGenerator _partitionGenerator;
@@ -114,9 +110,9 @@ public class LayoutManager : MonoBehaviour
 
     private void RenderDungeon()
     {
-        if (Renderer != null)
+        if (_layoutRenderer != null)
         {
-            Renderer.RenderDungeon(_layout, _rooms, _levelConfig.FloorLevel);
+            _layoutRenderer.RenderDungeon(_layout, _rooms, _levelConfig.FloorLevel);
         }
         else
         {
@@ -188,7 +184,7 @@ public class LayoutManager : MonoBehaviour
     {
         _layout = null;
         _rooms = null;
-        Renderer?.ClearRendering();
+        _layoutRenderer?.ClearRendering();
     }
 
     private string GetRoomTypeBreakdown()

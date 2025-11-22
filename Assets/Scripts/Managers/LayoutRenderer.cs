@@ -1,21 +1,13 @@
-// DungeonRenderer.cs
+// LayoutRenderer.cs
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
 
-/// <summary>
-/// Handles rendering of dungeon geometry in both debug (Gizmo) and gameplay (Real) modes.
-/// Supports mesh combining for performance optimization.
-/// </summary>
-public class DungeonRenderer : MonoBehaviour
+public class LayoutRenderer : MonoBehaviour
 {
     [Header("Rendering Mode")]
     public RenderMode Mode = RenderMode.Real;
     
-    [Header("Prefabs - Real Mode")]
-    public GameObject FloorPrefab;
-    public GameObject WallPrefab;
-    public GameObject DoorPrefab;
     public GameObject EntrancePrefab;
     public GameObject ExitPrefab;
 
@@ -23,7 +15,6 @@ public class DungeonRenderer : MonoBehaviour
     public GameObject FallbackFloorPrefab;
     public GameObject FallbackWallPrefab;
     public GameObject FallbackDoorPrefab;
-    public GameObject FallbackDoorTopPrefab;
 
     [Header("Environment Settings")]
     public bool EnableCeiling = true;
@@ -73,7 +64,8 @@ public class DungeonRenderer : MonoBehaviour
     private void InitializeComponents()
     {
         _materialManager = new MaterialManager(DefaultFloorMaterial, DefaultWallMaterial, DefaultDoorMaterial);
-        // Need to pass RuntimeLevelConfig.Seed here somehow
+        // I need to figure out a way to use gameObject.GetComponent<>() AND pass on RuntimeLevelConfig.Seed
+        // Otherwise the component LayoutManager will always use a new BiomeManager component
         _biomeManager = new BiomeManager(0);
         _optimizedRenderer = new OptimizedPrefabRenderer(_biomeManager);
         
@@ -134,7 +126,7 @@ public class DungeonRenderer : MonoBehaviour
         RenderDoors(layout);
     }
 
-    // In DungeonRenderer.cs - Update RenderRealMode method
+    // In LayoutRenderer.cs - Update RenderRealMode method
     private void RenderRealMode(LevelModel layout, int floorLevel)
     {
         _optimizedRenderer.SetBiomeForFloor(floorLevel);
