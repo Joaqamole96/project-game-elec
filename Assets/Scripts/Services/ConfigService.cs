@@ -1,10 +1,10 @@
-// RuntimeConfigs.cs
+// ConfigService.cs
 using UnityEngine;
 
 /// <summary>
 /// Container for runtime copies of configuration objects to allow modification without affecting original assets.
 /// </summary>
-public class RuntimeConfigs
+public class ConfigService
 {
     public GameConfig GameConfig { get; private set; }
     public LevelConfig LevelConfig { get; private set; }
@@ -14,7 +14,7 @@ public class RuntimeConfigs
     /// <summary>
     /// Creates deep copies of all configuration objects for runtime use.
     /// </summary>
-    public RuntimeConfigs(GameConfig gameConfig, LevelConfig levelConfig, PartitionConfig partitionConfig, RoomConfig roomConfig)
+    public ConfigService(GameConfig gameConfig, LevelConfig levelConfig, PartitionConfig partitionConfig, RoomConfig roomConfig)
     {
         GameConfig = CreateConfigCopy(gameConfig);
         LevelConfig = CreateConfigCopy(levelConfig);

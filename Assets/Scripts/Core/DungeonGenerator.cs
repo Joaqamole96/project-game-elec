@@ -31,13 +31,13 @@ public class DungeonGenerator : MonoBehaviour
     private LevelModel _layout;
     private List<RoomModel> _rooms;
     private System.Random _random;
-    private RuntimeConfigs _runtimeConfigs;
+    private ConfigService _configService;
     
     // Runtime config accessors
-    private GameConfig RuntimeGameConfig => _runtimeConfigs?.GameConfig ?? _gameConfig;
-    private LevelConfig RuntimeLevelConfig => _runtimeConfigs?.LevelConfig ?? _levelConfig;
-    private PartitionConfig RuntimePartitionConfig => _runtimeConfigs?.PartitionConfig ?? _partitionConfig;
-    private RoomConfig RuntimeRoomConfig => _runtimeConfigs?.RoomConfig ?? _roomConfig;
+    private GameConfig RuntimeGameConfig => _configService?.GameConfig ?? _gameConfig;
+    private LevelConfig RuntimeLevelConfig => _configService?.LevelConfig ?? _levelConfig;
+    private PartitionConfig RuntimePartitionConfig => _configService?.PartitionConfig ?? _partitionConfig;
+    private RoomConfig RuntimeRoomConfig => _configService?.RoomConfig ?? _roomConfig;
     
     public List<RoomModel> CurrentRooms => _rooms;
     public LevelModel CurrentLayout => _layout;
@@ -45,22 +45,24 @@ public class DungeonGenerator : MonoBehaviour
     void Awake()
     {
         InitializeComponents();
-        InitializeRuntimeConfigs();
+        InitializeConfigService();
         InitializeRandom();
     }
 
     void Start() => GenerateDungeon();
 
-    private void InitializeRuntimeConfigs()
+    private void InitializeConfigService()
     {
-        _runtimeConfigs = new RuntimeConfigs(_gameConfig, _levelConfig, _partitionConfig, _roomConfig);
+        _configService = new ConfigService(_gameConfig, _levelConfig, _partitionConfig, _roomConfig);
         Debug.Log($"Runtime configs initialized - Starting floor: {RuntimeLevelConfig.FloorLevel}");
     }
 
     private void InitializeComponents()
     {
+        int seed = RuntimeLevelConfig.Seed;
+
         _partitionGenerator = new PartitionGenerator();
-        _corridorGenerator = new CorridorGenerator();
+        _corridorGenerator = new CorridorGenerator(seed);
         _roomGenerator = new();
         _roomAssigner = new RoomAssigner();
         _geometryBuilder = new GeometryBuilder();
@@ -132,7 +134,7 @@ public class DungeonGenerator : MonoBehaviour
     public void GenerateNextFloor()
     {
         RuntimeLevelConfig.FloorLevel++;
-        _random = new System.Random(RuntimeLevelConfig.Seed + RuntimeLevelConfig.FloorLevel);
+        _random = new System.Random(RuntimeLevelConfig.Seed);
 
         if (RuntimeLevelConfig.FloorLevel > 1)
         {

@@ -2,12 +2,19 @@
 // Scripts/Generators/CorridorGenerator.cs
 // -------------------------------------------------- //
 
-using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
+using System.Linq;
+using System.Collections.Generic;
 
 public class CorridorGenerator
 {
+    private readonly System.Random _random;
+
+    public CorridorGenerator(int seed)
+    {
+        _random = new(seed);
+    }
+
     public List<CorridorModel> GenerateAllPossibleCorridors(List<PartitionModel> partitions, System.Random random)
     {
         if (partitions == null || random == null)
