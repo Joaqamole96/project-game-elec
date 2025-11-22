@@ -11,7 +11,7 @@ public class PrefabDoorRenderer : IDoorRenderer
     private GameObject _fallbackDoorPrefab;
     private MaterialManager _materialManager;
     private BiomeManager _biomeManager;
-    private BiomeTheme _currentTheme;
+    private BiomeModel _currentTheme;
 
     public PrefabDoorRenderer(GameObject doorPrefab, MaterialManager materialManager, BiomeManager biomeManager)
     {
@@ -23,7 +23,7 @@ public class PrefabDoorRenderer : IDoorRenderer
     /// <summary>
     /// Sets the current biome theme for prefab selection.
     /// </summary>
-    public void SetTheme(BiomeTheme theme)
+    public void SetTheme(BiomeModel theme)
     {
         _currentTheme = theme;
     }

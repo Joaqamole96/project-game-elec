@@ -1,5 +1,5 @@
 // -------------------------------------------------- //
-// Scripts/Configs/GameConfig.cs
+// Scripts/Configs/PlayerConfig.cs
 // -------------------------------------------------- //
 
 using UnityEngine;

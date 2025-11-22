@@ -9,7 +9,7 @@ using System.Collections.Generic;
 public class OptimizedPrefabRenderer
 {
     private BiomeManager _biomeManager;
-    private BiomeTheme _currentTheme;
+    private BiomeModel _currentTheme;
     private int _currentFloor;
     private AdvancedMeshCombiner _meshCombiner;
 

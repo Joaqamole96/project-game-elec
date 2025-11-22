@@ -12,7 +12,7 @@ public class PrefabFloorRenderer : IFloorRenderer
     private GameObject _fallbackFloorPrefab;
     private MaterialManager _materialManager;
     private BiomeManager _biomeManager;
-    private BiomeTheme _currentTheme;
+    private BiomeModel _currentTheme;
 
     public PrefabFloorRenderer(GameObject floorPrefab, MaterialManager materialManager, BiomeManager biomeManager)
     {
@@ -24,7 +24,7 @@ public class PrefabFloorRenderer : IFloorRenderer
     /// <summary>
     /// Sets the current biome theme for prefab selection.
     /// </summary>
-    public void SetTheme(BiomeTheme theme)
+    public void SetTheme(BiomeModel theme)
     {
         _currentTheme = theme;
     }

@@ -12,7 +12,7 @@ public class SpecialRoomRenderer
     private GameObject _defaultEntrancePrefab;
     private GameObject _defaultExitPrefab;
     private BiomeManager _biomeManager;
-    private BiomeTheme _currentTheme;
+    private BiomeModel _currentTheme;
 
     public SpecialRoomRenderer(GameObject entrancePrefab, GameObject exitPrefab, BiomeManager biomeManager)
     {
@@ -24,7 +24,7 @@ public class SpecialRoomRenderer
     /// <summary>
     /// Sets the current biome theme for special room prefab selection.
     /// </summary>
-    public void SetTheme(BiomeTheme theme)
+    public void SetTheme(BiomeModel theme)
     {
         _currentTheme = theme;
     }

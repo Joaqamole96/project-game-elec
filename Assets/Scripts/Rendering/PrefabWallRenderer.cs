@@ -12,7 +12,7 @@ public class PrefabWallRenderer : IWallRenderer
     private GameObject _fallbackWallPrefab;
     private MaterialManager _materialManager;
     private BiomeManager _biomeManager;
-    private BiomeTheme _currentTheme;
+    private BiomeModel _currentTheme;
 
     public PrefabWallRenderer(GameObject wallPrefab, MaterialManager materialManager, BiomeManager biomeManager)
     {
@@ -24,7 +24,7 @@ public class PrefabWallRenderer : IWallRenderer
     /// <summary>
     /// Sets the current biome theme for prefab selection.
     /// </summary>
-    public void SetTheme(BiomeTheme theme)
+    public void SetTheme(BiomeModel theme)
     {
         _currentTheme = theme;
     }

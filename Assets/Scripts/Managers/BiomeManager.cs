@@ -12,7 +12,7 @@ public class BiomeManager
     private System.Random _random = new();
     
     /// <summary>Available biome themes for dungeon generation.</summary>
-    public List<BiomeTheme> Themes { get; private set; } = new List<BiomeTheme>();
+    public List<BiomeModel> Themes { get; private set; } = new List<BiomeModel>();
 
     public BiomeManager()
     {
@@ -21,7 +21,7 @@ public class BiomeManager
 
     private void InitializeDefaultThemes()
     {
-        Themes.Add(new BiomeTheme("Default", 1, 100, 1.0f)
+        Themes.Add(new BiomeModel("Default", 1, 100, 1.0f)
         {
             FloorPrefabPath = "Themes/Default/FloorPrefab",
             WallPrefabPath = "Themes/Default/WallPrefab",
@@ -41,7 +41,7 @@ public class BiomeManager
     /// <param name="floorLevel">Current floor level for theme selection.</param>
     /// <param name="seed">Random seed for deterministic selection.</param>
     /// <returns>Selected biome theme, or default if no valid themes found.</returns>
-    public BiomeTheme GetThemeForFloor(int floorLevel, int seed)
+    public BiomeModel GetThemeForFloor(int floorLevel, int seed)
     {
         _random = new System.Random(seed + floorLevel);
         
@@ -63,7 +63,7 @@ public class BiomeManager
         return SelectThemeByWeight(validThemes, randomValue);
     }
 
-    private float CalculateTotalWeight(List<BiomeTheme> themes)
+    private float CalculateTotalWeight(List<BiomeModel> themes)
     {
         float total = 0f;
         foreach (var theme in themes)
@@ -71,7 +71,7 @@ public class BiomeManager
         return total;
     }
 
-    private BiomeTheme SelectThemeByWeight(List<BiomeTheme> themes, float randomValue)
+    private BiomeModel SelectThemeByWeight(List<BiomeModel> themes, float randomValue)
     {
         float currentWeight = 0f;
         foreach (var theme in themes)
@@ -132,7 +132,7 @@ public class BiomeManager
     /// <summary>
     /// Gets a special room prefab based on room type and current theme.
     /// </summary>
-    public GameObject GetSpecialRoomPrefab(RoomType roomType, BiomeTheme theme)
+    public GameObject GetSpecialRoomPrefab(RoomType roomType, BiomeModel theme)
     {
         if (theme == null) return null;
         
@@ -140,7 +140,7 @@ public class BiomeManager
         return GetPrefab(path);
     }
 
-    private string GetSpecialRoomPath(RoomType roomType, BiomeTheme theme)
+    private string GetSpecialRoomPath(RoomType roomType, BiomeModel theme)
     {
         return roomType switch
         {
@@ -154,15 +154,15 @@ public class BiomeManager
     }
 
     // Helper methods with fallback support
-    public GameObject GetFloorPrefab(BiomeTheme theme) => 
+    public GameObject GetFloorPrefab(BiomeModel theme) => 
         GetPrefab(theme?.FloorPrefabPath) ?? GetPrefab("Themes/Default/FloorPrefab");
 
-    public GameObject GetWallPrefab(BiomeTheme theme) => 
+    public GameObject GetWallPrefab(BiomeModel theme) => 
         GetPrefab(theme?.WallPrefabPath) ?? GetPrefab("Themes/Default/WallPrefab");
 
-    public GameObject GetDoorPrefab(BiomeTheme theme) => 
+    public GameObject GetDoorPrefab(BiomeModel theme) => 
         GetPrefab(theme?.DoorPrefabPath) ?? GetPrefab("Themes/Default/DoorPrefab");
 
-    public GameObject GetDoorTopPrefab(BiomeTheme theme) => 
+    public GameObject GetDoorTopPrefab(BiomeModel theme) => 
         GetPrefab(theme?.DoorTopPrefabPath) ?? GetPrefab("Themes/Default/DoorTopPrefab");
 }
