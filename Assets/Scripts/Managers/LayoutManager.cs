@@ -63,7 +63,7 @@ public class LayoutManager : MonoBehaviour
 
         _partitionGenerator = new PartitionGenerator(seed);
         _corridorGenerator = new CorridorGenerator(seed);
-        _roomGenerator = new();
+        _roomGenerator = new(seed);
         _roomAssigner = new RoomAssigner();
         _geometryBuilder = new GeometryBuilder();
     }
@@ -164,7 +164,7 @@ public class LayoutManager : MonoBehaviour
         
         var root = _partitionGenerator.GeneratePartitionTree(RuntimeLevelConfig, RuntimePartitionConfig);
         var leaves = _partitionGenerator.CollectLeaves(root);
-        layout.Rooms = _roomGenerator.CreateRoomsFromPartitions(leaves, RuntimeRoomConfig, _random);
+        layout.Rooms = _roomGenerator.CreateRoomsFromPartitions(leaves, RuntimeRoomConfig);
         _roomGenerator.FindAndAssignNeighbors(leaves);
         
         var allCorridors = _corridorGenerator.GenerateAllPossibleCorridors(leaves);

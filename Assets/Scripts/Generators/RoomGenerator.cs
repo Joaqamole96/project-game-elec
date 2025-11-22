@@ -1,18 +1,29 @@
+// -------------------------------------------------- //
+// Scripts/Generators/PartitionGenerator.cs
+// -------------------------------------------------- //
+
 using UnityEngine;
 using System.Collections.Generic;
 
 public class RoomGenerator
 {
-    public List<RoomModel> CreateRoomsFromPartitions(List<PartitionModel> leaves, RoomConfig roomConfig, System.Random random)
+    public readonly System.Random _random;
+    
+    public RoomGenerator(int seed) => _random = new(seed);
+
+    // ------------------------- //
+
+    public List<RoomModel> CreateRoomsFromPartitions(List<PartitionModel> leaves, RoomConfig roomConfig)
     {
-        var rooms = new List<RoomModel>();
         int roomIdCounter = 0;
+
+        List<RoomModel> rooms = new();
         
         foreach (var leaf in leaves)
         {
             if (leaf == null) continue;
 
-            var room = CreateRoomInPartition(leaf, roomConfig, random, roomIdCounter);
+            var room = CreateRoomInPartition(leaf, roomConfig, roomIdCounter);
             if (room != null)
             {
                 rooms.Add(room);
@@ -21,28 +32,28 @@ public class RoomGenerator
             }
         }
         
-        Debug.Log($"Created {rooms.Count} rooms from {leaves.Count} partitions");
+        Debug.Log($"Created {rooms.Count} rooms from {leaves.Count} parts");
         return rooms;
     }
 
-    private RoomModel CreateRoomInPartition(PartitionModel leaf, RoomConfig roomConfig, System.Random random, int roomId)
+    private RoomModel CreateRoomInPartition(PartitionModel leaf, RoomConfig roomConfig, int roomId)
     {
         // Calculate maximum possible insets
         int maxHorizontalInset = (leaf.Bounds.width - roomConfig.MinRoomSize) / 2;
         int maxVerticalInset = (leaf.Bounds.height - roomConfig.MinRoomSize) / 2;
         
         // Clamp insets to safe values
-        int leftInset = Mathf.Clamp(random.Next(roomConfig.MinInset, roomConfig.MaxInset + 1), 1, maxHorizontalInset);
-        int rightInset = Mathf.Clamp(random.Next(roomConfig.MinInset, roomConfig.MaxInset + 1), 1, maxHorizontalInset);
-        int bottomInset = Mathf.Clamp(random.Next(roomConfig.MinInset, roomConfig.MaxInset + 1), 1, maxVerticalInset);
-        int topInset = Mathf.Clamp(random.Next(roomConfig.MinInset, roomConfig.MaxInset + 1), 1, maxVerticalInset);
+        int leftInset = Mathf.Clamp(_random.Next(roomConfig.MinInset, roomConfig.MaxInset + 1), 1, maxHorizontalInset);
+        int rightInset = Mathf.Clamp(_random.Next(roomConfig.MinInset, roomConfig.MaxInset + 1), 1, maxHorizontalInset);
+        int bottomInset = Mathf.Clamp(_random.Next(roomConfig.MinInset, roomConfig.MaxInset + 1), 1, maxVerticalInset);
+        int topInset = Mathf.Clamp(_random.Next(roomConfig.MinInset, roomConfig.MaxInset + 1), 1, maxVerticalInset);
 
         // Ensure we have at least a minimum room size
         int roomWidth = leaf.Bounds.width - (leftInset + rightInset);
         int roomHeight = leaf.Bounds.height - (bottomInset + topInset);
         
-        // FIX: Force minimum room size and ensure we have at least 3x3 for floors
-        if (roomWidth < 3 || roomHeight < 3)
+        // Force minimum room size and ensure we have at least 5x5 for floors
+        if (roomWidth < 5 || roomHeight < 5)
         {
             Debug.LogWarning($"Partition too small for room: {leaf.Bounds}. Adjusting insets...");
             
@@ -52,8 +63,8 @@ public class RoomGenerator
             bottomInset = 1;
             topInset = 1;
             
-            roomWidth = Mathf.Max(3, leaf.Bounds.width - 2);
-            roomHeight = Mathf.Max(3, leaf.Bounds.height - 2);
+            roomWidth = Mathf.Max(5, leaf.Bounds.width - 2);
+            roomHeight = Mathf.Max(5, leaf.Bounds.height - 2);
         }
 
         // Ensure room meets minimum size requirements
@@ -79,8 +90,7 @@ public class RoomGenerator
             roomHeight
         );
 
-        // Final safety check
-        if (roomBounds.width >= 3 && roomBounds.height >= 3)
+        if (roomBounds.width >= 5 && roomBounds.height >= 5)
         {
             var room = new RoomModel(roomBounds, roomId, RoomType.Combat);
             Debug.Log($"Created room {room.ID}: {roomBounds} (Size: {roomBounds.width}x{roomBounds.height})");
@@ -93,73 +103,64 @@ public class RoomGenerator
         }
     }
 
-    public void FindAndAssignNeighbors(List<PartitionModel> partitions)
+    public void FindAndAssignNeighbors(List<PartitionModel> parts)
     {
-        if (partitions == null) return;
+        if (parts == null) return;
 
-        foreach (var partition in partitions)
-            partition.Neighbors.Clear();
+        foreach (var part in parts)
+            part.Neighbors.Clear();
 
-        var rightEdgeMap = new Dictionary<int, List<PartitionModel>>();
-        var bottomEdgeMap = new Dictionary<int, List<PartitionModel>>();
+        Dictionary<int, List<PartitionModel>> rightEdgeMap = new(), bottomEdgeMap = new();
 
         // Build edge maps for efficient neighbor finding
-        foreach (var partition in partitions)
+        foreach (var part in parts)
         {
-            if (partition == null) continue;
+            if (part == null) continue;
 
             // Right edge mapping
-            if (!rightEdgeMap.ContainsKey(partition.Bounds.xMax))
-                rightEdgeMap[partition.Bounds.xMax] = new List<PartitionModel>();
-            rightEdgeMap[partition.Bounds.xMax].Add(partition);
+            if (!rightEdgeMap.ContainsKey(part.Bounds.xMax)) rightEdgeMap[part.Bounds.xMax] = new List<PartitionModel>();
+            rightEdgeMap[part.Bounds.xMax].Add(part);
             
             // Bottom edge mapping
-            if (!bottomEdgeMap.ContainsKey(partition.Bounds.yMax))
-                bottomEdgeMap[partition.Bounds.yMax] = new List<PartitionModel>();
-            bottomEdgeMap[partition.Bounds.yMax].Add(partition);
+            if (!bottomEdgeMap.ContainsKey(part.Bounds.yMax)) bottomEdgeMap[part.Bounds.yMax] = new List<PartitionModel>();
+            bottomEdgeMap[part.Bounds.yMax].Add(part);
         }
 
         // Find horizontal neighbors
-        foreach (var partition in partitions)
+        foreach (var part in parts)
         {
-            if (partition == null) continue;
+            if (part == null) continue;
 
-            if (rightEdgeMap.TryGetValue(partition.Bounds.xMin, out var horizontalCandidates))
-            {
-                FindValidNeighbors(partition, horizontalCandidates);
-            }
+            if (rightEdgeMap.TryGetValue(part.Bounds.xMin, out var horizontalCandidates)) FindValidNeighbors(part, horizontalCandidates);
 
-            if (bottomEdgeMap.TryGetValue(partition.Bounds.yMin, out var verticalCandidates))
-            {
-                FindValidNeighbors(partition, verticalCandidates);
-            }
+            if (bottomEdgeMap.TryGetValue(part.Bounds.yMin, out var verticalCandidates)) FindValidNeighbors(part, verticalCandidates);
         }
     }
 
-    private void FindValidNeighbors(PartitionModel partition, List<PartitionModel> candidates)
+    private void FindValidNeighbors(PartitionModel part, List<PartitionModel> candidates)
     {
         foreach (var candidate in candidates)
         {
-            if (candidate == null || candidate == partition) continue;
+            if (candidate == null || candidate == part) continue;
 
-            if (ArePartitionsNeighbors(partition.Bounds, candidate.Bounds))
+            if (ArePartitionsNeighbors(part.Bounds, candidate.Bounds))
             {
-                if (!partition.Neighbors.Contains(candidate))
-                    partition.Neighbors.Add(candidate);
-                if (!candidate.Neighbors.Contains(partition))
-                    candidate.Neighbors.Add(partition);
+                if (!part.Neighbors.Contains(candidate))
+                    part.Neighbors.Add(candidate);
+                if (!candidate.Neighbors.Contains(part))
+                    candidate.Neighbors.Add(part);
             }
         }
     }
 
     private bool ArePartitionsNeighbors(RectInt boundsA, RectInt boundsB)
     {
-        bool touchHorizontally = boundsA.xMax == boundsB.xMin || boundsB.xMax == boundsA.xMin;
-        bool touchVertically = boundsA.yMax == boundsB.yMin || boundsB.yMax == boundsA.yMin;
+        bool touchHorz = boundsA.xMax == boundsB.xMin || boundsB.xMax == boundsA.xMin;
+        bool touchVert = boundsA.yMax == boundsB.yMin || boundsB.yMax == boundsA.yMin;
 
         bool overlapX = boundsA.xMin < boundsB.xMax && boundsB.xMin < boundsA.xMax;
         bool overlapY = boundsA.yMin < boundsB.yMax && boundsB.yMin < boundsA.yMax;
 
-        return (touchHorizontally && overlapY) || (touchVertically && overlapX);
+        return (touchHorz && overlapY) || (touchVert && overlapX);
     }
 }
