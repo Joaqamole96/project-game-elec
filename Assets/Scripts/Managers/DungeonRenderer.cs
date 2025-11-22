@@ -1,317 +1,206 @@
-// DungeonRenderer.cs
 using UnityEngine;
 using System.Collections.Generic;
-using System.Linq;
 
 /// <summary>
-/// Handles rendering of dungeon geometry in both debug (Gizmo) and gameplay (Real) modes.
-/// Supports mesh combining for performance optimization.
+/// Main orchestrator for dungeon rendering using the new consolidated rendering systems.
+/// Handles layout, props, decor, and environment rendering.
 /// </summary>
 public class DungeonRenderer : MonoBehaviour
 {
-    [Header("Rendering Mode")]
-    public RenderMode Mode = RenderMode.Real;
-    
-    [Header("Prefabs - Real Mode")]
-    public GameObject FloorPrefab;
-    public GameObject WallPrefab;
-    public GameObject DoorPrefab;
-    public GameObject EntrancePrefab;
-    public GameObject ExitPrefab;
-
-    [Header("Fallback Prefabs - Real Mode")]
-    public GameObject FallbackFloorPrefab;
-    public GameObject FallbackWallPrefab;
-    public GameObject FallbackDoorPrefab;
-    public GameObject FallbackDoorTopPrefab;
-
-    [Header("Environment Settings")]
+    [Header("Rendering Settings")]
+    public bool EnableCollision = true;
     public bool EnableCeiling = true;
     public bool EnableVoid = true;
     
     [Header("Parent Transforms")]
-    public Transform FloorsParent;
-    public Transform WallsParent;
-    public Transform DoorsParent;
-    public Transform SpecialObjectsParent;
+    public Transform LayoutParent;
+    public Transform PropsParent;
+    public Transform DecorParent;
     public Transform EnvironmentParent;
     
-    [Header("Mobile Optimization")]
-    public bool CombineMeshes = false;
-    public bool EnableFloorCollision = true;
-    public bool EnableWallCollision = true;
-    public bool EnableDoorCollision = false;
-    
-    [Header("Material Settings - Gizmo Mode")]
-    public Material DefaultFloorMaterial;
-    public Material DefaultWallMaterial;
-    public Material DefaultDoorMaterial;
-    
-    // Rendering components
-    private IFloorRenderer _floorRenderer;
-    private IWallRenderer _wallRenderer;
-    private IDoorRenderer _doorRenderer;
-    private SpecialRoomRenderer _specialRenderer;
-    private MaterialManager _materialManager;
-    private OptimizedPrefabRenderer _optimizedRenderer;
+    // Consolidated rendering systems
+    private LayoutRenderer _layoutRenderer;
+    private PropRenderer _propRenderer;
+    private DecorRenderer _decorRenderer;
     private BiomeManager _biomeManager;
 
-    // Combined mesh containers
-    private readonly List<GameObject> _spawnedContainers = new();
-    
-    public enum RenderMode
-    {
-        Gizmo,    // Colored cubes for debugging
-        Real      // Actual prefabs for gameplay
-    }
+    private bool _isInitialized = false;
 
-    void Awake()
+    /// <summary>
+    /// Initializes the rendering systems with required dependencies.
+    /// </summary>
+    public void Initialize(BiomeManager biomeManager)
     {
-        InitializeComponents();
-    }
-
-    private void InitializeComponents()
-    {
-        _materialManager = new MaterialManager(DefaultFloorMaterial, DefaultWallMaterial, DefaultDoorMaterial);
-        _biomeManager = new BiomeManager();
-        _optimizedRenderer = new OptimizedPrefabRenderer(_biomeManager);
-        
-        InitializeRenderers();
-        
-        _specialRenderer = new SpecialRoomRenderer(EntrancePrefab, ExitPrefab, _biomeManager);
-    }
-
-    private void InitializeRenderers()
-    {
-        if (Mode == RenderMode.Gizmo)
+        if (biomeManager == null)
         {
-            _floorRenderer = new GizmoFloorRenderer(_materialManager);
-            _wallRenderer = new GizmoWallRenderer(_materialManager);
-            _doorRenderer = new GizmoDoorRenderer(_materialManager);
+            Debug.LogError("DungeonRenderer.Initialize(): BiomeManager cannot be null");
+            return;
         }
-        else
-        {
-            _floorRenderer = new PrefabFloorRenderer(FallbackFloorPrefab, _materialManager, _biomeManager);
-            _wallRenderer = new PrefabWallRenderer(FallbackWallPrefab, _materialManager, _biomeManager);
-            _doorRenderer = new PrefabDoorRenderer(FallbackDoorPrefab, _materialManager, _biomeManager);
-        }
-    }
 
-    private void EnsureComponentsInitialized()
-    {
-        if (_materialManager == null)
-            InitializeComponents();
+        _biomeManager = biomeManager;
+        
+        // Initialize consolidated rendering systems
+        _layoutRenderer = new LayoutRenderer(_biomeManager);
+        _propRenderer = new PropRenderer(_biomeManager);
+        _decorRenderer = new DecorRenderer(_biomeManager);
+        
+        CreateParentContainers();
+        _isInitialized = true;
+        
+        Debug.Log("DungeonRenderer: Rendering systems initialized successfully");
     }
 
     /// <summary>
-    /// Renders the complete dungeon using the specified layout and room data.
+    /// Renders the complete dungeon using the consolidated rendering systems.
     /// </summary>
-    public void RenderDungeon(LevelModel layout, List<RoomModel> rooms, int floorLevel, int seed)
+    public void RenderDungeon(LevelModel layout, List<RoomModel> rooms, BiomeModel biome)
     {
-        EnsureComponentsInitialized();
-        ClearRendering();
-        CreateParentContainers();
-
-        if (Mode == RenderMode.Gizmo)
+        if (!_isInitialized)
         {
-            RenderGizmoMode(layout, rooms);
-        }
-        else
-        {
-            RenderRealMode(layout, floorLevel, seed);
-        }
-        
-        RenderSpecialObjects(layout, rooms);
-        LogRenderingResults();
-    }
-
-    private void RenderGizmoMode(LevelModel layout, List<RoomModel> rooms)
-    {
-        _materialManager.InitializeMaterialCache();
-        RenderFloors(layout, rooms);
-        RenderWalls(layout);
-        RenderDoors(layout);
-    }
-
-    // In DungeonRenderer.cs - Update RenderRealMode method
-    private void RenderRealMode(LevelModel layout, int floorLevel, int seed)
-    {
-        _optimizedRenderer.SetBiomeForFloor(floorLevel, seed);
-        
-        // Queue geometry for combining (floors and walls)
-        _optimizedRenderer.RenderFloorsOptimized(layout, FloorsParent);
-        _optimizedRenderer.RenderWallsOptimized(layout, WallsParent);
-        
-        // Render doors as individual objects (not combined)
-        _optimizedRenderer.RenderDoorsOptimized(layout, DoorsParent);
-        
-        // Build all combined meshes
-        _optimizedRenderer.FinalizeRendering(FloorsParent);
-        
-        // Environment elements
-        RenderEnvironment(layout);
-    }
-
-    private void RenderEnvironment(LevelModel layout)
-    {
-        if (EnableCeiling) _optimizedRenderer.RenderCeilingOptimized(layout, EnvironmentParent);
-        if (EnableVoid) _optimizedRenderer.RenderVoidPlane(layout, EnvironmentParent);
-    }
-
-    public void ClearRendering()
-    {
-        EnsureComponentsInitialized();
-        
-        ClearSpawnedContainers();
-        ClearAllChildObjects();
-        CleanupMaterials();
-    }
-
-    #region Rendering Orchestration
-    private void RenderFloors(LevelModel layout, List<RoomModel> rooms)
-    {
-        if (layout?.AllFloorTiles == null || rooms == null) 
-        {
-            Debug.LogError("Cannot render floors: layout or rooms is null");
+            Debug.LogError("DungeonRenderer not initialized. Call Initialize() first.");
             return;
         }
-        
-        Debug.Log($"Starting floor rendering: {layout.AllFloorTiles.Count} floor tiles, {rooms.Count} rooms");
-        
-        if (CombineMeshes && Mode == RenderMode.Gizmo)
-        {
-            RenderCombinedFloors(layout, rooms);
-        }
-        else
-        {
-            RenderIndividualFloors(layout, rooms);
-        }
-        
-        LogFloorRenderingResults();
-    }
 
-    private void RenderCombinedFloors(LevelModel layout, List<RoomModel> rooms)
-    {
-        Debug.Log("Using combined mesh rendering for floors");
-        var floorMeshes = _floorRenderer.RenderCombinedFloorsByRoomType(layout, rooms, FloorsParent);
-        _spawnedContainers.AddRange(floorMeshes);
-        
-        if (EnableFloorCollision)
+        if (layout == null)
         {
-            foreach (var mesh in floorMeshes)
-                AddCollisionToObject(mesh, "Floor");
+            Debug.LogError("DungeonRenderer.RenderDungeon(): Layout cannot be null");
+            return;
         }
-        
-        Debug.Log($"Combined mesh rendering complete: {floorMeshes.Count} mesh objects created");
-    }
 
-    private void RenderIndividualFloors(LevelModel layout, List<RoomModel> rooms)
-    {
-        Debug.Log("Using individual floor rendering");
-        _floorRenderer.RenderIndividualFloors(layout, rooms, FloorsParent, EnableFloorCollision);
-    }
-
-    private void RenderWalls(LevelModel layout)
-    {
-        if (layout?.AllWallTiles == null || layout.WallTypes == null) return;
-        
-        if (CombineMeshes && Mode == RenderMode.Gizmo)
+        if (biome == null)
         {
-            var wallMeshes = _wallRenderer.RenderCombinedWallsByType(layout, WallsParent);
-            _spawnedContainers.AddRange(wallMeshes);
+            Debug.LogError("DungeonRenderer.RenderDungeon(): Biome cannot be null");
+            return;
+        }
+
+        Debug.Log($"Starting dungeon rendering for biome: {biome.Name}");
+
+        try
+        {
+            // Render all components using consolidated systems
+            RenderLayout(layout, biome);
+            RenderProps(layout, rooms, biome);
+            RenderDecor(layout, rooms, biome);
+            RenderEnvironment(layout, biome);
             
-            if (EnableWallCollision)
-            {
-                foreach (var mesh in wallMeshes)
-                    AddCollisionToObject(mesh, "Wall");
-            }
+            Debug.Log("Dungeon rendering completed successfully");
         }
-        else
+        catch (System.Exception e)
         {
-            _wallRenderer.RenderIndividualWalls(layout, WallsParent, EnableWallCollision);
+            Debug.LogError($"Dungeon rendering failed: {e.Message}");
         }
     }
 
-    private void RenderDoors(LevelModel layout)
+    /// <summary>
+    /// Renders the structural layout (floors, walls, doors, ceiling, void).
+    /// </summary>
+    private void RenderLayout(LevelModel layout, BiomeModel biome)
     {
-        if (layout?.AllDoorTiles == null) return;
-        _doorRenderer.RenderDoors(layout, DoorsParent, EnableDoorCollision);
+        if (_layoutRenderer == null)
+        {
+            Debug.LogError("LayoutRenderer is not initialized");
+            return;
+        }
+
+        Debug.Log("Rendering layout...");
+        _layoutRenderer.RenderCompleteLayout(layout, biome, LayoutParent);
     }
 
-    private void RenderSpecialObjects(LevelModel layout, List<RoomModel> rooms)
+    /// <summary>
+    /// Renders functional props (entrance, exit, shop, treasure, etc.).
+    /// </summary>
+    private void RenderProps(LevelModel layout, List<RoomModel> rooms, BiomeModel biome)
     {
-        if (Mode == RenderMode.Real)
+        if (_propRenderer == null)
         {
-            _specialRenderer.RenderSpecialObjects(layout, rooms, SpecialObjectsParent);
+            Debug.LogError("PropRenderer is not initialized");
+            return;
+        }
+
+        if (rooms == null || rooms.Count == 0)
+        {
+            Debug.LogWarning("No rooms provided for prop rendering");
+            return;
+        }
+
+        Debug.Log("Rendering props...");
+        _propRenderer.RenderAllProps(layout, rooms, biome, PropsParent);
+    }
+
+    /// <summary>
+    /// Renders decorative objects (trees, rocks, etc.).
+    /// </summary>
+    private void RenderDecor(LevelModel layout, List<RoomModel> rooms, BiomeModel biome)
+    {
+        if (_decorRenderer == null)
+        {
+            Debug.LogError("DecorRenderer is not initialized");
+            return;
+        }
+
+        Debug.Log("Rendering decor...");
+        _decorRenderer.RenderAllDecor(layout, rooms, biome, DecorParent);
+    }
+
+    /// <summary>
+    /// Renders environment elements (ceiling, void plane).
+    /// </summary>
+    private void RenderEnvironment(LevelModel layout, BiomeModel biome)
+    {
+        if (!EnableCeiling && !EnableVoid) return;
+
+        Debug.Log("Rendering environment...");
+        
+        if (EnableCeiling)
+        {
+            _layoutRenderer.RenderCeiling(layout, biome, EnvironmentParent);
+        }
+        
+        if (EnableVoid)
+        {
+            _layoutRenderer.RenderVoidPlane(layout, biome, EnvironmentParent);
         }
     }
-    #endregion
+
+    /// <summary>
+    /// Clears all rendered dungeon geometry.
+    /// </summary>
+    public void ClearRendering()
+    {
+        Debug.Log("Clearing dungeon rendering...");
+        
+        ClearChildObjects(LayoutParent);
+        ClearChildObjects(PropsParent);
+        ClearChildObjects(DecorParent);
+        ClearChildObjects(EnvironmentParent);
+        
+        Debug.Log("Dungeon rendering cleared");
+    }
 
     #region Utility Methods
-    private void AddCollisionToObject(GameObject obj, string objectType)
-    {
-        if (obj == null) return;
-
-        if (obj.GetComponent<Collider>() == null)
-        {
-            obj.AddComponent<BoxCollider>();
-        }
-
-        if (objectType == "Door")
-        {
-            var rb = obj.GetComponent<Rigidbody>();
-            if (rb == null)
-            {
-                rb = obj.AddComponent<Rigidbody>();
-                rb.isKinematic = true;
-            }
-        }
-    }
 
     private void CreateParentContainers()
     {
-        FloorsParent = CreateParentIfNull(FloorsParent, "Floors");
-        WallsParent = CreateParentIfNull(WallsParent, "Walls");
-        DoorsParent = CreateParentIfNull(DoorsParent, "Doors");
-        SpecialObjectsParent = CreateParentIfNull(SpecialObjectsParent, "SpecialObjects");
+        LayoutParent = CreateParentIfNull(LayoutParent, "Layout");
+        PropsParent = CreateParentIfNull(PropsParent, "Props");
+        DecorParent = CreateParentIfNull(DecorParent, "Decor");
         EnvironmentParent = CreateParentIfNull(EnvironmentParent, "Environment");
+        
+        // Set all parents as children of this transform
+        LayoutParent.SetParent(transform);
+        PropsParent.SetParent(transform);
+        DecorParent.SetParent(transform);
+        EnvironmentParent.SetParent(transform);
     }
 
     private Transform CreateParentIfNull(Transform parent, string name)
     {
-        return parent ?? CreateParent(name);
-    }
-
-    private Transform CreateParent(string name)
-    {
-        GameObject go = new(name);
-        go.transform.SetParent(transform);
-        return go.transform;
-    }
-
-    private void ClearSpawnedContainers()
-    {
-        foreach (var container in _spawnedContainers)
-        {
-            if (container != null)
-            {
-                #if UNITY_EDITOR
-                DestroyImmediate(container);
-                #else
-                Destroy(container);
-                #endif
-            }
-        }
-        _spawnedContainers.Clear();
-    }
-
-    private void ClearAllChildObjects()
-    {
-        ClearChildObjects(FloorsParent);
-        ClearChildObjects(WallsParent);
-        ClearChildObjects(DoorsParent);
-        ClearChildObjects(SpecialObjectsParent);
-        ClearChildObjects(EnvironmentParent);
+        if (parent != null) return parent;
+        
+        var newParent = new GameObject(name).transform;
+        newParent.SetParent(transform);
+        newParent.localPosition = Vector3.zero;
+        return newParent;
     }
 
     private void ClearChildObjects(Transform parent)
@@ -332,20 +221,29 @@ public class DungeonRenderer : MonoBehaviour
         }
     }
 
-    private void CleanupMaterials()
+    /// <summary>
+    /// Gets the total number of rendered objects across all categories.
+    /// </summary>
+    public int GetTotalRenderedObjects()
     {
-        _materialManager?.CleanupMaterialCache();
+        int total = 0;
+        total += LayoutParent?.childCount ?? 0;
+        total += PropsParent?.childCount ?? 0;
+        total += DecorParent?.childCount ?? 0;
+        total += EnvironmentParent?.childCount ?? 0;
+        return total;
     }
 
-    private void LogFloorRenderingResults()
+    /// <summary>
+    /// Logs rendering statistics for debugging.
+    /// </summary>
+    public void LogRenderingStats()
     {
-        int renderedFloors = FloorsParent?.childCount ?? 0;
-        Debug.Log($"Floor rendering complete: {renderedFloors} floor objects in scene");
+        Debug.Log($"Rendering Stats - Layout: {LayoutParent?.childCount ?? 0}, " +
+                 $"Props: {PropsParent?.childCount ?? 0}, " +
+                 $"Decor: {DecorParent?.childCount ?? 0}, " +
+                 $"Environment: {EnvironmentParent?.childCount ?? 0}");
     }
 
-    private void LogRenderingResults()
-    {
-        Debug.Log($"Rendering complete - Floors: {FloorsParent.childCount}, Walls: {WallsParent.childCount}, Doors: {DoorsParent.childCount}");
-    }
     #endregion
 }

@@ -1,4 +1,6 @@
+// -------------------- //
 // Script/Commons/Enums/RoomEnum.cs
+// -------------------- //
 
 public enum RoomAccess { Open, Closed, Locked }
 

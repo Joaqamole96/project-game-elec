@@ -17,12 +17,12 @@ public class PartitionConfig
         MinSplitRatio = Mathf.Clamp(MinSplitRatio, 0.3f, 0.5f);
         MaxSplitRatio = Mathf.Clamp(MaxSplitRatio, 0.5f, 0.7f);
 
-        Debug.Log("PartitionConfig.Validate(): Validated successfully.");
+        Debug.Log("PartitionConfig.Validate(): Validated.");
     }
 
     public PartitionConfig Clone()
     {
-        Debug.Log("PartitionConfig.Clone(): Cloning...");
+        Debug.Log("PartitionConfig.Clone(): Cloned.");
         return new() 
         { 
             MinSplitRatio = MinSplitRatio, 

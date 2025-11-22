@@ -1,4 +1,6 @@
+// -------------------- //
 // Script/Common/Enums/DoorEnum.cs
+// -------------------- //
 
 public enum DoorState { Open, Closed, Locked, Broken }
 

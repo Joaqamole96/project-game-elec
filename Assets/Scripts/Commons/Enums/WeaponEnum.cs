@@ -1,4 +1,6 @@
+// -------------------- //
 // Script/Commons/Enums/WeaponEnum.cs
+// -------------------- //
 
 public enum WeaponType { Melee, Ranged }
 

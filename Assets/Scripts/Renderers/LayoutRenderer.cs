@@ -74,12 +74,12 @@ public class LayoutRenderer
     }
 
     /// <summary>
-    /// Renders all wall tiles using combined meshes with proper orientation.
+    /// Renders all wall tiles using combined meshes (walls are just walls - no types).
     /// </summary>
     public void RenderWalls(LevelModel layout, BiomeModel biome, Transform parent)
     {
-        if (layout?.AllWallTiles == null || layout.WallTypes == null)
-            throw new System.ArgumentNullException("Layout wall data is null");
+        if (layout?.AllWallTiles == null)
+            throw new System.ArgumentNullException("Layout or AllWallTiles is null");
 
         var wallPrefab = _biomeManager.GetWallPrefab(biome);
         if (wallPrefab == null)
@@ -98,13 +98,9 @@ public class LayoutRenderer
         int wallsProcessed = 0;
         foreach (var wallPos in layout.AllWallTiles)
         {
-            if (layout.WallTypes.TryGetValue(wallPos, out var wallType))
-            {
-                Vector3 worldPos = new Vector3(wallPos.x + 0.5f, 1f, wallPos.y + 0.5f);
-                Quaternion rotation = GetWallRotation(wallType);
-                _meshCombiner.AddMesh(wallMesh, worldPos, rotation, wallScale, wallMaterial);
-                wallsProcessed++;
-            }
+            Vector3 worldPos = new Vector3(wallPos.x + 0.5f, 1f, wallPos.y + 0.5f);
+            _meshCombiner.AddMesh(wallMesh, worldPos, Quaternion.identity, wallScale, wallMaterial);
+            wallsProcessed++;
         }
 
         Debug.Log($"Processed {wallsProcessed} wall positions for combining");
@@ -220,18 +216,6 @@ public class LayoutRenderer
         if (prefab == null) return null;
         var renderer = prefab.GetComponentInChildren<Renderer>();
         return renderer != null ? renderer.sharedMaterial : null;
-    }
-
-    private Quaternion GetWallRotation(WallType wallType)
-    {
-        return wallType switch
-        {
-            WallType.North => Quaternion.Euler(0, 0, 0),
-            WallType.South => Quaternion.Euler(0, 180, 0),
-            WallType.East => Quaternion.Euler(0, 90, 0),
-            WallType.West => Quaternion.Euler(0, 270, 0),
-            _ => Quaternion.identity
-        };
     }
 
     private Quaternion GetDoorRotation(LevelModel layout, Vector2Int doorPos)

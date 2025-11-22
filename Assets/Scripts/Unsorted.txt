@@ -1,0 +1,922 @@
+using UnityEngine;
+
+public class CameraFollow : MonoBehaviour
+{
+    [Header("Follow Settings")]
+    public Transform target;
+    public Vector3 thirdPersonOffset = new(0, 2, -3);
+    public Vector3 firstPersonOffset = new(0, 0.5f, 0);
+    public float smoothSpeed = 0.125f;
+    public float rotationSpeed = 2f;
+    
+    [Header("Camera Modes")]
+    public CameraMode currentMode = CameraMode.ThirdPerson;
+    public float modeSwitchDistance = 1.5f;
+    
+    [Header("Collision Avoidance")]
+    public LayerMask obstacleLayer = 1;
+    public float collisionOffset = 0.3f;
+    
+    private float currentRotationX = 0f;
+    private float currentRotationY = 0f;
+    
+    public enum CameraMode
+    {
+        FirstPerson,
+        ThirdPerson
+    }
+    
+    void Start()
+    {
+        if (target != null)
+        {
+            // Initialize rotation to look at target
+            Vector3 direction = (target.position - transform.position).normalized;
+            currentRotationY = Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg;
+            currentRotationX = -Mathf.Asin(direction.y) * Mathf.Rad2Deg;
+        }
+    }
+    
+    void LateUpdate()
+    {
+        if (target == null) return;
+        
+        HandleInput();
+        UpdateCameraMode();
+        UpdateCameraPosition();
+    }
+    
+    private void HandleInput()
+    {
+        // Mouse look
+        if (Input.GetMouseButton(1)) // Right mouse button
+        {
+            currentRotationX -= Input.GetAxis("Mouse Y") * rotationSpeed;
+            currentRotationY += Input.GetAxis("Mouse X") * rotationSpeed;
+            
+            // Clamp vertical rotation
+            currentRotationX = Mathf.Clamp(currentRotationX, -80f, 80f);
+        }
+        
+        // Optional: Q/E for rotation (alternative to mouse)
+        if (Input.GetKey(KeyCode.Q))
+        {
+            currentRotationY -= rotationSpeed * 30f * Time.deltaTime;
+        }
+        if (Input.GetKey(KeyCode.E))
+        {
+            currentRotationY += rotationSpeed * 30f * Time.deltaTime;
+        }
+    }
+    
+    private void UpdateCameraMode()
+    {
+        if (currentMode == CameraMode.ThirdPerson)
+        {
+            // Check if camera is too close to player (colliding with walls)
+            Vector3 desiredPosition = CalculateThirdPersonPosition();
+            float distanceToPlayer = Vector3.Distance(desiredPosition, target.position);
+            
+            if (distanceToPlayer < modeSwitchDistance)
+            {
+                currentMode = CameraMode.FirstPerson;
+            }
+        }
+        else
+        {
+            // Check if we can switch back to third person
+            Vector3 desiredPosition = CalculateThirdPersonPosition();
+            if (!IsCameraObstructed(desiredPosition))
+            {
+                currentMode = CameraMode.ThirdPerson;
+            }
+        }
+    }
+    
+    private void UpdateCameraPosition()
+    {
+        Quaternion rotation = Quaternion.Euler(currentRotationX, currentRotationY, 0);
+        Vector3 desiredPosition;
+        
+        if (currentMode == CameraMode.ThirdPerson)
+        {
+            desiredPosition = target.position + rotation * thirdPersonOffset;
+            desiredPosition = HandleCameraCollision(desiredPosition, target.position);
+        }
+        else
+        {
+            desiredPosition = target.position + rotation * firstPersonOffset;
+        }
+        
+        // Smooth movement
+        transform.position = Vector3.Lerp(transform.position, desiredPosition, smoothSpeed);
+        
+        // Look at target (slightly above for first person)
+        Vector3 lookTarget = currentMode == CameraMode.FirstPerson ? 
+            target.position + target.forward * 5f : 
+            target.position + Vector3.up * 1f;
+            
+        transform.LookAt(lookTarget);
+    }
+    
+    private Vector3 CalculateThirdPersonPosition()
+    {
+        Quaternion rotation = Quaternion.Euler(currentRotationX, currentRotationY, 0);
+        return target.position + rotation * thirdPersonOffset;
+    }
+    
+    private bool IsCameraObstructed(Vector3 desiredPosition)
+    {
+        return Physics.Linecast(target.position + Vector3.up, desiredPosition, obstacleLayer);
+    }
+    
+    private Vector3 HandleCameraCollision(Vector3 desiredPosition, Vector3 targetPosition)
+    {
+        Vector3 direction = desiredPosition - targetPosition;
+        float distance = direction.magnitude;
+        
+        if (Physics.Raycast(targetPosition, direction.normalized, out RaycastHit hit, distance, obstacleLayer))
+        {
+            return hit.point - direction.normalized * collisionOffset;
+        }
+        
+        return desiredPosition;
+    }
+    
+    public void SetTarget(Transform newTarget)
+    {
+        target = newTarget;
+    }
+    
+    public void SwitchToFirstPerson()
+    {
+        currentMode = CameraMode.FirstPerson;
+    }
+    
+    public void SwitchToThirdPerson()
+    {
+        currentMode = CameraMode.ThirdPerson;
+    }
+    
+    // For debugging
+    void OnDrawGizmosSelected()
+    {
+        if (target != null)
+        {
+            Gizmos.color = Color.blue;
+            Gizmos.DrawWireSphere(CalculateThirdPersonPosition(), 0.2f);
+            
+            Gizmos.color = Color.red;
+            Gizmos.DrawWireSphere(target.position + firstPersonOffset, 0.2f);
+        }
+    }
+}
+
+using UnityEngine;
+
+public class DoorController : MonoBehaviour
+{
+    [Header("Door Settings")]
+    public bool isLocked = false;
+    public bool isOpen = false;
+    public DoorKey requiredKey = DoorKey.None;
+    
+    [Header("References")]
+    public GameObject doorModel;
+    public Collider blockingCollider;
+    public Collider triggerCollider;
+    
+    void Start()
+    {
+        if (blockingCollider == null)
+            blockingCollider = GetComponent<Collider>();
+            
+        if (doorModel == null && transform.childCount > 0)
+            doorModel = transform.GetChild(0).gameObject;
+            
+        SetupTriggerCollider();
+    }
+    
+    private void SetupTriggerCollider()
+    {
+        Collider[] colliders = GetComponents<Collider>();
+        foreach (Collider col in colliders)
+        {
+            if (col.isTrigger)
+            {
+                triggerCollider = col;
+                return;
+            }
+        }
+        
+        BoxCollider trigger = gameObject.AddComponent<BoxCollider>();
+        trigger.isTrigger = true;
+        trigger.size = new Vector3(1.5f, 2f, 1.5f);
+        trigger.center = Vector3.zero;
+        triggerCollider = trigger;
+    }
+    
+    void OnTriggerEnter(Collider other)
+    {
+        if (other.CompareTag("Player"))
+        {
+            TryOpenDoor();
+        }
+    }
+    
+    public void TryOpenDoor()
+    {
+        if (isLocked)
+        {
+            if (PlayerHasRequiredKey())
+            {
+                OpenDoor();
+            }
+        }
+        else
+        {
+            OpenDoor();
+        }
+    }
+    
+    private bool PlayerHasRequiredKey()
+    {
+        // Will be implemented with inventory system
+        return true;
+    }
+    
+    private void OpenDoor()
+    {
+        if (!isOpen)
+        {
+            isOpen = true;
+            
+            if (blockingCollider != null)
+                blockingCollider.enabled = false;
+                
+            if (doorModel != null)
+                doorModel.SetActive(false);
+        }
+    }
+    
+    public void CloseDoor()
+    {
+        if (isOpen)
+        {
+            isOpen = false;
+            
+            if (blockingCollider != null)
+                blockingCollider.enabled = true;
+                
+            if (doorModel != null)
+                doorModel.SetActive(true);
+        }
+    }
+    
+    public void LockDoor(DoorKey keyType)
+    {
+        isLocked = true;
+        requiredKey = keyType;
+        CloseDoor();
+    }
+    
+    public void UnlockDoor()
+    {
+        isLocked = false;
+        requiredKey = DoorKey.None;
+    }
+    
+    public void Interact()
+    {
+        if (isOpen)
+            CloseDoor();
+        else
+            TryOpenDoor();
+    }
+}
+
+using UnityEngine;
+using UnityEngine.AI;
+
+public class EnemyController : MonoBehaviour
+{
+    [Header("Enemy Stats")]
+    public int maxHealth = 30;
+    public int damage = 10;
+    public float moveSpeed = 2f;
+    public float attackRange = 1.5f;
+    public float detectionRange = 8f;
+    public float attackCooldown = 2f;
+    
+    [Header("References")]
+    public NavMeshAgent agent;
+    public Animator animator;
+    
+    public enum EnemyState { Patrolling, Chasing, Attacking, Dead }
+    
+    public int CurrentHealth { get; private set; }
+    public EnemyState CurrentState { get; private set; }
+    
+    private Transform player;
+    private Vector3 patrolPoint;
+    private bool isDead = false;
+    private float lastAttackTime = 0f;
+    
+    void Start()
+    {
+        CurrentHealth = maxHealth;
+        player = GameObject.FindGameObjectWithTag("Player")?.transform;
+        
+        if (agent == null)
+            agent = GetComponent<NavMeshAgent>();
+            
+        if (agent != null)
+        {
+            agent.speed = moveSpeed;
+            agent.stoppingDistance = attackRange - 0.2f;
+        }
+        
+        SetRandomPatrolPoint();
+        SetState(EnemyState.Patrolling);
+    }
+    
+    void Update()
+    {
+        if (isDead || player == null) return;
+        
+        switch (CurrentState)
+        {
+            case EnemyState.Patrolling: UpdatePatrolling(); break;
+            case EnemyState.Chasing: UpdateChasing(); break;
+            case EnemyState.Attacking: UpdateAttacking(); break;
+        }
+    }
+    
+    private void UpdatePatrolling()
+    {
+        if (PlayerInRange(detectionRange))
+        {
+            SetState(EnemyState.Chasing);
+            return;
+        }
+        
+        if (agent.remainingDistance <= agent.stoppingDistance)
+        {
+            SetRandomPatrolPoint();
+        }
+    }
+    
+    private void UpdateChasing()
+    {
+        if (!PlayerInRange(detectionRange))
+        {
+            SetState(EnemyState.Patrolling);
+            return;
+        }
+        
+        if (PlayerInRange(attackRange))
+        {
+            SetState(EnemyState.Attacking);
+            return;
+        }
+        
+        if (agent != null && agent.isOnNavMesh)
+        {
+            agent.SetDestination(player.position);
+        }
+    }
+    
+    private void UpdateAttacking()
+    {
+        if (agent != null)
+            agent.SetDestination(transform.position);
+        
+        FacePlayer();
+        
+        if (!PlayerInRange(attackRange))
+        {
+            SetState(EnemyState.Chasing);
+        }
+        else if (Time.time >= lastAttackTime + attackCooldown)
+        {
+            PerformAttack();
+        }
+    }
+    
+    private void FacePlayer()
+    {
+        Vector3 direction = (player.position - transform.position).normalized;
+        direction.y = 0;
+        if (direction != Vector3.zero)
+        {
+            transform.rotation = Quaternion.LookRotation(direction);
+        }
+    }
+    
+    private void PerformAttack()
+    {
+        lastAttackTime = Time.time;
+        
+        if (animator != null)
+        {
+            animator.SetTrigger("Attack");
+        }
+        
+        if (PlayerInRange(attackRange))
+        {
+            PlayerController playerController = player.GetComponent<PlayerController>();
+            if (playerController != null)
+            {
+                playerController.TakeDamage(damage);
+            }
+        }
+    }
+    
+    private bool PlayerInRange(float range)
+    {
+        if (player == null) return false;
+        return Vector3.Distance(transform.position, player.position) <= range;
+    }
+    
+    private void SetRandomPatrolPoint()
+    {
+        Vector2 randomCircle = Random.insideUnitCircle * 3f;
+        patrolPoint = transform.position + new Vector3(randomCircle.x, 0, randomCircle.y);
+        
+        NavMeshHit hit;
+        if (NavMesh.SamplePosition(patrolPoint, out hit, 3f, NavMesh.AllAreas))
+        {
+            patrolPoint = hit.position;
+            if (agent != null && agent.isOnNavMesh)
+            {
+                agent.SetDestination(patrolPoint);
+            }
+        }
+    }
+    
+    private void SetState(EnemyState newState)
+    {
+        if (CurrentState == newState) return;
+        
+        CurrentState = newState;
+        
+        if (animator != null)
+        {
+            animator.SetBool("IsMoving", CurrentState == EnemyState.Chasing || CurrentState == EnemyState.Patrolling);
+            animator.SetBool("IsAttacking", CurrentState == EnemyState.Attacking);
+        }
+    }
+    
+    public void TakeDamage(int damage)
+    {
+        if (isDead) return;
+        
+        CurrentHealth -= damage;
+        CurrentHealth = Mathf.Max(0, CurrentHealth);
+        
+        if (CurrentState != EnemyState.Chasing && CurrentState != EnemyState.Attacking)
+        {
+            SetState(EnemyState.Chasing);
+        }
+        
+        if (CurrentHealth <= 0)
+        {
+            Die();
+        }
+    }
+    
+    private void Die()
+    {
+        isDead = true;
+        SetState(EnemyState.Dead);
+        
+        if (agent != null)
+            agent.isStopped = true;
+            
+        if (animator != null)
+            animator.SetTrigger("Die");
+        
+        Collider[] colliders = GetComponents<Collider>();
+        foreach (Collider col in colliders)
+        {
+            col.enabled = false;
+        }
+        
+        Destroy(gameObject, 2f);
+    }
+    
+    void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.yellow;
+        Gizmos.DrawWireSphere(transform.position, detectionRange);
+        
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(transform.position, attackRange);
+    }
+}
+
+using UnityEngine;
+using System.Collections;
+
+public class EnemySpawner : MonoBehaviour
+{
+    [Header("Enemy Prefabs")]
+    public GameObject enemyPrefab;
+    
+    [Header("Spawning Settings")]
+    public int maxEnemiesPerRoom = 2;
+    
+    private LevelModel currentLevel;
+    
+    void Start()
+    {
+        StartCoroutine(InitializeSpawning());
+    }
+    
+    private IEnumerator InitializeSpawning()
+    {
+        yield return new WaitForSeconds(1f);
+        
+        DungeonManager generator = FindObjectOfType<DungeonManager>();
+        if (generator != null && generator.CurrentLayout != null)
+        {
+            currentLevel = generator.CurrentLayout;
+            SpawnEnemiesInCombatRooms();
+        }
+    }
+    
+    private void SpawnEnemiesInCombatRooms()
+    {
+        if (currentLevel == null || enemyPrefab == null) return;
+        
+        int totalEnemies = 0;
+        
+        foreach (var room in currentLevel.Rooms)
+        {
+            if (room.Type == RoomType.Combat && !room.IsCleared)
+            {
+                totalEnemies += SpawnEnemiesInRoom(room);
+            }
+        }
+        
+        Debug.Log($"Spawned {totalEnemies} enemies across dungeon");
+    }
+    
+    private int SpawnEnemiesInRoom(RoomModel room)
+    {
+        int enemyCount = Random.Range(1, maxEnemiesPerRoom + 1);
+        
+        for (int i = 0; i < enemyCount; i++)
+        {
+            Vector2Int spawnPos = room.GetRandomSpawnPosition();
+            if (spawnPos != Vector2Int.zero)
+            {
+                Vector3 worldPos = new(spawnPos.x + 0.5f, 0, spawnPos.y + 0.5f);
+                Instantiate(enemyPrefab, worldPos, Quaternion.identity, transform);
+            }
+        }
+        
+        return enemyCount;
+    }
+}
+
+using UnityEngine;
+
+public class PlayerController : MonoBehaviour
+{
+    [Header("Movement")]
+    public float moveSpeed = 5f;
+    public float rotationSpeed = 10f;
+    
+    [Header("Combat")]
+    public int maxHealth = 100;
+    public int playerDamage = 15;
+    public float attackRange = 2f;
+    public float attackCooldown = 1f;
+    public LayerMask enemyLayer = 1;
+    
+    [Header("References")]
+    public Rigidbody rb;
+    public Animator animator;
+    
+    // Properties
+    public static PlayerController Instance { get; private set; }
+    public int CurrentHealth { get; private set; }
+    
+    private Vector3 movement;
+    private bool isMoving;
+    private float lastAttackTime = 0f;
+    
+    void Awake()
+    {
+        if (Instance == null)
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+        }
+        else
+        {
+            Destroy(gameObject);
+        }
+    }
+    
+    void Start()
+    {
+        CurrentHealth = maxHealth;
+        rb = GetComponent<Rigidbody>();
+        SpawnAtEntrance();
+    }
+    
+    void Update()
+    {
+        HandleInput();
+        HandleCombatInput();
+        UpdateAnimations();
+        UpdateRoomDetection();
+    }
+    
+    void FixedUpdate()
+    {
+        HandleMovement();
+    }
+    
+    private void HandleInput()
+    {
+        float horizontal = Input.GetAxisRaw("Horizontal");
+        float vertical = Input.GetAxisRaw("Vertical");
+        
+        // Get camera-relative movement direction
+        movement = GetCameraRelativeMovement(new Vector3(horizontal, 0, vertical));
+        isMoving = movement.magnitude > 0.1f;
+    }
+    
+    private Vector3 GetCameraRelativeMovement(Vector3 input)
+    {
+        if (Camera.main != null)
+        {
+            // Get camera's forward and right vectors (ignore Y for ground movement)
+            Vector3 cameraForward = Camera.main.transform.forward;
+            Vector3 cameraRight = Camera.main.transform.right;
+            
+            cameraForward.y = 0;
+            cameraRight.y = 0;
+            cameraForward.Normalize();
+            cameraRight.Normalize();
+            
+            // Combine input with camera direction
+            return (cameraForward * input.z) + (cameraRight * input.x);
+        }
+        
+        return input; // Fallback to original input
+    }
+    
+    private void HandleCombatInput()
+    {
+        if (Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0))
+        {
+            PerformAttack();
+        }
+    }
+    
+    // Alternative HandleMovement method - Player faces camera direction
+    private void HandleMovement()
+    {
+        if (isMoving)
+        {
+            Vector3 moveVelocity = movement * moveSpeed;
+            rb.velocity = new Vector3(moveVelocity.x, rb.velocity.y, moveVelocity.z);
+            
+            Debug.Log($"Movement: {movement}, Current Rotation: {transform.rotation.eulerAngles}");
+            
+            if (movement != Vector3.zero)
+            {
+                Quaternion targetRotation = Quaternion.LookRotation(movement);
+                Debug.Log($"Target Rotation: {targetRotation.eulerAngles}");
+                
+                // Force the rotation
+                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.fixedDeltaTime);
+                
+                Debug.Log($"New Rotation: {transform.rotation.eulerAngles}");
+            }
+        }
+        else
+        {
+            rb.velocity = new Vector3(0, rb.velocity.y, 0);
+        }
+    }
+    
+    private void PerformAttack()
+    {
+        if (Time.time < lastAttackTime + attackCooldown) return;
+        
+        lastAttackTime = Time.time;
+        
+        if (animator != null)
+        {
+            animator.SetTrigger("Attack");
+        }
+        
+        // Attack in the direction player is facing
+        Vector3 attackDirection = transform.forward;
+        Collider[] hitEnemies = Physics.OverlapSphere(transform.position + attackDirection * 1f, attackRange, enemyLayer);
+        
+        foreach (Collider enemy in hitEnemies)
+        {
+            EnemyController enemyController = enemy.GetComponent<EnemyController>();
+            if (enemyController != null)
+            {
+                enemyController.TakeDamage(playerDamage);
+            }
+        }
+    }
+    
+    private void UpdateAnimations()
+    {
+        if (animator != null)
+        {
+            animator.SetBool("IsMoving", isMoving);
+            animator.SetFloat("MoveSpeed", movement.magnitude);
+        }
+    }
+    
+    private void UpdateRoomDetection()
+    {
+        if (Time.frameCount % 30 == 0)
+        {
+            RoomManager roomManager = FindObjectOfType<RoomManager>();
+            if (roomManager != null)
+            {
+                roomManager.UpdatePlayerRoom(transform.position);
+            }
+        }
+    }
+    
+    public void TakeDamage(int damage)
+    {
+        CurrentHealth -= damage;
+        CurrentHealth = Mathf.Max(0, CurrentHealth);
+        
+        if (animator != null)
+        {
+            animator.SetTrigger("TakeDamage");
+        }
+        
+        if (CurrentHealth <= 0)
+        {
+            Die();
+        }
+    }
+    
+    private void Die()
+    {
+        if (animator != null)
+        {
+            animator.SetTrigger("Die");
+        }
+        
+        Debug.Log("Player died - Game Over!");
+    }
+    
+    private void SpawnAtEntrance()
+    {
+        DungeonManager generator = FindObjectOfType<DungeonManager>();
+        if (generator != null)
+        {
+            Vector3 spawnPosition = generator.GetEntranceRoomPosition();
+            transform.position = spawnPosition;
+        }
+    }
+    
+    // Mobile controls interface
+    public void SetMovementInput(Vector2 input)
+    {
+        movement = GetCameraRelativeMovement(new Vector3(input.x, 0, input.y));
+        isMoving = movement.magnitude > 0.1f;
+    }
+    
+    public void OnAttackButtonPressed()
+    {
+        PerformAttack();
+    }
+    
+    void OnDrawGizmosSelected()
+    {
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireSphere(transform.position + transform.forward * 1f, attackRange);
+        
+        // Draw movement direction
+        Gizmos.color = Color.blue;
+        Gizmos.DrawRay(transform.position, movement * 2f);
+    }
+}
+
+using UnityEngine;
+
+public class PlayerSpawner : MonoBehaviour
+{
+    [Header("Player Prefab")]
+    public GameObject playerPrefab;
+    
+    [Header("Camera")]
+    public CameraFollow cameraFollow;
+    
+    private GameObject currentPlayer;
+    
+    public void OnDungeonGenerated()
+    {
+        SpawnPlayer();
+    }
+    
+    private void SpawnPlayer()
+    {
+        if (currentPlayer != null)
+        {
+            Destroy(currentPlayer);
+        }
+        
+        if (playerPrefab != null)
+        {
+            DungeonManager generator = GetComponent<DungeonManager>();
+            Vector3 spawnPosition = generator.GetEntranceRoomPosition();
+            
+            currentPlayer = Instantiate(playerPrefab, spawnPosition, Quaternion.identity);
+            
+            if (cameraFollow != null)
+            {
+                cameraFollow.SetTarget(currentPlayer.transform);
+            }
+        }
+    }
+    
+    public GameObject GetCurrentPlayer()
+    {
+        return currentPlayer;
+    }
+}
+
+using UnityEngine;
+
+public class RoomManager : MonoBehaviour
+{
+    public static RoomManager Instance { get; private set; }
+    
+    public RoomModel CurrentRoom { get; private set; }
+    
+    private LevelModel currentLevel;
+    
+    void Awake()
+    {
+        if (Instance == null)
+        {
+            Instance = this;
+        }
+    }
+    
+    public void SetCurrentLevel(LevelModel level)
+    {
+        currentLevel = level;
+        Debug.Log($"RoomManager: Tracking {level.Rooms.Count} rooms");
+    }
+    
+    public void UpdatePlayerRoom(Vector3 playerPosition)
+    {
+        if (currentLevel == null) return;
+        
+        Vector2Int gridPos = new(
+            Mathf.FloorToInt(playerPosition.x),
+            Mathf.FloorToInt(playerPosition.z)
+        );
+        
+        RoomModel newRoom = currentLevel.GetRoomAtPosition(gridPos);
+        
+        if (newRoom != null && newRoom != CurrentRoom)
+        {
+            CurrentRoom = newRoom;
+            OnRoomEntered(CurrentRoom);
+        }
+    }
+    
+    private void OnRoomEntered(RoomModel room)
+    {
+        Debug.Log($"Entered {room.Type} room (ID: {room.ID})");
+        
+        if (room.Type == RoomType.Combat && !room.IsCleared)
+        {
+            StartCombatInRoom(room);
+        }
+    }
+    
+    private void StartCombatInRoom(RoomModel room)
+    {
+        Debug.Log("Combat started!");
+        // Future: Close doors, spawn enemies if not already present
+    }
+    
+    public void MarkRoomCleared(RoomModel room)
+    {
+        if (room != null)
+        {
+            room.MarkAsCleared();
+        }
+    }
+}

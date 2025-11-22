@@ -12,10 +12,14 @@ public class GameConfig
 
     // -------------------------------------------------- //
 
-    public void Validate() { Debug.Log("GameConfig.Validate(): Validated successfully."); }
+    public void Validate() 
+    { 
+        Debug.Log("GameConfig.Validate(): Validated."); 
+    }
+    
     public GameConfig Clone()
     {
-        Debug.Log("GameConfig.Clone(): Cloning...");
+        Debug.Log("GameConfig.Clone(): Cloned.");
         return new()
         {
             SimplifyGeometry = SimplifyGeometry,

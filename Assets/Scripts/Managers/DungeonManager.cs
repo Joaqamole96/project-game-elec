@@ -1,26 +1,26 @@
-// -------------------- //
-// Scripts/Core/DungeonManager.cs
-// -------------------- //
-
 using UnityEngine;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using Debug = UnityEngine.Debug;
+
 [RequireComponent(typeof(DungeonRenderer))]
 public class DungeonManager : MonoBehaviour
 {
+    [Header("Configuration Files")]
     public GameConfig GameConfig;
     public LevelConfig LevelConfig;
     public PartitionConfig PartitionConfig;
-    public RoomConfig RoomConfig;
     
-    public DungeonRenderer _dungeonRenderer;
+    [Header("Dependencies")]
+    public DungeonRenderer DungeonRenderer;
     
+    // Generator components
     private PartitionGenerator _partitionGenerator;
+    private RoomGenerator _roomGenerator;
     private CorridorGenerator _corridorGenerator;
-    private RoomAssigner _roomAssigner;
     private LayoutGenerator _layoutGenerator;
+    private BiomeManager _biomeManager;
     
     // Runtime state
     private LevelModel _layout;
@@ -32,7 +32,6 @@ public class DungeonManager : MonoBehaviour
     private GameConfig RuntimeGameConfig => _configRegistry?.GameConfig ?? GameConfig;
     private LevelConfig RuntimeLevelConfig => _configRegistry?.LevelConfig ?? LevelConfig;
     private PartitionConfig RuntimePartitionConfig => _configRegistry?.PartitionConfig ?? PartitionConfig;
-    private RoomConfig RuntimeRoomConfig => _configRegistry?.RoomConfig ?? RoomConfig;
     
     public List<RoomModel> CurrentRooms => _rooms;
     public LevelModel CurrentLayout => _layout;
@@ -55,10 +54,15 @@ public class DungeonManager : MonoBehaviour
     private void InitializeComponents()
     {
         _partitionGenerator = new PartitionGenerator();
+        _roomGenerator = new RoomGenerator();
         _corridorGenerator = new CorridorGenerator();
-        _roomAssigner = new RoomAssigner();
         _layoutGenerator = new LayoutGenerator();
-        _dungeonRenderer = GetComponent<DungeonRenderer>();
+        _biomeManager = new BiomeManager(LevelConfig);
+        
+        DungeonRenderer = GetComponent<DungeonRenderer>();
+        DungeonRenderer.Initialize(_biomeManager);
+        
+        Debug.Log("DungeonManager: All components initialized");
     }
 
     private void EnsureComponentsInitialized()
@@ -87,34 +91,33 @@ public class DungeonManager : MonoBehaviour
 
     private void ExecuteGenerationPipeline()
     {
+        // Get biome for this floor
+        var biome = _biomeManager.GetBiomeForFloor(RuntimeLevelConfig.LevelNumber);
+        
         // Phase 1: Generate layout
         _layout = GenerateDungeonLayout();
-        if (_layout == null) return;
+        if (_layout == null)
+        {
+            Debug.LogError("Dungeon generation failed: Layout is null");
+            return;
+        }
 
-        // Phase 2: Assign room types
-        _rooms = _roomAssigner.AssignRooms(_layout, RuntimeLevelConfig.LevelNumber, _random);
-        if (_rooms == null || _rooms.Count == 0) return;
-
-        // Phase 3: Build geometry
-        _layoutGenerator.BuildFinalGeometry(_layout);
-        _layout.InitializeSpatialData();
+        // Phase 2: Render dungeon
+        RenderDungeon(biome);
         
-        // Phase 4: Render
-        RenderDungeon();
-        
-        // Phase 5: Notify systems
+        // Phase 3: Notify systems
         NotifyDungeonReady();
     }
 
-    private void RenderDungeon()
+    private void RenderDungeon(BiomeModel biome)
     {
-        if (_dungeonRenderer != null)
+        if (DungeonRenderer != null)
         {
-            _dungeonRenderer.RenderDungeon(_layout, _rooms, LevelConfig.LevelNumber, LevelConfig.Seed);
+            DungeonRenderer.RenderDungeon(_layout, _layout.Rooms, biome);
         }
         else
         {
-            Debug.LogWarning("No renderer assigned!");
+            Debug.LogError("DungeonRenderer is not assigned!");
         }
     }
 
@@ -155,14 +158,34 @@ public class DungeonManager : MonoBehaviour
     {
         var layout = new LevelModel();
         
+        // Generate partitions
         var root = _partitionGenerator.GeneratePartitionTree(RuntimeLevelConfig, RuntimePartitionConfig, _random);
         var leaves = _partitionGenerator.CollectLeafPartitions(root);
-        layout.Rooms = _partitionGenerator.CreateRoomsFromPartitions(leaves, RuntimeRoomConfig, _random);
-        _partitionGenerator.FindAndAssignNeighbors(leaves);
         
+        // Create rooms from partitions
+        var rooms = _roomGenerator.CreateRoomsFromPartitions(leaves, _random);
+        if (rooms == null || rooms.Count == 0)
+        {
+            Debug.LogError("Failed to create rooms from partitions");
+            return null;
+        }
+        
+        // Find neighbors for corridor generation
+        _roomGenerator.FindAndAssignNeighbors(leaves);
+        
+        // Generate corridors
         var allCorridors = _corridorGenerator.GenerateTotalCorridors(leaves, _random);
-        layout.Corridors = MinimumSpanningTree.Apply(allCorridors, layout.Rooms);
+        layout.Corridors = MinimumSpanningTree.Apply(allCorridors, rooms);
         
+        // Generate layout geometry (floors, walls, doors)
+        layout = _layoutGenerator.GenerateLayoutGeometry(rooms, layout.Corridors);
+        
+        // Assign room types with sophisticated logic
+        _roomGenerator.AssignRoomTypes(rooms, RuntimeLevelConfig.LevelNumber, _random);
+        
+        layout.Rooms = rooms;
+        
+        Debug.Log($"Dungeon layout generated: {rooms.Count} rooms, {layout.Corridors.Count} corridors");
         return layout;
     }
 
@@ -181,13 +204,13 @@ public class DungeonManager : MonoBehaviour
     {
         _layout = null;
         _rooms = null;
-        _dungeonRenderer?.ClearRendering();
+        DungeonRenderer?.ClearRendering();
     }
 
     private string GetRoomTypeBreakdown()
     {
-        if (_rooms == null) return "No rooms";
-        return string.Join(", ", _rooms.GroupBy(r => r.Type).Select(g => $"{g.Key}: {g.Count()}"));
+        if (_layout?.Rooms == null) return "No rooms";
+        return string.Join(", ", _layout.Rooms.GroupBy(r => r.Type).Select(g => $"{g.Key}: {g.Count()}"));
     }
 
     /// <summary>
@@ -195,13 +218,13 @@ public class DungeonManager : MonoBehaviour
     /// </summary>
     public Vector3 GetEntranceRoomPosition()
     {
-        if (_rooms == null) 
+        if (_layout?.Rooms == null) 
         {
-            Debug.LogWarning("GetEntranceRoomPosition: _rooms is null");
+            Debug.LogWarning("GetEntranceRoomPosition: Rooms is null");
             return Vector3.zero;
         }
         
-        var entrance = _rooms.FirstOrDefault(room => room.Type == RoomType.Entrance);
+        var entrance = _layout.Rooms.FirstOrDefault(room => room.Type == RoomType.Entrance);
         if (entrance == null)
         {
             Debug.LogWarning("GetEntranceRoomPosition: No entrance room found");
@@ -210,7 +233,7 @@ public class DungeonManager : MonoBehaviour
         }
 
         Vector2Int spawnTile = entrance.Center;
-        Vector3 spawnPosition = new(spawnTile.x + 0.5f, 1f, spawnTile.y + 0.5f);
+        Vector3 spawnPosition = new Vector3(spawnTile.x + 0.5f, 1f, spawnTile.y + 0.5f);
         
         Debug.Log($"Spawning at entrance room center: {spawnTile} -> {spawnPosition}");
         return spawnPosition;
@@ -218,7 +241,12 @@ public class DungeonManager : MonoBehaviour
 
     private void LogAvailableRooms()
     {
-        Debug.LogWarning($"Available rooms: {_rooms.Count}, Types: {string.Join(", ", _rooms.Select(r => r.Type))}");
+        if (_layout?.Rooms == null) 
+        {
+            Debug.LogWarning("No rooms available");
+            return;
+        }
+        Debug.LogWarning($"Available rooms: {_layout.Rooms.Count}, Types: {string.Join(", ", _layout.Rooms.Select(r => r.Type))}");
     }
     #endregion
 }

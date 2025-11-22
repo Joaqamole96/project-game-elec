@@ -20,12 +20,12 @@ public class LevelConfig
         LevelNumber = Mathf.Clamp(LevelNumber, 1, 100);
         Growth = Mathf.Clamp(Growth, 5, 50);
 
-        Debug.Log("LevelConfig.Validate(): Validated successfully.");
+        Debug.Log("LevelConfig.Validate(): Validated.");
     }
 
     public LevelConfig Clone()
     {
-        Debug.Log("LevelConfig.Clone(): Cloning...");
+        Debug.Log("LevelConfig.Clone(): Cloned.");
         return new() 
         { 
             Seed = Seed, 

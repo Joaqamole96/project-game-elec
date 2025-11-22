@@ -20,32 +20,32 @@ public class ConfigRegistry
     public ConfigRegistry(GameConfig gameConfig, LevelConfig levelConfig, PartitionConfig partitionConfig)
     {
         SaveConfigs(gameConfig, levelConfig, partitionConfig);
-        Debug.Log("ConfigRegistry(): Constructed successfully.");
+        Debug.Log("ConfigRegistry(): Constructed.");
     }
 
     // -------------------------------------------------- //
 
     public void SaveConfigs(GameConfig gameConfig, LevelConfig levelConfig, PartitionConfig partitionConfig)
     {
-        GameConfig = SaveConfig(gameConfig);
-        LevelConfig = SaveConfig(levelConfig);
-        PartitionConfig = SaveConfig(partitionConfig);
+        GameConfig = CloneConfig(gameConfig);
+        LevelConfig = CloneConfig(levelConfig);
+        PartitionConfig = CloneConfig(partitionConfig);
 
         ValidateConfigs();
 
-        Debug.Log("ConfigRegistry.SaveConfigs(): Saved configs successfully.");
+        Debug.Log("ConfigRegistry.SaveConfigs(): Saved configs.");
     }
 
-    private T SaveConfig<T>(T original) where T : class, new()
+    private T CloneConfig<T>(T original) where T : class, new()
     {
         if (original is ICloneable<T> cloneable)
         {
-            Debug.Log($"ConfigRegistry.SaveConfig(): Saving config...");
+            Debug.Log($"ConfigRegistry.CloneConfig(): Cloned existing config.");
             return cloneable.Clone();
         }
         else
         {
-            Debug.Log($"ConfigRegistry.SaveConfig(): Saving as new config...");
+            Debug.Log($"ConfigRegistry.CloneConfig(): Cloned new config.");
             return new T();
         }
     }
@@ -55,5 +55,7 @@ public class ConfigRegistry
         GameConfig.Validate();
         LevelConfig.Validate();
         PartitionConfig.Validate();
+
+        Debug.Log($"ConfigRegistry.ValidateConfigs(): Validated configs.");
     }
 }

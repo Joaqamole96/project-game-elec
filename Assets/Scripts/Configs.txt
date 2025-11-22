@@ -4,47 +4,50 @@
 
 using UnityEngine;
 
-// NOTE: Starting to doubt the necessity of a ConfigRegistry. It was initially made so that the Configs assigned to DungeonManager would not reset whenever Generate() is run. I am unsure if it still fulfills that function.
+// NOTE: Starting to doubt the necessity of a ConfigRegistry. 
+// It was initially made so that the Configs assigned to 
+// DungeonManager would not reset whenever Generate() is run. 
+// I am unsure if it still fulfills that function.
 public class ConfigRegistry
 {
-    // INFO: This list should be updated whenever Config files are added or removed
+    [Header("Configuration List")]
     public GameConfig GameConfig = new();
     public LevelConfig LevelConfig = new();
     public PartitionConfig PartitionConfig = new();
-    public RoomConfig RoomConfig = new();
 
-    public ConfigRegistry(GameConfig gameConfig, LevelConfig levelConfig, PartitionConfig partitionConfig, RoomConfig roomConfig)
+    // -------------------------------------------------- //
+
+    public ConfigRegistry(GameConfig gameConfig, LevelConfig levelConfig, PartitionConfig partitionConfig)
     {
-        SaveConfigs(gameConfig, levelConfig, partitionConfig, roomConfig);
-        Debug.Log("ConfigRegistry(): Constructed successfully.");
+        SaveConfigs(gameConfig, levelConfig, partitionConfig);
+        Debug.Log("ConfigRegistry(): Constructed.");
     }
 
-    public void SaveConfigs(GameConfig gameConfig, LevelConfig levelConfig, PartitionConfig partitionConfig, RoomConfig roomConfig)
+    // -------------------------------------------------- //
+
+    public void SaveConfigs(GameConfig gameConfig, LevelConfig levelConfig, PartitionConfig partitionConfig)
     {
-        GameConfig = SaveConfig(gameConfig);
-        LevelConfig = SaveConfig(levelConfig);
-        PartitionConfig = SaveConfig(partitionConfig);
-        RoomConfig = SaveConfig(roomConfig);
+        GameConfig = CloneConfig(gameConfig);
+        LevelConfig = CloneConfig(levelConfig);
+        PartitionConfig = CloneConfig(partitionConfig);
 
         ValidateConfigs();
 
-        Debug.Log("ConfigRegistry.SaveConfigs(): Saved configs successfully.");
+        Debug.Log("ConfigRegistry.SaveConfigs(): Saved configs.");
     }
 
-    private T SaveConfig<T>(T original) where T : class, new()
+    private T CloneConfig<T>(T original) where T : class, new()
     {
         if (original is ICloneable<T> cloneable)
         {
-            Debug.Log($"ConfigRegistry.SaveConfig(): Saving config...");
+            Debug.Log($"ConfigRegistry.CloneConfig(): Cloned existing config.");
             return cloneable.Clone();
         }
-        else if (original == null)
+        else
         {
-            Debug.Log($"ConfigRegistry.SaveConfig(): Saving as new config...");
+            Debug.Log($"ConfigRegistry.CloneConfig(): Cloned new config.");
             return new T();
         }
-        else
-            throw new System.Exception($"ConfigRegistry.SaveConfig(): An error has occured.");
     }
 
     private void ValidateConfigs()
@@ -52,7 +55,8 @@ public class ConfigRegistry
         GameConfig.Validate();
         LevelConfig.Validate();
         PartitionConfig.Validate();
-        RoomConfig.Validate();
+
+        Debug.Log($"ConfigRegistry.ValidateConfigs(): Validated configs.");
     }
 }
 
@@ -68,7 +72,21 @@ public class GameConfig
     [Header("Configurations")]
     public bool SimplifyGeometry = true;
 
-    public void Validate() { Debug.LogWarning("GameConfig.Validate(): There is currently no field in GameConfig to validate."); }
+    // -------------------------------------------------- //
+
+    public void Validate() 
+    { 
+        Debug.Log("GameConfig.Validate(): Validated."); 
+    }
+    
+    public GameConfig Clone()
+    {
+        Debug.Log("GameConfig.Clone(): Cloned.");
+        return new()
+        {
+            SimplifyGeometry = SimplifyGeometry,
+        };
+    }
 }
 
 // -------------------- //
@@ -82,24 +100,29 @@ public class LevelConfig
 {
     [Header("Configurations")]
     public int Seed = 0;
-    [Range(1, 20)] public int LevelNumber = 1;
+    [Range(1, 100)] public int LevelNumber = 1;
     [Range(5, 50)] public int Growth = 20;
-    // NOTE: Configs are only for user input on fields that don't result in crashes, i.e., a user shouldn't be able to edit a Level's width and height
-    // [Range(100, 500)] public int Width = 100;
-    // [Range(100, 500)] public int Height = 100;
-    // [Range(50, 200)] public int MinSize = 100;
-    // [Range(200, 2000)] public int MaxSize = 1000;
+
+    // -------------------------------------------------- //
 
     public void Validate()
     {
         Seed = Mathf.Max(0, Seed);
         LevelNumber = Mathf.Clamp(LevelNumber, 1, 100);
         Growth = Mathf.Clamp(Growth, 5, 50);
-        // Width = Mathf.Clamp(Width, 100, 500);
-        // Height = Mathf.Clamp(Height, 100, 500);
-        // MinSize = Mathf.Clamp(MinSize, 50, 200);
-        // MaxSize = Mathf.Clamp(MaxSize, 200, 2000);
-        Debug.Log("LevelConfig.Validate(): Validated successfully.");
+
+        Debug.Log("LevelConfig.Validate(): Validated.");
+    }
+
+    public LevelConfig Clone()
+    {
+        Debug.Log("LevelConfig.Clone(): Cloned.");
+        return new() 
+        { 
+            Seed = Seed, 
+            LevelNumber = LevelNumber, 
+            Growth = Growth,
+        };
     }
 }
 
@@ -114,59 +137,24 @@ public class PartitionConfig
 {
     [Range(0.3f, 0.5f)] public float MinSplitRatio = 0.3f;
     [Range(0.5f, 0.7f)] public float MaxSplitRatio = 0.7f;
-    // NOTE: Configs are only for low-level and safe user inputs
-    // [Range(10, 50)] public int MinSize = 25;
-    // [Range(20, 100)] public int MaxSize = 35;
-    // NOTE: I don't think this was ever used.
-    // [Range(0, 10)] public int ExtraConnections = 3;
+
+    // -------------------------------------------------- //
     
     public void Validate()
     {
         MinSplitRatio = Mathf.Clamp(MinSplitRatio, 0.3f, 0.5f);
         MaxSplitRatio = Mathf.Clamp(MaxSplitRatio, 0.5f, 0.7f);
-        // MinSize = Mathf.Clamp(MinSize, 20, 30);
-        // MaxSize = Mathf.Clamp(MaxSize, 30, 50);
-        // ExtraConnections = Mathf.Clamp(ExtraConnections, 0, 10);
-        Debug.Log("PartitionConfig.Validate(): Validated successfully.");
+
+        Debug.Log("PartitionConfig.Validate(): Validated.");
     }
-}
 
-// -------------------- //
-// Script/Configs/RoomConfig.cs
-// -------------------- //
-
-[System.Serializable]
-public class RoomConfig
-{
-    // NOTE: Room size, inset, and spawn padding shouldn't be user-editable.
-    // [Range(5, 30)] public int MinRoomSize = 10;
-    // [Range(15, 50)] public int MaxRoomSize = 20;
-    // [Range(1, 10)] public int MinInset = 4;
-    // [Range(5, 15)] public int MaxInset = 8;
-    // [Range(1, 5)] public int SpawnPadding = 2;
-    // NOTE: Room count is implicitly controlled by Floor size and BSP partitioning, so this is deprecated
-    // [Tooltip("Maximum number of rooms to generate per floor")]
-    // [Range(5, 50)] public int MaxRooms = 20;
-
-    // [Tooltip("Number of enemies spawned in each combat room")]
-    // [Range(1, 10)] public int EnemiesPerCombatRoom = 3;
-    // NOTE: Number of enemies in combat room is dependent on room size.
-
-    /// <summary> Validates all configuration values to ensure they are within reasonable ranges. </summary>
-    public void Validate()
+    public PartitionConfig Clone()
     {
-        // MinInset = Mathf.Clamp(MinInset, 1, 5);
-        // MaxInset = Mathf.Clamp(MaxInset, 5, 10);
-        // MinRoomSize = Mathf.Clamp(MinRoomSize, 15, 25);
-        // MaxRoomSize = Mathf.Clamp(MaxRoomSize, 20, 40);
-        // SpawnPadding = Mathf.Clamp(SpawnPadding, 1, 5);
-
-        // if (MinRoomSize >= MaxRoomSize)
-        //     MinRoomSize = MaxRoomSize - 5;
+        Debug.Log("PartitionConfig.Clone(): Cloned.");
+        return new() 
+        { 
+            MinSplitRatio = MinSplitRatio, 
+            MaxSplitRatio = MaxSplitRatio,
+        };
     }
-
-    public RoomConfig Clone() { return this; }
-
-    // NOTE: This Config is rendered useless; nothing in a room can be edited yet. Maybe future implementations like loot tables can be placed here to render this useful, but not on this version.
 }
-

@@ -11,6 +11,7 @@ public class CorridorGenerator
     public List<CorridorModel> GenerateTotalCorridors(List<PartitionModel> partitions, System.Random random)
     {
         var totalCorrs = new List<CorridorModel>();
+        // Confusing; why use partitions for pairing instead of rooms?
         var totalFloors = GetFloorTiles(partitions);
         var roomPairs = new HashSet<(int, int)>();
         
