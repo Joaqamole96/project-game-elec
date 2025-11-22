@@ -38,7 +38,7 @@ public class GizmoDoorRenderer : IDoorRenderer
 
     private GameObject CreateDoorAtPosition(Vector2Int gridPos)
     {
-        Vector3 worldPos = new Vector3(gridPos.x + 0.5f, 0.4f, gridPos.y + 0.5f);
+        Vector3 worldPos = new(gridPos.x + 0.5f, 0.4f, gridPos.y + 0.5f);
         var door = GameObject.CreatePrimitive(PrimitiveType.Cube);
         door.transform.position = worldPos;
         door.transform.localScale = new Vector3(1f, 0.8f, 1f);

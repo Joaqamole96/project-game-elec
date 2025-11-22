@@ -1,4 +1,4 @@
-// DungeonGenerator.cs
+// LayoutManager.cs
 using UnityEngine;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -9,7 +9,7 @@ using Debug = UnityEngine.Debug;
 /// Main dungeon generator that orchestrates the entire generation pipeline.
 /// Handles layout generation, room assignment, and rendering coordination.
 /// </summary>
-public class DungeonGenerator : MonoBehaviour
+public class LayoutManager : MonoBehaviour
 {
     [Header("Configuration")]
     [SerializeField] private GameConfig _gameConfig;
@@ -167,7 +167,7 @@ public class DungeonGenerator : MonoBehaviour
         layout.Rooms = _roomGenerator.CreateRoomsFromPartitions(leaves, RuntimeRoomConfig, _random);
         _roomGenerator.FindAndAssignNeighbors(leaves);
         
-        var allCorridors = _corridorGenerator.GenerateAllPossibleCorridors(leaves, _random);
+        var allCorridors = _corridorGenerator.GenerateAllPossibleCorridors(leaves);
         layout.Corridors = MinimumSpanningTree.Apply(allCorridors, layout.Rooms);
         
         return layout;
@@ -218,7 +218,7 @@ public class DungeonGenerator : MonoBehaviour
         }
 
         Vector2Int spawnTile = entrance.Center;
-        Vector3 spawnPosition = new Vector3(spawnTile.x + 0.5f, 1f, spawnTile.y + 0.5f);
+        Vector3 spawnPosition = new(spawnTile.x + 0.5f, 1f, spawnTile.y + 0.5f);
         
         Debug.Log($"Spawning at entrance room center: {spawnTile} -> {spawnPosition}");
         return spawnPosition;

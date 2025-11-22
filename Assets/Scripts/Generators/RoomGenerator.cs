@@ -72,7 +72,7 @@ public class RoomGenerator
             roomHeight = leaf.Bounds.height - (bottomInset + topInset);
         }
 
-        RectInt roomBounds = new RectInt(
+        RectInt roomBounds = new(
             leaf.Bounds.x + leftInset,
             leaf.Bounds.y + bottomInset,
             roomWidth,

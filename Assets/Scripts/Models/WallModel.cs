@@ -23,7 +23,7 @@ public class WallModel
     public int MaxHealth { get; private set; }
     
     /// <summary>World position for gameplay.</summary>
-    public Vector3 WorldPosition => new Vector3(Position.x + 0.5f, 0.5f, Position.y + 0.5f);
+    public Vector3 WorldPosition => new(Position.x + 0.5f, 0.5f, Position.y + 0.5f);
     
     /// <summary>Whether the wall has been destroyed.</summary>
     public bool IsDestroyed => IsDestructible && Health <= 0;

@@ -74,7 +74,7 @@ public class SpecialRoomRenderer
 
         if (prefab != null)
         {
-            Vector3 position = new Vector3(room.Center.x, 0, room.Center.y);
+            Vector3 position = new(room.Center.x, 0, room.Center.y);
             var specialObject = Object.Instantiate(prefab, position, Quaternion.identity, parent);
             specialObject.name = $"{room.Type}_{room.ID}";
             return true;

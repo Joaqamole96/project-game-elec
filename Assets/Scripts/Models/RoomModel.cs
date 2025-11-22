@@ -42,7 +42,7 @@ public class RoomModel
     public DoorModel ExitDoor { get; set; }
     
     /// <summary>Center point of the room.</summary>
-    public Vector2Int Center => new Vector2Int(
+    public Vector2Int Center => new(
         (Bounds.xMin + Bounds.xMax) / 2,
         (Bounds.yMin + Bounds.yMax) / 2
     );

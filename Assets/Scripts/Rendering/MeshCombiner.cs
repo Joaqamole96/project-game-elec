@@ -37,7 +37,7 @@ public class MeshCombiner
     private GameObject CreateSingleCombinedMesh(List<Vector3> positions, string name, Transform parent)
     {
         // Create container object
-        GameObject container = new GameObject(name);
+        GameObject container = new(name);
         container.transform.SetParent(parent);
         
         // Create individual cubes as children (will be combined)
@@ -101,7 +101,7 @@ public class MeshCombiner
 
     private GameObject CreateSplitMeshes(List<Vector3> positions, string name, Transform parent, int maxCubesPerChunk)
     {
-        GameObject mainContainer = new GameObject(name);
+        GameObject mainContainer = new(name);
         mainContainer.transform.SetParent(parent);
         
         int chunkCount = Mathf.CeilToInt((float)positions.Count / maxCubesPerChunk);
@@ -129,14 +129,14 @@ public class MeshCombiner
         
         if (meshFilters.Length == 0) return;
 
-        List<CombineInstance> combineInstances = new List<CombineInstance>();
+        List<CombineInstance> combineInstances = new();
         
         // Skip the first mesh filter (it's the container's own filter)
         for (int i = 0; i < meshFilters.Length; i++)
         {
             if (meshFilters[i].sharedMesh != null)
             {
-                CombineInstance combineInstance = new CombineInstance();
+                CombineInstance combineInstance = new();
                 combineInstance.mesh = meshFilters[i].sharedMesh;
                 combineInstance.transform = meshFilters[i].transform.localToWorldMatrix;
                 combineInstances.Add(combineInstance);
@@ -162,7 +162,7 @@ public class MeshCombiner
     private void CombineAllMeshes(GameObject container, List<CombineInstance> combineInstances)
     {
         // Create combined mesh
-        Mesh combinedMesh = new Mesh();
+        Mesh combinedMesh = new();
         
         // Set index format to support more vertices
         combinedMesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
@@ -202,7 +202,7 @@ public class MeshCombiner
     private void CombineMeshesInChunks(GameObject container, List<CombineInstance> combineInstances)
     {
         const int maxVerticesPerChunk = 60000; // Safe margin
-        List<CombineInstance> currentChunk = new List<CombineInstance>();
+        List<CombineInstance> currentChunk = new();
         int currentVertexCount = 0;
         int chunkIndex = 0;
 
@@ -252,12 +252,12 @@ public class MeshCombiner
         if (combineInstances.Count == 0) return;
 
         // Create chunk object
-        GameObject chunk = new GameObject($"Chunk_{chunkIndex}");
+        GameObject chunk = new($"Chunk_{chunkIndex}");
         chunk.transform.SetParent(container.transform);
         chunk.transform.localPosition = Vector3.zero;
 
         // Create combined mesh for this chunk
-        Mesh combinedMesh = new Mesh();
+        Mesh combinedMesh = new();
         combinedMesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
         combinedMesh.CombineMeshes(combineInstances.ToArray());
 

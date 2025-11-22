@@ -200,10 +200,10 @@ public class GeometryBuilder
     {
         return new List<Vector2Int>
         {
-            new Vector2Int(pos.x + 1, pos.y),     // Right
-            new Vector2Int(pos.x - 1, pos.y),     // Left
-            new Vector2Int(pos.x, pos.y + 1),     // Up
-            new Vector2Int(pos.x, pos.y - 1)      // Down
+            new(pos.x + 1, pos.y),     // Right
+            new(pos.x - 1, pos.y),     // Left
+            new(pos.x, pos.y + 1),     // Up
+            new(pos.x, pos.y - 1)      // Down
         };
     }
 

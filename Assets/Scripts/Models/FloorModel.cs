@@ -17,7 +17,7 @@ public class FloorModel
     public MaterialType Material { get; private set; }
     
     /// <summary>World position for gameplay objects.</summary>
-    public Vector3 WorldPosition => new Vector3(Position.x + 0.5f, 0f, Position.y + 0.5f);
+    public Vector3 WorldPosition => new(Position.x + 0.5f, 0f, Position.y + 0.5f);
     
     /// <summary>Whether this floor tile has any special gameplay properties.</summary>
     public bool HasSpecialProperties => Material != MaterialType.Default;

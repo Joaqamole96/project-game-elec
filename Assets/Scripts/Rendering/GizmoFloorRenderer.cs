@@ -114,7 +114,7 @@ public class GizmoFloorRenderer : IFloorRenderer
 
     private GameObject CreateFloorAtPosition(Vector2Int gridPos)
     {
-        Vector3 worldPos = new Vector3(gridPos.x + 0.5f, 0, gridPos.y + 0.5f);
+        Vector3 worldPos = new(gridPos.x + 0.5f, 0, gridPos.y + 0.5f);
         var floor = GameObject.CreatePrimitive(PrimitiveType.Cube);
         floor.transform.position = worldPos;
         floor.transform.localScale = new Vector3(1f, 0.1f, 1f);

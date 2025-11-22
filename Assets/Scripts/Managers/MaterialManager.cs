@@ -7,8 +7,8 @@ using System.Collections.Generic;
 /// </summary>
 public class MaterialManager
 {
-    private readonly Dictionary<RoomType, Material> _roomTypeMaterials = new Dictionary<RoomType, Material>();
-    private readonly Dictionary<WallType, Material> _wallTypeMaterials = new Dictionary<WallType, Material>();
+    private readonly Dictionary<RoomType, Material> _roomTypeMaterials = new();
+    private readonly Dictionary<WallType, Material> _wallTypeMaterials = new();
     
     private readonly Material _defaultFloorMaterial;
     private readonly Material _defaultWallMaterial;
@@ -70,13 +70,13 @@ public class MaterialManager
     {
         if (_defaultFloorMaterial != null)
         {
-            Material newMaterial = new Material(_defaultFloorMaterial);
+            Material newMaterial = new(_defaultFloorMaterial);
             newMaterial.color = color;
             return newMaterial;
         }
         else
         {
-            Material newMaterial = new Material(Shader.Find("Standard"));
+            Material newMaterial = new(Shader.Find("Standard"));
             newMaterial.color = color;
             return newMaterial;
         }

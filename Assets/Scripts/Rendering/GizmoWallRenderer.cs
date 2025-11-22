@@ -90,7 +90,7 @@ public class GizmoWallRenderer : IWallRenderer
 
     private GameObject CreateWallAtPosition(Vector2Int gridPos, WallType wallType)
     {
-        Vector3 worldPos = new Vector3(gridPos.x + 0.5f, 0.5f, gridPos.y + 0.5f);
+        Vector3 worldPos = new(gridPos.x + 0.5f, 0.5f, gridPos.y + 0.5f);
         var wall = GameObject.CreatePrimitive(PrimitiveType.Cube);
         wall.transform.position = worldPos;
         wall.transform.localScale = new Vector3(1f, 1f, 1f);

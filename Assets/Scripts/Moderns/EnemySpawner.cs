@@ -20,7 +20,7 @@ public class EnemySpawner : MonoBehaviour
     {
         yield return new WaitForSeconds(1f);
         
-        DungeonGenerator generator = FindObjectOfType<DungeonGenerator>();
+        LayoutManager generator = FindObjectOfType<LayoutManager>();
         if (generator != null && generator.CurrentLayout != null)
         {
             currentLevel = generator.CurrentLayout;
@@ -54,7 +54,7 @@ public class EnemySpawner : MonoBehaviour
             Vector2Int spawnPos = room.GetRandomSpawnPosition();
             if (spawnPos != Vector2Int.zero)
             {
-                Vector3 worldPos = new Vector3(spawnPos.x + 0.5f, 0, spawnPos.y + 0.5f);
+                Vector3 worldPos = new(spawnPos.x + 0.5f, 0, spawnPos.y + 0.5f);
                 Instantiate(enemyPrefab, worldPos, Quaternion.identity, transform);
             }
         }

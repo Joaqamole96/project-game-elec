@@ -8,8 +8,8 @@ using System.Collections.Generic;
 /// </summary>
 public class BiomeManager
 {
-    private readonly Dictionary<string, GameObject> _prefabCache = new Dictionary<string, GameObject>();
-    private System.Random _random = new System.Random();
+    private readonly Dictionary<string, GameObject> _prefabCache = new();
+    private System.Random _random = new();
     
     /// <summary>Available biome themes for dungeon generation.</summary>
     public List<BiomeTheme> Themes { get; private set; } = new List<BiomeTheme>();

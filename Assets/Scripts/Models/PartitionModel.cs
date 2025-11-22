@@ -27,7 +27,7 @@ public class PartitionModel
     public bool IsLeaf => LeftChild == null && RightChild == null;
     
     /// <summary>Center point of the partition.</summary>
-    public Vector2Int Center => new Vector2Int(Bounds.x + Bounds.width / 2, Bounds.y + Bounds.height / 2);
+    public Vector2Int Center => new(Bounds.x + Bounds.width / 2, Bounds.y + Bounds.height / 2);
 
     public PartitionModel(RectInt bounds)
     {

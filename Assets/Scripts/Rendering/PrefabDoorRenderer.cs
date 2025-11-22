@@ -64,7 +64,7 @@ public class PrefabDoorRenderer : IDoorRenderer
 
     private GameObject CreateDoorAtPosition(Vector2Int gridPos, GameObject prefab)
     {
-        Vector3 worldPos = new Vector3(gridPos.x + 0.5f, 0f, gridPos.y + 0.5f); // Door at floor level
+        Vector3 worldPos = new(gridPos.x + 0.5f, 0f, gridPos.y + 0.5f); // Door at floor level
         
         // Use the biome-specific prefab if available, otherwise use fallback
         GameObject doorPrefabToUse = prefab ?? _fallbackDoorPrefab;

@@ -73,7 +73,7 @@ public class PrefabFloorRenderer : IFloorRenderer
 
     private GameObject CreateFloorAtPosition(Vector2Int gridPos, GameObject prefab)
     {
-        Vector3 worldPos = new Vector3(gridPos.x + 0.5f, 0f, gridPos.y + 0.5f);
+        Vector3 worldPos = new(gridPos.x + 0.5f, 0f, gridPos.y + 0.5f);
         
         // Use the biome-specific prefab if available, otherwise use fallback
         GameObject floorPrefabToUse = prefab ?? _fallbackFloorPrefab;

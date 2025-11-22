@@ -92,7 +92,7 @@ public class OptimizedPrefabRenderer
         int floorsRendered = 0;
         foreach (var floorPos in layout.AllFloorTiles)
         {
-            Vector3 worldPos = new Vector3(floorPos.x + 0.5f, 0.5f, floorPos.y + 0.5f);
+            Vector3 worldPos = new(floorPos.x + 0.5f, 0.5f, floorPos.y + 0.5f);
             _meshCombiner.AddMesh(floorMesh, worldPos, Quaternion.identity, floorScale, floorMaterial);
             floorsRendered++;
         }
@@ -127,7 +127,7 @@ public class OptimizedPrefabRenderer
         {
             if (layout.WallTypes.TryGetValue(wallPos, out var wallType))
             {
-                Vector3 worldPos = new Vector3(wallPos.x + 0.5f, 4.5f, wallPos.y + 0.5f);
+                Vector3 worldPos = new(wallPos.x + 0.5f, 4.5f, wallPos.y + 0.5f);
                 Quaternion rotation = GetWallRotation(wallType);
                 _meshCombiner.AddMesh(wallMesh, worldPos, rotation, wallScale, wallMaterial);
             }
@@ -147,7 +147,7 @@ public class OptimizedPrefabRenderer
         {
             foreach (var doorPos in layout.AllDoorTiles)
             {
-                Vector3 worldPos = new Vector3(doorPos.x + 0.5f, 1f, doorPos.y + 0.5f); // Adjusted height
+                Vector3 worldPos = new(doorPos.x + 0.5f, 1f, doorPos.y + 0.5f); // Adjusted height
                 Quaternion rotation = GetDoorRotation(layout, doorPos);
                 
                 var door = GameObject.Instantiate(doorPrefab, worldPos, rotation, parent);
@@ -187,7 +187,7 @@ public class OptimizedPrefabRenderer
         
         // Position at top of walls
         BoundsInt dungeonBounds = layout.OverallBounds;
-        Vector3 center = new Vector3(dungeonBounds.center.x, 9f, dungeonBounds.center.y);
+        Vector3 center = new(dungeonBounds.center.x, 9f, dungeonBounds.center.y);
         ceiling.transform.position = center;
         
         // Scale to cover entire dungeon
@@ -216,7 +216,7 @@ public class OptimizedPrefabRenderer
         
         // Position well below everything
         BoundsInt dungeonBounds = layout.OverallBounds;
-        Vector3 center = new Vector3(dungeonBounds.center.x, -5f, dungeonBounds.center.y);
+        Vector3 center = new(dungeonBounds.center.x, -5f, dungeonBounds.center.y);
         voidPlane.transform.position = center;
         
         // Scale to cover entire dungeon + large buffer
@@ -226,7 +226,7 @@ public class OptimizedPrefabRenderer
         
         // Pure black material
         Renderer renderer = voidPlane.GetComponent<Renderer>();
-        Material voidMaterial = new Material(Shader.Find("Standard"));
+        Material voidMaterial = new(Shader.Find("Standard"));
         voidMaterial.color = Color.black;
         voidMaterial.SetFloat("_Metallic", 0f);
         voidMaterial.SetFloat("_Glossiness", 0f);
@@ -261,10 +261,10 @@ public class OptimizedPrefabRenderer
         // Fallback: analyze adjacent tiles to guess orientation
         Vector2Int[] directions = new Vector2Int[]
         {
-            new Vector2Int(0, 1),  // North
-            new Vector2Int(0, -1), // South  
-            new Vector2Int(1, 0),  // East
-            new Vector2Int(-1, 0)  // West
+            new(0, 1),  // North
+            new(0, -1), // South  
+            new(1, 0),  // East
+            new(-1, 0)  // West
         };
 
         foreach (var dir in directions)
@@ -300,8 +300,8 @@ public class OptimizedPrefabRenderer
     {
         Vector2Int[] checkDirections = new Vector2Int[]
         {
-            new Vector2Int(0, 1), new Vector2Int(0, -1),
-            new Vector2Int(1, 0), new Vector2Int(-1, 0)
+            new(0, 1), new(0, -1),
+            new(1, 0), new(-1, 0)
         };
 
         foreach (var dir in checkDirections)
@@ -339,7 +339,7 @@ public class OptimizedPrefabRenderer
     private Material CreateOneSidedMirrorMaterial()
     {
         // Create a material that's transparent in editor but opaque at runtime
-        Material material = new Material(Shader.Find("Standard"));
+        Material material = new(Shader.Find("Standard"));
         
         #if UNITY_EDITOR
         // Transparent cyan in editor so you can see through it
@@ -381,7 +381,7 @@ public class OptimizedPrefabRenderer
             }
             else
             {
-                Material sharedMaterial = new Material(Shader.Find("Standard"));
+                Material sharedMaterial = new(Shader.Find("Standard"));
                 sharedMaterial.color = Color.gray;
                 renderer.sharedMaterial = sharedMaterial;
             }
@@ -409,7 +409,7 @@ public class OptimizedPrefabRenderer
             }
             else
             {
-                Material sharedMaterial = new Material(Shader.Find("Standard"));
+                Material sharedMaterial = new(Shader.Find("Standard"));
                 sharedMaterial.color = Color.white;
                 renderer.sharedMaterial = sharedMaterial;
             }

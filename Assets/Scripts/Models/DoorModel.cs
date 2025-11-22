@@ -19,7 +19,7 @@ public class DoorModel
     public KeyType RequiredKey { get; private set; }
     
     /// <summary>World position of the door for gameplay.</summary>
-    public Vector3 WorldPosition => new Vector3(Position.x + 0.5f, 0f, Position.y + 0.5f);
+    public Vector3 WorldPosition => new(Position.x + 0.5f, 0f, Position.y + 0.5f);
 
     public DoorModel(Vector2Int position, DoorType type = DoorType.Wood)
     {

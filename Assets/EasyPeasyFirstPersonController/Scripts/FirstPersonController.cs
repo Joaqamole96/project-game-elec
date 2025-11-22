@@ -181,7 +181,7 @@ namespace EasyPeasyFirstPersonController
 
         private void HandleHeadBob()
         {
-            Vector3 horizontalVelocity = new Vector3(characterController.velocity.x, 0f, characterController.velocity.z);
+            Vector3 horizontalVelocity = new(characterController.velocity.x, 0f, characterController.velocity.z);
             bool isMovingEnough = horizontalVelocity.magnitude > 0.1f;
 
             float targetBobOffset = isMovingEnough ? Mathf.Sin(bobTimer) * bobbingAmount : 0f;
@@ -237,7 +237,7 @@ namespace EasyPeasyFirstPersonController
             float currentSpeed = isCrouching ? crouchSpeed : (isSprinting ? sprintSpeed : walkSpeed);
             if (!isMove) currentSpeed = 0f;
 
-            Vector3 direction = new Vector3(moveInput.x, 0f, moveInput.y);
+            Vector3 direction = new(moveInput.x, 0f, moveInput.y);
             Vector3 moveVector = transform.TransformDirection(direction) * currentSpeed;
             moveVector = Vector3.ClampMagnitude(moveVector, currentSpeed);
 

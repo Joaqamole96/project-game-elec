@@ -57,7 +57,7 @@ public class DungeonRenderer : MonoBehaviour
     private BiomeManager _biomeManager;
 
     // Combined mesh containers
-    private readonly List<GameObject> _spawnedContainers = new List<GameObject>();
+    private readonly List<GameObject> _spawnedContainers = new();
     
     public enum RenderMode
     {
@@ -284,7 +284,7 @@ public class DungeonRenderer : MonoBehaviour
 
     private Transform CreateParent(string name)
     {
-        GameObject go = new GameObject(name);
+        GameObject go = new(name);
         go.transform.SetParent(transform);
         return go.transform;
     }

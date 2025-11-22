@@ -26,7 +26,7 @@ public class RoomManager : MonoBehaviour
     {
         if (currentLevel == null) return;
         
-        Vector2Int gridPos = new Vector2Int(
+        Vector2Int gridPos = new(
             Mathf.FloorToInt(playerPosition.x),
             Mathf.FloorToInt(playerPosition.z)
         );

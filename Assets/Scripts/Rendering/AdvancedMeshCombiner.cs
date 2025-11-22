@@ -13,7 +13,7 @@ public class AdvancedMeshCombiner
     public class CombinedMeshData
     {
         public string Name;
-        public List<CombineInstance> CombineInstances = new List<CombineInstance>();
+        public List<CombineInstance> CombineInstances = new();
         public Material Material;
         public int VertexCount => CalculateVertexCount();
         
@@ -29,7 +29,7 @@ public class AdvancedMeshCombiner
         }
     }
 
-    private Dictionary<Material, CombinedMeshData> _materialMeshes = new Dictionary<Material, CombinedMeshData>();
+    private Dictionary<Material, CombinedMeshData> _materialMeshes = new();
     private const int MAX_VERTICES_PER_MESH = 60000;
 
     public void AddMesh(Mesh mesh, Vector3 position, Quaternion rotation, Vector3 scale, Material material)
@@ -56,7 +56,7 @@ public class AdvancedMeshCombiner
 
     public List<GameObject> BuildAllCombinedMeshes(Transform parent)
     {
-        List<GameObject> combinedObjects = new List<GameObject>();
+        List<GameObject> combinedObjects = new();
         
         foreach (var kvp in _materialMeshes)
         {
@@ -85,13 +85,13 @@ public class AdvancedMeshCombiner
     {
         try
         {
-            GameObject combinedObject = new GameObject(meshData.Name);
+            GameObject combinedObject = new(meshData.Name);
             combinedObject.transform.SetParent(parent);
 
             MeshFilter meshFilter = combinedObject.AddComponent<MeshFilter>();
             MeshRenderer meshRenderer = combinedObject.AddComponent<MeshRenderer>();
 
-            Mesh combinedMesh = new Mesh();
+            Mesh combinedMesh = new();
             combinedMesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
             combinedMesh.CombineMeshes(meshData.CombineInstances.ToArray());
             
@@ -114,7 +114,7 @@ public class AdvancedMeshCombiner
 
     private List<GameObject> BuildSplitMeshes(CombinedMeshData meshData, Transform parent, int maxInstancesPerChunk = 2000)
     {
-        List<GameObject> chunks = new List<GameObject>();
+        List<GameObject> chunks = new();
         int instanceCount = meshData.CombineInstances.Count;
         int chunkCount = Mathf.CeilToInt((float)instanceCount / maxInstancesPerChunk);
 

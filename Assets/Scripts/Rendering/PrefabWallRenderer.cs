@@ -76,7 +76,7 @@ public class PrefabWallRenderer : IWallRenderer
 
     private GameObject CreateWallAtPosition(Vector2Int gridPos, WallType wallType, GameObject prefab)
     {
-        Vector3 worldPos = new Vector3(gridPos.x + 0.5f, 1f, gridPos.y + 0.5f); // Walls at 1 unit height
+        Vector3 worldPos = new(gridPos.x + 0.5f, 1f, gridPos.y + 0.5f); // Walls at 1 unit height
         
         // Use the biome-specific prefab if available, otherwise use fallback
         GameObject wallPrefabToUse = prefab ?? _fallbackWallPrefab;

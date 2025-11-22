@@ -4,8 +4,8 @@ public class CameraFollow : MonoBehaviour
 {
     [Header("Follow Settings")]
     public Transform target;
-    public Vector3 thirdPersonOffset = new Vector3(0, 2, -3);
-    public Vector3 firstPersonOffset = new Vector3(0, 0.5f, 0);
+    public Vector3 thirdPersonOffset = new(0, 2, -3);
+    public Vector3 firstPersonOffset = new(0, 0.5f, 0);
     public float smoothSpeed = 0.125f;
     public float rotationSpeed = 2f;
     
