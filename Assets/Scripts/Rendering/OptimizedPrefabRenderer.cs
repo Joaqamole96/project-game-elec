@@ -143,13 +143,13 @@ public class OptimizedPrefabRenderer
     {
         if (_currentBiome == null || layout?.AllDoorTiles == null) return;
 
-        // Always render doors as individual prefabs (never combine)
+        // Render door frames
         var doorPrefab = _biomeManager.GetDoorPrefab(_currentBiome);
         if (doorPrefab != null)
         {
             foreach (var doorPos in layout.AllDoorTiles)
             {
-                Vector3 worldPos = new(doorPos.x + 0.5f, 1f, doorPos.y + 0.5f); // Adjusted height
+                Vector3 worldPos = new(doorPos.x + 0.5f, 1.5f, doorPos.y + 0.5f);
                 Quaternion rotation = GetDoorRotation(layout, doorPos);
                 
                 var door = GameObject.Instantiate(doorPrefab, worldPos, rotation, parent);
@@ -161,6 +161,49 @@ public class OptimizedPrefabRenderer
                 {
                     doorController = door.AddComponent<DoorController>();
                 }
+            }
+        }
+
+        // NEW: Render door tops
+        var doorTopPrefab = _biomeManager.GetPrefab("Biomes/Default/DoorTopPrefab");
+        if (doorTopPrefab == null)
+        {
+            // Fallback: create simple door tops
+            RenderDoorTopsAsPrimitives(layout, parent);
+        }
+        else
+        {
+            foreach (var doorPos in layout.AllDoorTiles)
+            {
+                Vector3 topPos = new(doorPos.x + 0.5f, 6f, doorPos.y + 0.5f); // Position above door
+                var doorTop = GameObject.Instantiate(doorTopPrefab, topPos, Quaternion.identity, parent);
+                doorTop.name = $"DoorTop_{doorPos.x}_{doorPos.y}";
+            }
+        }
+    }
+
+    private void RenderDoorTopsAsPrimitives(LevelModel layout, Transform parent)
+    {
+        foreach (var doorPos in layout.AllDoorTiles)
+        {
+            GameObject doorTop = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            doorTop.transform.position = new Vector3(doorPos.x + 0.5f, 2.5f, doorPos.y + 0.5f);
+            doorTop.transform.localScale = new Vector3(0.8f, 0.1f, 0.8f); // Thin horizontal piece
+            doorTop.transform.SetParent(parent);
+            doorTop.name = $"DoorTop_{doorPos.x}_{doorPos.y}";
+            
+            // Apply material
+            Renderer renderer = doorTop.GetComponent<Renderer>();
+            if (Application.isPlaying)
+            {
+                renderer.material = new Material(Shader.Find("Standard"));
+                renderer.material.color = Color.gray;
+            }
+            else
+            {
+                Material sharedMaterial = new Material(Shader.Find("Standard"));
+                sharedMaterial.color = Color.gray;
+                renderer.sharedMaterial = sharedMaterial;
             }
         }
     }
