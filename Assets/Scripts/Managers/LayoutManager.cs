@@ -61,7 +61,7 @@ public class LayoutManager : MonoBehaviour
     {
         int seed = RuntimeLevelConfig.Seed;
 
-        _partitionGenerator = new PartitionGenerator();
+        _partitionGenerator = new PartitionGenerator(seed);
         _corridorGenerator = new CorridorGenerator(seed);
         _roomGenerator = new();
         _roomAssigner = new RoomAssigner();
@@ -162,8 +162,8 @@ public class LayoutManager : MonoBehaviour
     {
         var layout = new LevelModel();
         
-        var root = _partitionGenerator.GeneratePartitionTree(RuntimeLevelConfig, RuntimePartitionConfig, _random);
-        var leaves = _partitionGenerator.CollectLeafPartitions(root);
+        var root = _partitionGenerator.GeneratePartitionTree(RuntimeLevelConfig, RuntimePartitionConfig);
+        var leaves = _partitionGenerator.CollectLeaves(root);
         layout.Rooms = _roomGenerator.CreateRoomsFromPartitions(leaves, RuntimeRoomConfig, _random);
         _roomGenerator.FindAndAssignNeighbors(leaves);
         

@@ -2,138 +2,118 @@
 // Scripts/Generators/PartitionGenerator.cs
 // -------------------------------------------------- //
 
-using System.Collections.Generic;
 using UnityEngine;
+using System.Collections.Generic;
+using System.IO;
 
 public class PartitionGenerator
 {
-    public PartitionModel GeneratePartitionTree(LevelConfig levelConfig, PartitionConfig partitionConfig, System.Random random)
-    {
-        if (levelConfig == null || partitionConfig == null || random == null)
-        {
-            Debug.LogError("PartitionGenerator: Null parameters provided to GeneratePartitionTree");
-            return null;
-        }
+    public readonly System.Random _random;
 
-        var rootBounds = new RectInt(0, 0, levelConfig.Width, levelConfig.Height);
-        var root = new PartitionModel(rootBounds);
+    public PartitionGenerator(int seed) => _random = new(seed);
+
+    // ------------------------- //
+
+    public PartitionModel GeneratePartitionTree(LevelConfig levelConfig, PartitionConfig partitionConfig)
+    {
+        PartitionModel rootPart = new(new(0, 0, levelConfig.Width, levelConfig.Height));
         
-        SplitPartition(root, partitionConfig, random);
-        return root;
+        SplitRecursively(rootPart, partitionConfig);
+        return rootPart;
     }
 
-    private void SplitPartition(PartitionModel partition, PartitionConfig config, System.Random random)
+    private void SplitRecursively(PartitionModel part, PartitionConfig config)
     {
-        if (partition == null || config == null) return;
+        if (part == null || config == null) return;
 
-        // FIX: Ensure partitions are large enough to split
-        bool canSplitVertically = partition.Bounds.width > config.MaxPartitionSize;
-        bool canSplitHorizontally = partition.Bounds.height > config.MaxPartitionSize;
+        // Ensure partitions are large enough to split
+        bool canSplitVert = part.Bounds.width > config.MaxPartitionSize;
+        bool canSplitHorz = part.Bounds.height > config.MaxPartitionSize;
         
         // If already within desired range, don't split
-        if (partition.Bounds.width <= config.MaxPartitionSize && 
-            partition.Bounds.height <= config.MaxPartitionSize)
-            return;
+        if (part.Bounds.width <= config.MaxPartitionSize && part.Bounds.height <= config.MaxPartitionSize) return;
 
         // If too small, don't split
-        if (partition.Bounds.width <= config.MinPartitionSize || 
-            partition.Bounds.height <= config.MinPartitionSize)
-            return;
+        if (part.Bounds.width <= config.MinPartitionSize || part.Bounds.height <= config.MinPartitionSize) return;
 
-        bool splitVertically;
+        bool splitVert;
         
         // Prefer splitting the larger dimension
-        if (canSplitVertically && canSplitHorizontally)
-        {
-            splitVertically = partition.Bounds.width > partition.Bounds.height;
-        }
-        else if (canSplitVertically)
-        {
-            splitVertically = true;
-        }
-        else if (canSplitHorizontally)
-        {
-            splitVertically = false;
-        }
-        else
-        {
-            return; // Cannot split in either direction
-        }
+        if (canSplitVert && canSplitHorz) splitVert = (part.Bounds.width > part.Bounds.height);
+        else if (canSplitVert) splitVert = true;
+        else if (canSplitHorz) splitVert = false;
+        else return;
 
-        // FIX: Use safer split ratio and ensure minimum sizes
-        float splitRatio = (float)(random.NextDouble() * 0.3f + 0.35f); // 0.35-0.65
+        // Use safer split ratio and ensure minimum sizes
+        float splitRatio = (float)(_random.NextDouble() * 0.3f + 0.35f); // 0.35-0.65
         
-        if (splitVertically)
-        {
-            SplitVertically(partition, config, splitRatio, random);
-        }
-        else
-        {
-            SplitHorizontally(partition, config, splitRatio, random);
-        }
+        if (splitVert) SplitVert(part, config, splitRatio);
+        else SplitHorz(part, config, splitRatio);
 
         // Recursively split children
-        SplitPartition(partition.LeftChild, config, random);
-        SplitPartition(partition.RightChild, config, random);
+        SplitRecursively(part.LeftChild, config);
+        SplitRecursively(part.RightChild, config);
     }
 
-    private void SplitVertically(PartitionModel partition, PartitionConfig config, float splitRatio, System.Random random)
+    private void SplitVert(PartitionModel part, PartitionConfig config, float splitRatio)
     {
         int minSplit = config.MinPartitionSize;
-        int maxSplit = partition.Bounds.width - config.MinPartitionSize;
+        int maxSplit = part.Bounds.width - config.MinPartitionSize;
         
-        if (maxSplit <= minSplit) return; // Cannot split safely
+        if (maxSplit <= minSplit) return;
         
         int splitPoint = Mathf.Clamp(
-            Mathf.RoundToInt(partition.Bounds.width * splitRatio),
+            Mathf.RoundToInt(part.Bounds.width * splitRatio),
             minSplit,
             maxSplit
         );
 
-        partition.LeftChild = new PartitionModel(new RectInt(
-            partition.Bounds.x, partition.Bounds.y, splitPoint, partition.Bounds.height));
-        partition.RightChild = new PartitionModel(new RectInt(
-            partition.Bounds.x + splitPoint, partition.Bounds.y, 
-            partition.Bounds.width - splitPoint, partition.Bounds.height));
+        part.LeftChild = new(new RectInt(
+            part.Bounds.x, part.Bounds.y, 
+            splitPoint, part.Bounds.height));
+        part.RightChild = new(new RectInt(
+            part.Bounds.x + splitPoint, part.Bounds.y, 
+            part.Bounds.width - splitPoint, part.Bounds.height));
     }
 
-    private void SplitHorizontally(PartitionModel partition, PartitionConfig config, float splitRatio, System.Random random)
+    private void SplitHorz(PartitionModel part, PartitionConfig config, float splitRatio)
     {
         int minSplit = config.MinPartitionSize;
-        int maxSplit = partition.Bounds.height - config.MinPartitionSize;
+        int maxSplit = part.Bounds.height - config.MinPartitionSize;
         
-        if (maxSplit <= minSplit) return; // Cannot split safely
+        if (maxSplit <= minSplit) return;
         
         int splitPoint = Mathf.Clamp(
-            Mathf.RoundToInt(partition.Bounds.height * splitRatio),
+            Mathf.RoundToInt(part.Bounds.height * splitRatio),
             minSplit,
             maxSplit
         );
 
-        partition.LeftChild = new PartitionModel(new RectInt(
-            partition.Bounds.x, partition.Bounds.y, partition.Bounds.width, splitPoint));
-        partition.RightChild = new PartitionModel(new RectInt(
-            partition.Bounds.x, partition.Bounds.y + splitPoint, 
-            partition.Bounds.width, partition.Bounds.height - splitPoint));
+        part.LeftChild = new(new RectInt(
+            part.Bounds.x, part.Bounds.y, part.Bounds.width, splitPoint));
+        part.RightChild = new(new RectInt(
+            part.Bounds.x, part.Bounds.y + splitPoint, 
+            part.Bounds.width, part.Bounds.height - splitPoint));
     }
 
-    public List<PartitionModel> CollectLeafPartitions(PartitionModel root)
+    public List<PartitionModel> CollectLeaves(PartitionModel rootPart)
     {
-        var leaves = new List<PartitionModel>();
-        CollectLeavesRecursive(root, leaves);
+        List<PartitionModel> leaves = new();
+
+        CollectLeafRecursively(rootPart, leaves);
+
         return leaves;
     }
 
-    private void CollectLeavesRecursive(PartitionModel partition, List<PartitionModel> leaves)
+    private void CollectLeafRecursively(PartitionModel part, List<PartitionModel> leaves)
     {
-        if (partition == null) return;
+        if (part == null) return;
         
-        if (partition.LeftChild == null && partition.RightChild == null)
-            leaves.Add(partition);
+        if (part.LeftChild == null && part.RightChild == null) leaves.Add(part);
         else
         {
-            CollectLeavesRecursive(partition.LeftChild, leaves);
-            CollectLeavesRecursive(partition.RightChild, leaves);
+            CollectLeafRecursively(part.LeftChild, leaves);
+            CollectLeafRecursively(part.RightChild, leaves);
         }
     }
 }
