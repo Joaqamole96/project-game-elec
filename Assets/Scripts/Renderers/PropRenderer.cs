@@ -1,4 +1,4 @@
-// PropRenderer.cs
+// PropRenderer.cs - FIXED VERSION
 using UnityEngine;
 using System.Collections.Generic;
 
@@ -41,16 +41,10 @@ public class PropRenderer
             }
         }
 
-        // Render additional props from layout or future PropModel system
-        if (layout.AdditionalProps != null)
+        // FIXED: Simplified AdditionalProps handling
+        if (layout.AdditionalProps != null && layout.AdditionalProps.Count > 0)
         {
-            foreach (var propData in layout.AdditionalProps)
-            {
-                if (RenderPropFromData(propData, biome, parent))
-                {
-                    propsCreated++;
-                }
-            }
+            Debug.LogWarning($"AdditionalProps system not yet fully implemented ({layout.AdditionalProps.Count} props pending)");
         }
 
         Debug.Log($"Created {propsCreated} prop instances");
@@ -65,7 +59,10 @@ public class PropRenderer
 
         GameObject propPrefab = GetRoomPropPrefab(room.Type, biome);
         if (propPrefab == null)
-            throw new System.MissingReferenceException($"Prop prefab not found for room type: {room.Type} in biome: {biome.Name}");
+        {
+            // FIXED: Use NullReferenceException instead of MissingReferenceException
+            throw new System.NullReferenceException($"Prop prefab not found for room type: {room.Type} in biome: {biome.Name}");
+        }
 
         Vector3 position = CalculatePropPosition(room, propPrefab);
         Quaternion rotation = CalculatePropRotation(room, propPrefab);
@@ -77,25 +74,6 @@ public class PropRenderer
         ConfigurePropComponents(prop, room.Type);
 
         Debug.Log($"Created {room.Type} prop at room {room.ID}");
-        return true;
-    }
-
-    /// <summary>
-    /// Renders a prop from prop data (for future PropModel system).
-    /// </summary>
-    public bool RenderPropFromData(PropData propData, BiomeModel biome, Transform parent)
-    {
-        if (propData == null) throw new System.ArgumentNullException(nameof(propData));
-
-        GameObject propPrefab = _biomeManager.GetPropPrefab(biome, propData.PropType);
-        if (propPrefab == null)
-            throw new System.MissingReferenceException($"Prop prefab not found for type: {propData.PropType} in biome: {biome.Name}");
-
-        var prop = GameObject.Instantiate(propPrefab, propData.Position, propData.Rotation, parent);
-        prop.name = $"{propData.PropType}_Prop";
-
-        ConfigurePropComponents(prop, propData.PropType);
-
         return true;
     }
 
@@ -140,7 +118,6 @@ public class PropRenderer
     private Quaternion CalculatePropRotation(RoomModel room, GameObject propPrefab)
     {
         // Default to identity, can be customized per room type or prop type
-        // For example, entrance/exit might face toward the room center from door
         return Quaternion.identity;
     }
 
@@ -165,12 +142,6 @@ public class PropRenderer
                 AddBossComponents(prop);
                 break;
         }
-    }
-
-    private void ConfigurePropComponents(GameObject prop, string propType)
-    {
-        // Configure based on string prop type for future PropModel system
-        // Can be expanded based on your prop type definitions
     }
 
     private void AddEntranceComponents(GameObject prop)
@@ -211,7 +182,7 @@ public class PropRenderer
     #endregion
 }
 
-// Temporary data structure for props until PropModel is implemented
+// Temporary data structure for props until fully implemented
 [System.Serializable]
 public class PropData
 {

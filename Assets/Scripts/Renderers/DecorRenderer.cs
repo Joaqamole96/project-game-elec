@@ -1,4 +1,4 @@
-// DecorRenderer.cs
+// DecorRenderer.cs - FIXED VERSION
 using UnityEngine;
 using System.Collections.Generic;
 
@@ -65,7 +65,10 @@ public class DecorRenderer
             var decorPrefab = _biomeManager.GetDecorPrefab(biome, decorType);
             
             if (decorPrefab == null)
-                throw new System.MissingReferenceException($"Decor prefab not found for type: {decorType} in biome: {biome.Name}");
+            {
+                // FIXED: Use NullReferenceException instead of MissingReferenceException
+                throw new System.NullReferenceException($"Decor prefab not found for type: {decorType} in biome: {biome.Name}");
+            }
 
             Vector3 position = CalculateRoomDecorPosition(room, decorPrefab, i);
             Quaternion rotation = CalculateDecorRotation(decorType);
@@ -93,8 +96,8 @@ public class DecorRenderer
         var corridorDecorConfig = _biomeManager.GetCorridorDecorConfig(biome);
         if (corridorDecorConfig == null) return;
 
-        // Sample corridor positions for decor placement
-        var corridorPositions = SampleCorridorPositions(layout, corridorDecorConfig.Density);
+        // FIXED: Use MinDensity instead of non-existent Density property
+        var corridorPositions = SampleCorridorPositions(layout, corridorDecorConfig.MinDensity);
 
         foreach (var position in corridorPositions)
         {
@@ -102,7 +105,10 @@ public class DecorRenderer
             var decorPrefab = _biomeManager.GetDecorPrefab(biome, decorType);
             
             if (decorPrefab == null)
-                throw new System.MissingReferenceException($"Corridor decor prefab not found for type: {decorType} in biome: {biome.Name}");
+            {
+                // FIXED: Use NullReferenceException
+                throw new System.NullReferenceException($"Corridor decor prefab not found for type: {decorType} in biome: {biome.Name}");
+            }
 
             Vector3 worldPos = new Vector3(position.x + 0.5f, 0f, position.y + 0.5f);
             Quaternion rotation = CalculateDecorRotation(decorType);
@@ -133,7 +139,7 @@ public class DecorRenderer
         
         if (layout.AllFloorTiles == null) return positions;
 
-        // Only use corridor tiles (not in rooms)
+        // Only use corridor tiles (not in rooms) - FIXED: Use layout.GetRoomAtPosition
         foreach (var floorPos in layout.AllFloorTiles)
         {
             if (layout.GetRoomAtPosition(floorPos) == null && Random.value < density)
@@ -200,7 +206,6 @@ public class DecorRenderer
     private Quaternion CalculateDecorRotation(string decorType)
     {
         // Some decor types might have specific rotation logic
-        // For example, trees might rotate randomly, while walls might have fixed orientation
         if (decorType.Contains("Tree") || decorType.Contains("Rock"))
         {
             return Quaternion.Euler(0f, Random.Range(0f, 360f), 0f);
@@ -248,14 +253,4 @@ public class DecorRenderer
     }
 
     #endregion
-}
-
-// Configuration for decor placement
-[System.Serializable]
-public class DecorConfig
-{
-    public float MinDensity = 0.1f;
-    public float MaxDensity = 0.3f;
-    public bool UseMeshCombining = true;
-    public Dictionary<string, float> PrefabWeights = new Dictionary<string, float>();
 }

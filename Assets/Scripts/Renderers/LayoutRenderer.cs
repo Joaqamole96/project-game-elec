@@ -1,5 +1,6 @@
 // LayoutRenderer.cs
 using UnityEngine;
+using System;
 using System.Collections.Generic;
 
 /// <summary>
@@ -22,9 +23,9 @@ public class LayoutRenderer
     /// </summary>
     public void RenderCompleteLayout(LevelModel layout, BiomeModel biome, Transform parent)
     {
-        if (layout == null) throw new System.ArgumentNullException(nameof(layout));
-        if (biome == null) throw new System.ArgumentNullException(nameof(biome));
-        if (parent == null) throw new System.ArgumentNullException(nameof(parent));
+        if (layout == null) throw new ArgumentNullException(nameof(layout));
+        if (biome == null) throw new ArgumentNullException(nameof(biome));
+        if (parent == null) throw new ArgumentNullException(nameof(parent));
 
         Debug.Log($"Starting complete layout rendering for biome: {biome.Name}");
 
@@ -46,21 +47,21 @@ public class LayoutRenderer
     public void RenderFloors(LevelModel layout, BiomeModel biome, Transform parent)
     {
         if (layout?.AllFloorTiles == null) 
-            throw new System.ArgumentNullException("Layout or AllFloorTiles is null");
+            throw new ArgumentNullException("Layout or AllFloorTiles is null");
 
         var floorPrefab = _biomeManager.GetFloorPrefab(biome);
         if (floorPrefab == null)
-            throw new System.MissingReferenceException($"Floor prefab not found for biome: {biome.Name}");
+            throw new Exception($"Floor prefab not found for biome: {biome.Name}");
 
         Mesh floorMesh = GetPrefabMesh(floorPrefab);
         Material floorMaterial = GetPrefabMaterial(floorPrefab);
         Vector3 floorScale = floorPrefab.transform.localScale;
 
         if (floorMesh == null)
-            throw new System.MissingReferenceException($"Mesh not found on floor prefab for biome: {biome.Name}");
+            throw new Exception($"Mesh not found on floor prefab for biome: {biome.Name}");
 
         if (floorMaterial == null)
-            throw new System.MissingReferenceException($"Material not found on floor prefab for biome: {biome.Name}");
+            throw new Exception($"Material not found on floor prefab for biome: {biome.Name}");
 
         int floorsProcessed = 0;
         foreach (var floorPos in layout.AllFloorTiles)
@@ -79,21 +80,21 @@ public class LayoutRenderer
     public void RenderWalls(LevelModel layout, BiomeModel biome, Transform parent)
     {
         if (layout?.AllWallTiles == null)
-            throw new System.ArgumentNullException("Layout or AllWallTiles is null");
+            throw new ArgumentNullException("Layout or AllWallTiles is null");
 
         var wallPrefab = _biomeManager.GetWallPrefab(biome);
         if (wallPrefab == null)
-            throw new System.MissingReferenceException($"Wall prefab not found for biome: {biome.Name}");
+            throw new Exception($"Wall prefab not found for biome: {biome.Name}");
 
         Mesh wallMesh = GetPrefabMesh(wallPrefab);
         Material wallMaterial = GetPrefabMaterial(wallPrefab);
         Vector3 wallScale = wallPrefab.transform.localScale;
 
         if (wallMesh == null)
-            throw new System.MissingReferenceException($"Mesh not found on wall prefab for biome: {biome.Name}");
+            throw new Exception($"Mesh not found on wall prefab for biome: {biome.Name}");
 
         if (wallMaterial == null)
-            throw new System.MissingReferenceException($"Material not found on wall prefab for biome: {biome.Name}");
+            throw new Exception($"Material not found on wall prefab for biome: {biome.Name}");
 
         int wallsProcessed = 0;
         foreach (var wallPos in layout.AllWallTiles)
@@ -112,11 +113,11 @@ public class LayoutRenderer
     public void RenderDoors(LevelModel layout, BiomeModel biome, Transform parent)
     {
         if (layout?.AllDoorTiles == null)
-            throw new System.ArgumentNullException("Layout or AllDoorTiles is null");
+            throw new ArgumentNullException("Layout or AllDoorTiles is null");
 
         var doorPrefab = _biomeManager.GetDoorPrefab(biome);
         if (doorPrefab == null)
-            throw new System.MissingReferenceException($"Door prefab not found for biome: {biome.Name}");
+            throw new Exception($"Door prefab not found for biome: {biome.Name}");
 
         int doorsCreated = 0;
         foreach (var doorPos in layout.AllDoorTiles)
@@ -146,7 +147,7 @@ public class LayoutRenderer
     public void RenderCeiling(LevelModel layout, BiomeModel biome, Transform parent)
     {
         if (layout?.OverallBounds == null)
-            throw new System.ArgumentNullException("Layout or OverallBounds is null");
+            throw new ArgumentNullException("Layout or OverallBounds is null");
 
         var ceilingPrefab = _biomeManager.GetCeilingPrefab(biome);
         if (ceilingPrefab != null)
@@ -175,7 +176,7 @@ public class LayoutRenderer
     public void RenderVoidPlane(LevelModel layout, BiomeModel biome, Transform parent)
     {
         if (layout?.OverallBounds == null)
-            throw new System.ArgumentNullException("Layout or OverallBounds is null");
+            throw new ArgumentNullException("Layout or OverallBounds is null");
 
         BoundsInt dungeonBounds = layout.OverallBounds;
         Vector3 center = new Vector3(dungeonBounds.center.x, -5f, dungeonBounds.center.y);

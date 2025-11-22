@@ -1,10 +1,10 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-// WARNING!: This code was derived from legacy code. There are several errors and outdated processes in this code.
 public class RoomGenerator
 {
-    public List<RoomModel> CreateRoomsFromPartitions(List<PartitionModel> leaves, RoomModel roomModel, System.Random random)
+    // FIXED: Removed RoomModel parameter - use constants directly with type name
+    public List<RoomModel> CreateRoomsFromPartitions(List<PartitionModel> leaves, System.Random random)
     {
         var rooms = new List<RoomModel>();
         int roomIdCounter = 0;
@@ -13,7 +13,7 @@ public class RoomGenerator
         {
             if (leaf == null) continue;
 
-            var room = CreateRoomInPartition(leaf, roomModel, random, roomIdCounter);
+            var room = CreateRoomInPartition(leaf, random, roomIdCounter);
             if (room != null)
             {
                 rooms.Add(room);
@@ -26,28 +26,32 @@ public class RoomGenerator
         return rooms;
     }
 
-    private RoomModel CreateRoomInPartition(PartitionModel leaf, RoomModel room, System.Random random, int roomId)
+    private RoomModel CreateRoomInPartition(PartitionModel leaf, System.Random random, int roomId)
     {
+        // FIXED: Access static constants with type name (RoomModel.MIN_SIZE not room.MIN_SIZE)
+        int MIN_SIZE = RoomModel.MIN_SIZE;
+        int MIN_INSET = RoomModel.MIN_INSET;
+        int MAX_INSET = RoomModel.MAX_INSET;
+        
         // Calculate maximum possible insets
-        int maxHorizontalInset = (leaf.Bounds.width - room.MIN_SIZE) / 2;
-        int maxVerticalInset = (leaf.Bounds.height - room.MIN_SIZE) / 2;
+        int maxHorizontalInset = (leaf.Bounds.width - MIN_SIZE) / 2;
+        int maxVerticalInset = (leaf.Bounds.height - MIN_SIZE) / 2;
         
         // Clamp insets to safe values
-        int leftInset = Mathf.Clamp(random.Next(room.MIN_INSET, room.MAX_INSET + 1), 1, maxHorizontalInset);
-        int rightInset = Mathf.Clamp(random.Next(room.MIN_INSET, room.MAX_INSET + 1), 1, maxHorizontalInset);
-        int bottomInset = Mathf.Clamp(random.Next(room.MIN_INSET, room.MAX_INSET + 1), 1, maxVerticalInset);
-        int topInset = Mathf.Clamp(random.Next(room.MIN_INSET, room.MAX_INSET + 1), 1, maxVerticalInset);
+        int leftInset = Mathf.Clamp(random.Next(MIN_INSET, MAX_INSET + 1), 1, maxHorizontalInset);
+        int rightInset = Mathf.Clamp(random.Next(MIN_INSET, MAX_INSET + 1), 1, maxHorizontalInset);
+        int bottomInset = Mathf.Clamp(random.Next(MIN_INSET, MAX_INSET + 1), 1, maxVerticalInset);
+        int topInset = Mathf.Clamp(random.Next(MIN_INSET, MAX_INSET + 1), 1, maxVerticalInset);
 
         // Ensure we have at least a minimum room size
         int roomWidth = leaf.Bounds.width - (leftInset + rightInset);
         int roomHeight = leaf.Bounds.height - (bottomInset + topInset);
         
-        // FIX: Force minimum room size and ensure we have at least 3x3 for floors
+        // Force minimum room size and ensure we have at least 3x3 for floors
         if (roomWidth < 3 || roomHeight < 3)
         {
             Debug.LogWarning($"Partition too small for room: {leaf.Bounds}. Adjusting insets...");
             
-            // Use minimal insets to create smallest possible room
             leftInset = 1;
             rightInset = 1;
             bottomInset = 1;
@@ -58,11 +62,10 @@ public class RoomGenerator
         }
 
         // Ensure room meets minimum size requirements
-        if (roomWidth < room.MIN_SIZE || roomHeight < room.MIN_SIZE)
+        if (roomWidth < MIN_SIZE || roomHeight < MIN_SIZE)
         {
-            // Adjust insets to meet minimum size
-            int neededWidth = room.MIN_SIZE - roomWidth;
-            int neededHeight = room.MIN_SIZE - roomHeight;
+            int neededWidth = MIN_SIZE - roomWidth;
+            int neededHeight = MIN_SIZE - roomHeight;
             
             leftInset = Mathf.Max(1, leftInset - neededWidth / 2);
             rightInset = Mathf.Max(1, rightInset - neededWidth / 2);
@@ -83,9 +86,10 @@ public class RoomGenerator
         // Final safety check
         if (roomBounds.width >= 3 && roomBounds.height >= 3)
         {
-            var room = new RoomModel(roomBounds, roomId, RoomType.Combat);
-            Debug.Log($"Created room {room.ID}: {roomBounds} (Size: {roomBounds.width}x{roomBounds.height})");
-            return room;
+            // FIXED: Renamed variable to avoid conflict with 'room' parameter
+            var newRoom = new RoomModel(roomBounds, roomId, RoomType.Combat);
+            Debug.Log($"Created room {newRoom.ID}: {roomBounds} (Size: {roomBounds.width}x{roomBounds.height})");
+            return newRoom;
         }
         else
         {

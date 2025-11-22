@@ -21,6 +21,7 @@ public class DungeonManager : MonoBehaviour
     private CorridorGenerator _corridorGenerator;
     private LayoutGenerator _layoutGenerator;
     private BiomeManager _biomeManager;
+    private RoomTypeService _roomTypeService;
     
     // Runtime state
     private LevelModel _layout;
@@ -47,7 +48,7 @@ public class DungeonManager : MonoBehaviour
 
     private void InitializeConfigRegistry()
     {
-        _configRegistry = new ConfigRegistry(GameConfig, LevelConfig, PartitionConfig, RoomConfig);
+        _configRegistry = new ConfigRegistry(GameConfig, LevelConfig, PartitionConfig);
         Debug.Log($"DungeonManager.InitializeConfigRegistry(): Runtime configs initialized - Starting floor: {RuntimeLevelConfig.LevelNumber}");
     }
 
@@ -57,6 +58,7 @@ public class DungeonManager : MonoBehaviour
         _roomGenerator = new RoomGenerator();
         _corridorGenerator = new CorridorGenerator();
         _layoutGenerator = new LayoutGenerator();
+        _roomTypeService = new RoomTypeService();
         _biomeManager = new BiomeManager(LevelConfig);
         
         DungeonRenderer = GetComponent<DungeonRenderer>();
@@ -124,6 +126,13 @@ public class DungeonManager : MonoBehaviour
     private void NotifyDungeonReady()
     {
         GetComponent<PlayerSpawner>()?.OnDungeonGenerated();
+        
+        // Notify RoomManager
+        var roomManager = FindObjectOfType<RoomManager>();
+        if (roomManager != null)
+        {
+            roomManager.SetCurrentLevel(_layout);
+        }
     }
 
     [ContextMenu("Next Floor")]
@@ -132,35 +141,23 @@ public class DungeonManager : MonoBehaviour
         RuntimeLevelConfig.LevelNumber++;
         _random = new System.Random(RuntimeLevelConfig.Seed + RuntimeLevelConfig.LevelNumber);
 
-        if (RuntimeLevelConfig.LevelNumber > 1)
-        {
-            GrowFloorSize();
-        }
-
         Debug.Log($"Moving to floor {RuntimeLevelConfig.LevelNumber}");
         GenerateDungeon();
     }
 
-    private void GrowFloorSize()
-    {
-        bool growWidth = _random.NextDouble() > 0.5;
-        if (growWidth)
-        {
-            RuntimeLevelConfig.Width = Mathf.Min(RuntimeLevelConfig.Width + RuntimeLevelConfig.Growth, RuntimeLevelConfig.MaxSize);
-        }
-        else
-        {
-            RuntimeLevelConfig.Height = Mathf.Min(RuntimeLevelConfig.Height + RuntimeLevelConfig.Growth, RuntimeLevelConfig.MaxSize);
-        }
-    }
-
     private LevelModel GenerateDungeonLayout()
     {
-        var layout = new LevelModel();
+        // CORRECTED: Calculate dimensions from LevelConfig methods (respects your architecture)
+        int width = RuntimeLevelConfig.GetFloorWidth();
+        int height = RuntimeLevelConfig.GetFloorHeight();
+        
+        var layout = new LevelModel(width, height);
+        
+        Debug.Log($"Floor {RuntimeLevelConfig.LevelNumber} dimensions: {width}×{height}");
         
         // Generate partitions
-        var root = _partitionGenerator.GeneratePartitionTree(RuntimeLevelConfig, RuntimePartitionConfig, _random);
-        var leaves = _partitionGenerator.CollectLeafPartitions(root);
+        var root = _partitionGenerator.GeneratePartitionTree(layout, RuntimePartitionConfig, _random);
+        var leaves = _partitionGenerator.CollectLeaves(root);
         
         // Create rooms from partitions
         var rooms = _roomGenerator.CreateRoomsFromPartitions(leaves, _random);
@@ -177,13 +174,12 @@ public class DungeonManager : MonoBehaviour
         var allCorridors = _corridorGenerator.GenerateTotalCorridors(leaves, _random);
         layout.Corridors = MinimumSpanningTree.Apply(allCorridors, rooms);
         
-        // Generate layout geometry (floors, walls, doors)
-        layout = _layoutGenerator.GenerateLayoutGeometry(rooms, layout.Corridors);
+        // Build final geometry
+        _layoutGenerator.BuildFinalGeometry(layout);
         
-        // Assign room types with sophisticated logic
-        _roomGenerator.AssignRoomTypes(rooms, RuntimeLevelConfig.LevelNumber, _random);
-        
+        // Assign room types
         layout.Rooms = rooms;
+        _roomTypeService.AssignRooms(layout, RuntimeLevelConfig.LevelNumber, _random);
         
         Debug.Log($"Dungeon layout generated: {rooms.Count} rooms, {layout.Corridors.Count} corridors");
         return layout;
@@ -194,10 +190,9 @@ public class DungeonManager : MonoBehaviour
 
     private void ValidateConfigs()
     {
-        RuntimeLevelConfig.Width = Mathf.Clamp(RuntimeLevelConfig.Width, 10, 1000);
-        RuntimeLevelConfig.Height = Mathf.Clamp(RuntimeLevelConfig.Height, 10, 1000);
-        RuntimePartitionConfig.MinSize = Mathf.Max(3, RuntimePartitionConfig.MinSize);
-        RuntimeRoomConfig.MinRoomSize = Mathf.Max(3, RuntimeRoomConfig.MinRoomSize);
+        RuntimeLevelConfig.Validate();
+        RuntimePartitionConfig.Validate();
+        RuntimeGameConfig.Validate();
     }
 
     private void ClearPreviousGeneration()
