@@ -24,7 +24,6 @@ public class LayoutManager : MonoBehaviour
     private PartitionGenerator _partitionGenerator;
     private CorridorGenerator _corridorGenerator;
     private RoomGenerator _roomGenerator;
-    private RoomAssigner _roomAssigner;
     private GeometryBuilder _geometryBuilder;
     
     // Runtime state
@@ -64,7 +63,6 @@ public class LayoutManager : MonoBehaviour
         _partitionGenerator = new PartitionGenerator(seed);
         _corridorGenerator = new CorridorGenerator(seed);
         _roomGenerator = new(seed);
-        _roomAssigner = new RoomAssigner();
         _geometryBuilder = new GeometryBuilder();
     }
 
@@ -99,7 +97,7 @@ public class LayoutManager : MonoBehaviour
         if (_layout == null) return;
 
         // Phase 2: Assign room types
-        _rooms = _roomAssigner.AssignRooms(_layout, RuntimeLevelConfig.FloorLevel, _random);
+        _rooms = _roomGenerator.AssignRooms(_layout, RuntimeLevelConfig.FloorLevel);
         if (_rooms == null || _rooms.Count == 0) return;
 
         // Phase 3: Build geometry
