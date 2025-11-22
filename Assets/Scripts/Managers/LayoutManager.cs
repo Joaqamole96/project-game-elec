@@ -24,7 +24,7 @@ public class LayoutManager : MonoBehaviour
     private PartitionGenerator _partitionGenerator;
     private CorridorGenerator _corridorGenerator;
     private RoomGenerator _roomGenerator;
-    private GeometryBuilder _geometryBuilder;
+    private LayoutGenerator _layoutGenerator;
     
     // Runtime state
     private LevelModel _layout;
@@ -63,7 +63,7 @@ public class LayoutManager : MonoBehaviour
         _partitionGenerator = new PartitionGenerator(seed);
         _corridorGenerator = new CorridorGenerator(seed);
         _roomGenerator = new(seed);
-        _geometryBuilder = new GeometryBuilder();
+        _layoutGenerator = new LayoutGenerator();
     }
 
     private void EnsureComponentsInitialized()
@@ -101,7 +101,7 @@ public class LayoutManager : MonoBehaviour
         if (_rooms == null || _rooms.Count == 0) return;
 
         // Phase 3: Build geometry
-        _geometryBuilder.BuildFinalGeometry(_layout);
+        _layoutGenerator.GenerateLayout(_layout);
         _layout.InitializeSpatialData();
         
         // Phase 4: Render
