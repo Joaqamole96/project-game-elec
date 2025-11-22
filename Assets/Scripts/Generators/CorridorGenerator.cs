@@ -1,16 +1,13 @@
-// CorridorGenerator.cs
+// -------------------------------------------------- //
+// Scripts/Generators/CorridorGenerator.cs
+// -------------------------------------------------- //
+
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 
-/// <summary>
-/// Generates corridors between rooms using L-shaped paths and door placement.
-/// </summary>
 public class CorridorGenerator
 {
-    /// <summary>
-    /// Generates all possible corridors between neighboring room partitions.
-    /// </summary>
     public List<CorridorModel> GenerateAllPossibleCorridors(List<PartitionModel> partitions, System.Random random)
     {
         if (partitions == null || random == null)
@@ -217,28 +214,5 @@ public class CorridorGenerator
         // Add the end position
         tiles.Add(end);
         return tiles;
-    }
-
-    /// <summary>
-    /// Adds extra corridor connections beyond the minimum spanning tree for more connectivity.
-    /// </summary>
-    public List<CorridorModel> AddExtraConnections(List<CorridorModel> allCorridors, List<CorridorModel> mstCorridors, int extraCount, System.Random random)
-    {
-        if (allCorridors == null || mstCorridors == null || random == null)
-            return new List<CorridorModel>();
-
-        var extraCorridors = new List<CorridorModel>();
-        var availableCorridors = allCorridors.Except(mstCorridors).Where(c => c != null).ToList();
-        
-        // Shuffle available corridors for random selection
-        availableCorridors = availableCorridors.OrderBy(x => random.Next()).ToList();
-        
-        for (int i = 0; i < Mathf.Min(extraCount, availableCorridors.Count); i++)
-        {
-            extraCorridors.Add(availableCorridors[i]);
-        }
-        
-        Debug.Log($"Added {extraCorridors.Count} extra corridor connections");
-        return extraCorridors;
     }
 }

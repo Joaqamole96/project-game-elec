@@ -21,8 +21,9 @@ public class DungeonGenerator : MonoBehaviour
     public DungeonRenderer Renderer;
     
     // Algorithm components
-    private BSPGenerator _bspGenerator;
+    private PartitionGenerator _partitionGenerator;
     private CorridorGenerator _corridorGenerator;
+    private RoomGenerator _roomGenerator;
     private RoomAssigner _roomAssigner;
     private GeometryBuilder _geometryBuilder;
     
@@ -58,15 +59,16 @@ public class DungeonGenerator : MonoBehaviour
 
     private void InitializeComponents()
     {
-        _bspGenerator = new BSPGenerator();
+        _partitionGenerator = new PartitionGenerator();
         _corridorGenerator = new CorridorGenerator();
+        _roomGenerator = new();
         _roomAssigner = new RoomAssigner();
         _geometryBuilder = new GeometryBuilder();
     }
 
     private void EnsureComponentsInitialized()
     {
-        if (_bspGenerator == null)
+        if (_partitionGenerator == null)
             InitializeComponents();
     }
 
@@ -158,10 +160,10 @@ public class DungeonGenerator : MonoBehaviour
     {
         var layout = new LevelModel();
         
-        var root = _bspGenerator.GeneratePartitionTree(RuntimeLevelConfig, RuntimePartitionConfig, _random);
-        var leaves = _bspGenerator.CollectLeafPartitions(root);
-        layout.Rooms = _bspGenerator.CreateRoomsFromPartitions(leaves, RuntimeRoomConfig, _random);
-        _bspGenerator.FindAndAssignNeighbors(leaves);
+        var root = _partitionGenerator.GeneratePartitionTree(RuntimeLevelConfig, RuntimePartitionConfig, _random);
+        var leaves = _partitionGenerator.CollectLeafPartitions(root);
+        layout.Rooms = _roomGenerator.CreateRoomsFromPartitions(leaves, RuntimeRoomConfig, _random);
+        _roomGenerator.FindAndAssignNeighbors(leaves);
         
         var allCorridors = _corridorGenerator.GenerateAllPossibleCorridors(leaves, _random);
         layout.Corridors = MinimumSpanningTree.Apply(allCorridors, layout.Rooms);
