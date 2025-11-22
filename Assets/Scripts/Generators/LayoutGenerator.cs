@@ -181,7 +181,7 @@ public class LayoutGenerator
     private void DetermineWallTypes(LevelModel level, HashSet<Vector2Int> allWalls, Dictionary<Vector2Int, WallType> wallTypes)
     {
         foreach (var wallPos in allWalls)
-            wallTypes[wallPos] = WallTypeCalculator.DetermineWallType(wallPos, level.Rooms, level.AllFloorTiles);
+            wallTypes[wallPos] = WallTypeService.DetermineWallType(wallPos, level.Rooms, level.AllFloorTiles);
     }
 
     private List<Vector2Int> GetCardinalNeighbors(Vector2Int pos)

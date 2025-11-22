@@ -1,32 +1,20 @@
-// WallTypeCalculator.cs
+// -------------------------------------------------- //
+// Scripts/Services/WallTypeService.cs
+// -------------------------------------------------- //
+
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
 
-/// <summary>
-/// Determines the specific type of wall (corner, edge, interior, etc.) based on position and context.
-/// </summary>
-public static class WallTypeCalculator
+public static class WallTypeService
 {
-    /// <summary>
-    /// Determines the wall type for a given position based on room geometry and adjacent tiles.
-    /// </summary>
     public static WallType DetermineWallType(Vector2Int pos, List<RoomModel> rooms, HashSet<Vector2Int> allFloorTiles)
     {
-        // Check for corridor walls first
-        if (IsCorridorWall(pos, rooms, allFloorTiles))
-        {
-            return WallType.Corridor;
-        }
+        if (IsCorridorWall(pos, rooms, allFloorTiles)) return WallType.Corridor;
 
-        // Then check for room perimeter walls
         var roomWallType = DetermineRoomWallType(pos, rooms);
-        if (roomWallType != WallType.Interior)
-        {
-            return roomWallType;
-        }
+        if (roomWallType != WallType.Interior) return roomWallType;
 
-        // Default to interior wall
         return WallType.Interior;
     }
 
@@ -38,21 +26,15 @@ public static class WallTypeCalculator
         return adjacentToCorridor && !isRoomPerimeter;
     }
 
-    private static bool IsAdjacentToCorridor(Vector2Int pos, HashSet<Vector2Int> allFloorTiles, List<RoomModel> rooms)
-    {
-        return GetCardinalNeighbors(pos).Any(neighbor => 
-            allFloorTiles.Contains(neighbor) && !IsInAnyRoom(neighbor, rooms));
-    }
+    private static bool IsAdjacentToCorridor(Vector2Int pos, HashSet<Vector2Int> allFloorTiles, List<RoomModel> rooms) 
+        => GetCardinalNeighbors(pos).Any(neighbor => allFloorTiles.Contains(neighbor) && !IsInAnyRoom(neighbor, rooms));
 
     private static bool IsPartOfRoomPerimeter(Vector2Int pos, List<RoomModel> rooms)
     {
         foreach (var room in rooms.Where(room => room?.Bounds != null))
-        {
             if (IsOnRoomEdge(pos, room) && room.ContainsPosition(new Vector2Int(pos.x, pos.y)))
-            {
                 return true;
-            }
-        }
+
         return false;
     }
 
@@ -60,8 +42,7 @@ public static class WallTypeCalculator
     {
         foreach (var room in rooms.Where(room => room?.Bounds != null))
         {
-            if (!IsOnRoomEdge(pos, room) || !room.ContainsPosition(new Vector2Int(pos.x, pos.y)))
-                continue;
+            if (!IsOnRoomEdge(pos, room) || !room.ContainsPosition(new Vector2Int(pos.x, pos.y))) continue;
 
             return GetSpecificWallType(pos, room);
         }
@@ -72,8 +53,10 @@ public static class WallTypeCalculator
     private static bool IsOnRoomEdge(Vector2Int pos, RoomModel room)
     {
         var bounds = room.Bounds;
-        return pos.y == bounds.yMax - 1 || pos.y == bounds.yMin || 
-               pos.x == bounds.xMax - 1 || pos.x == bounds.xMin;
+        return pos.y == bounds.yMax - 1 || 
+            pos.y == bounds.yMin || 
+            pos.x == bounds.xMax - 1 || 
+            pos.x == bounds.xMin;
     }
 
     private static WallType GetSpecificWallType(Vector2Int pos, RoomModel room)
@@ -99,19 +82,15 @@ public static class WallTypeCalculator
         return WallType.Interior;
     }
 
-    private static bool IsInAnyRoom(Vector2Int position, List<RoomModel> rooms)
-    {
-        return rooms.Any(room => room?.ContainsPosition(position) == true);
-    }
+    private static bool IsInAnyRoom(Vector2Int position, List<RoomModel> rooms) 
+        => rooms.Any(room => room?.ContainsPosition(position) == true);
 
     private static List<Vector2Int> GetCardinalNeighbors(Vector2Int pos)
-    {
-        return new List<Vector2Int>
+        => new()
         {
             new(pos.x + 1, pos.y),     // Right
             new(pos.x - 1, pos.y),     // Left
             new(pos.x, pos.y + 1),     // Up
             new(pos.x, pos.y - 1)      // Down
         };
-    }
 }
