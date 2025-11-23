@@ -1,11 +1,9 @@
 // -------------------------------------------------- //
 // Scripts/Services/ConfigService.cs
 // -------------------------------------------------- //
+
 using UnityEngine;
 
-/// <summary>
-/// Container for runtime copies of configuration objects to allow modification without affecting original assets.
-/// </summary>
 public class ConfigService
 {
     public GameConfig GameConfig { get; private set; }
@@ -13,9 +11,6 @@ public class ConfigService
     public PartitionConfig PartitionConfig { get; private set; }
     public RoomConfig RoomConfig { get; private set; }
 
-    /// <summary>
-    /// Creates deep copies of all configuration objects for runtime use.
-    /// </summary>
     public ConfigService(GameConfig gameConfig, LevelConfig levelConfig, PartitionConfig partitionConfig, RoomConfig roomConfig)
     {
         GameConfig = CreateConfigCopy(gameConfig);
@@ -36,13 +31,8 @@ public class ConfigService
             return new T();
         }
 
-        // Use clone method if available, otherwise create new instance
-        if (original is IConfigCloneable cloneable)
-        {
-            return (T)cloneable.Clone();
-        }
+        if (original is IConfigCloneable cloneable) return (T)cloneable.Clone();
 
-        // Fallback to manual copying for specific types
         return ManualConfigCopy(original);
     }
 
@@ -84,10 +74,7 @@ public class ConfigService
             copyRoom.MaxRooms = originalRoom.MaxRooms;
             copyRoom.SpawnPadding = originalRoom.SpawnPadding;
         }
-        else
-        {
-            Debug.LogWarning($"No manual copy implementation for {typeof(T).Name}, using default values");
-        }
+        else Debug.LogWarning($"No manual copy implementation for {typeof(T).Name}, using default values");
         
         return copy;
     }
@@ -100,9 +87,6 @@ public class ConfigService
         RoomConfig?.Validate();
     }
 
-    /// <summary>
-    /// Updates the level configuration for progression to the next floor.
-    /// </summary>
     public void ProgressToNextFloor(System.Random random)
     {
         LevelConfig.FloorLevel++;
@@ -111,25 +95,5 @@ public class ConfigService
         
         Debug.Log($"Progressed to floor {LevelConfig.FloorLevel}, new size: {LevelConfig.Width}x{LevelConfig.Height}");
     }
-
-    /// <summary>
-    /// Resets all configurations to their original state.
-    /// </summary>
-    public void Reset(GameConfig gameConfig, LevelConfig levelConfig, PartitionConfig partitionConfig, RoomConfig roomConfig)
-    {
-        GameConfig = CreateConfigCopy(gameConfig);
-        LevelConfig = CreateConfigCopy(levelConfig);
-        PartitionConfig = CreateConfigCopy(partitionConfig);
-        RoomConfig = CreateConfigCopy(roomConfig);
-        
-        ValidateAllConfigs();
-    }
 }
 
-/// <summary>
-/// Interface for configuration objects that support cloning.
-/// </summary>
-public interface IConfigCloneable
-{
-    object Clone();
-}

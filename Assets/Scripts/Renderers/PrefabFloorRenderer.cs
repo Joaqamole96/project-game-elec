@@ -5,7 +5,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-public class PrefabFloorRenderer : IFloorRenderer
+public class PrefabFloorRenderer
 {
     private GameObject _fallbackFloorPrefab;
     private BiomeManager _biomeManager;

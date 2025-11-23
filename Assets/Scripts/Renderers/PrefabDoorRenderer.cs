@@ -4,7 +4,7 @@
 
 using UnityEngine;
 
-public class PrefabDoorRenderer : IDoorRenderer
+public class PrefabDoorRenderer
 {
     private GameObject _fallbackDoorPrefab;
     private BiomeManager _biomeManager;

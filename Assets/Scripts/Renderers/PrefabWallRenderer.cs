@@ -5,7 +5,7 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-public class PrefabWallRenderer : IWallRenderer
+public class PrefabWallRenderer
 {
     private GameObject _fallbackWallPrefab;
     private BiomeManager _biomeManager;
