@@ -4,6 +4,7 @@ namespace EasyPeasyFirstPersonController
     using System.Collections;
     using UnityEngine;
 
+    [RequireComponent(typeof(CharacterController))]
     public partial class FirstPersonController : MonoBehaviour
     {
         [Range(0, 100)] public float mouseSensitivity = 50f;

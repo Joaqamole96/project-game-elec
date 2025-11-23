@@ -1,23 +1,22 @@
+// -------------------------------------------------- //
+// Scripts/Controllers/PlayerController.cs
+// -------------------------------------------------- //
+
 using UnityEngine;
 
+[RequireComponent(typeof(Rigidbody))]
 public class PlayerController : MonoBehaviour
 {
-    [Header("Movement")]
     public float moveSpeed = 5f;
     public float rotationSpeed = 10f;
-    
-    [Header("Combat")]
     public int maxHealth = 100;
     public int playerDamage = 15;
     public float attackRange = 2f;
     public float attackCooldown = 1f;
     public LayerMask enemyLayer = 1;
-    
-    [Header("References")]
+
     public Rigidbody rb;
     public Animator animator;
-    
-    // Properties
     public static PlayerController Instance { get; private set; }
     public int CurrentHealth { get; private set; }
     
@@ -32,10 +31,7 @@ public class PlayerController : MonoBehaviour
             Instance = this;
             DontDestroyOnLoad(gameObject);
         }
-        else
-        {
-            Destroy(gameObject);
-        }
+        else Destroy(gameObject);
     }
     
     void Start()
@@ -90,10 +86,7 @@ public class PlayerController : MonoBehaviour
     
     private void HandleCombatInput()
     {
-        if (Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0))
-        {
-            PerformAttack();
-        }
+        if (Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0)) PerformAttack();
     }
     
     // Alternative HandleMovement method - Player faces camera direction
@@ -117,10 +110,7 @@ public class PlayerController : MonoBehaviour
                 Debug.Log($"New Rotation: {transform.rotation.eulerAngles}");
             }
         }
-        else
-        {
-            rb.velocity = new Vector3(0, rb.velocity.y, 0);
-        }
+        else rb.velocity = new Vector3(0, rb.velocity.y, 0);
     }
     
     private void PerformAttack()
@@ -129,23 +119,14 @@ public class PlayerController : MonoBehaviour
         
         lastAttackTime = Time.time;
         
-        if (animator != null)
-        {
-            animator.SetTrigger("Attack");
-        }
+        if (animator != null) animator.SetTrigger("Attack");
         
         // Attack in the direction player is facing
         Vector3 attackDirection = transform.forward;
         Collider[] hitEnemies = Physics.OverlapSphere(transform.position + attackDirection * 1f, attackRange, enemyLayer);
         
         foreach (Collider enemy in hitEnemies)
-        {
-            EnemyController enemyController = enemy.GetComponent<EnemyController>();
-            if (enemyController != null)
-            {
-                enemyController.TakeDamage(playerDamage);
-            }
-        }
+            if (enemy.TryGetComponent<EnemyController>(out var enemyController)) enemyController.TakeDamage(playerDamage);
     }
     
     private void UpdateAnimations()
@@ -162,10 +143,7 @@ public class PlayerController : MonoBehaviour
         if (Time.frameCount % 30 == 0)
         {
             RoomManager roomManager = FindObjectOfType<RoomManager>();
-            if (roomManager != null)
-            {
-                roomManager.UpdatePlayerRoom(transform.position);
-            }
+            if (roomManager != null) roomManager.UpdatePlayerRoom(transform.position);
         }
     }
     
@@ -174,23 +152,14 @@ public class PlayerController : MonoBehaviour
         CurrentHealth -= damage;
         CurrentHealth = Mathf.Max(0, CurrentHealth);
         
-        if (animator != null)
-        {
-            animator.SetTrigger("TakeDamage");
-        }
+        if (animator != null) animator.SetTrigger("TakeDamage");
         
-        if (CurrentHealth <= 0)
-        {
-            Die();
-        }
+        if (CurrentHealth <= 0) Die();
     }
     
     private void Die()
     {
-        if (animator != null)
-        {
-            animator.SetTrigger("Die");
-        }
+        if (animator != null) animator.SetTrigger("Die");
         
         Debug.Log("Player died - Game Over!");
     }
@@ -212,10 +181,7 @@ public class PlayerController : MonoBehaviour
         isMoving = movement.magnitude > 0.1f;
     }
     
-    public void OnAttackButtonPressed()
-    {
-        PerformAttack();
-    }
+    public void OnAttackButtonPressed() => PerformAttack();
     
     void OnDrawGizmosSelected()
     {

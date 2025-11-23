@@ -1,22 +1,22 @@
+// -------------------------------------------------- //
+// Scripts/Controllers/EnemyController.cs
+// -------------------------------------------------- //
+
 using UnityEngine;
 using UnityEngine.AI;
 
+[RequireComponent(typeof(NavMeshAgent))]
 public class EnemyController : MonoBehaviour
 {
-    [Header("Enemy Stats")]
     public int maxHealth = 30;
     public int damage = 10;
     public float moveSpeed = 2f;
     public float attackRange = 1.5f;
     public float detectionRange = 8f;
     public float attackCooldown = 2f;
-    
-    [Header("References")]
     public NavMeshAgent agent;
     public Animator animator;
-    
     public enum EnemyState { Patrolling, Chasing, Attacking, Dead }
-    
     public int CurrentHealth { get; private set; }
     public EnemyState CurrentState { get; private set; }
     
@@ -28,16 +28,12 @@ public class EnemyController : MonoBehaviour
     void Start()
     {
         CurrentHealth = maxHealth;
-        player = GameObject.FindGameObjectWithTag("Player")?.transform;
+        player = GameObject.FindGameObjectWithTag("Player").transform;
         
-        if (agent == null)
-            agent = GetComponent<NavMeshAgent>();
-            
-        if (agent != null)
-        {
-            agent.speed = moveSpeed;
-            agent.stoppingDistance = attackRange - 0.2f;
-        }
+        if (agent == null) agent = GetComponent<NavMeshAgent>();
+
+        agent.speed = moveSpeed;
+        agent.stoppingDistance = attackRange - 0.2f;
         
         SetRandomPatrolPoint();
         SetState(EnemyState.Patrolling);
@@ -63,10 +59,7 @@ public class EnemyController : MonoBehaviour
             return;
         }
         
-        if (agent.remainingDistance <= agent.stoppingDistance)
-        {
-            SetRandomPatrolPoint();
-        }
+        if (agent.remainingDistance <= agent.stoppingDistance) SetRandomPatrolPoint();
     }
     
     private void UpdateChasing()
@@ -83,55 +76,36 @@ public class EnemyController : MonoBehaviour
             return;
         }
         
-        if (agent != null && agent.isOnNavMesh)
-        {
-            agent.SetDestination(player.position);
-        }
+        if (agent != null && agent.isOnNavMesh) agent.SetDestination(player.position);
     }
     
     private void UpdateAttacking()
     {
-        if (agent != null)
-            agent.SetDestination(transform.position);
+        if (agent != null) agent.SetDestination(transform.position);
         
         FacePlayer();
         
-        if (!PlayerInRange(attackRange))
-        {
-            SetState(EnemyState.Chasing);
-        }
-        else if (Time.time >= lastAttackTime + attackCooldown)
-        {
-            PerformAttack();
-        }
+        if (!PlayerInRange(attackRange)) SetState(EnemyState.Chasing);
+        else if (Time.time >= lastAttackTime + attackCooldown) PerformAttack();
     }
     
     private void FacePlayer()
     {
         Vector3 direction = (player.position - transform.position).normalized;
         direction.y = 0;
-        if (direction != Vector3.zero)
-        {
-            transform.rotation = Quaternion.LookRotation(direction);
-        }
+        if (direction != Vector3.zero) transform.rotation = Quaternion.LookRotation(direction);
     }
     
     private void PerformAttack()
     {
         lastAttackTime = Time.time;
         
-        if (animator != null)
-        {
-            animator.SetTrigger("Attack");
-        }
+        if (animator != null) animator.SetTrigger("Attack");
         
         if (PlayerInRange(attackRange))
         {
             PlayerController playerController = player.GetComponent<PlayerController>();
-            if (playerController != null)
-            {
-                playerController.TakeDamage(damage);
-            }
+            if (playerController != null) playerController.TakeDamage(damage);
         }
     }
     
@@ -145,15 +119,11 @@ public class EnemyController : MonoBehaviour
     {
         Vector2 randomCircle = Random.insideUnitCircle * 3f;
         patrolPoint = transform.position + new Vector3(randomCircle.x, 0, randomCircle.y);
-        
-        NavMeshHit hit;
-        if (NavMesh.SamplePosition(patrolPoint, out hit, 3f, NavMesh.AllAreas))
+
+        if (NavMesh.SamplePosition(patrolPoint, out NavMeshHit hit, 3f, NavMesh.AllAreas))
         {
             patrolPoint = hit.position;
-            if (agent != null && agent.isOnNavMesh)
-            {
-                agent.SetDestination(patrolPoint);
-            }
+            if (agent != null && agent.isOnNavMesh) agent.SetDestination(patrolPoint);
         }
     }
     
@@ -177,15 +147,9 @@ public class EnemyController : MonoBehaviour
         CurrentHealth -= damage;
         CurrentHealth = Mathf.Max(0, CurrentHealth);
         
-        if (CurrentState != EnemyState.Chasing && CurrentState != EnemyState.Attacking)
-        {
-            SetState(EnemyState.Chasing);
-        }
+        if (CurrentState != EnemyState.Chasing && CurrentState != EnemyState.Attacking) SetState(EnemyState.Chasing);
         
-        if (CurrentHealth <= 0)
-        {
-            Die();
-        }
+        if (CurrentHealth <= 0) Die();
     }
     
     private void Die()
@@ -193,17 +157,12 @@ public class EnemyController : MonoBehaviour
         isDead = true;
         SetState(EnemyState.Dead);
         
-        if (agent != null)
-            agent.isStopped = true;
+        if (agent != null) agent.isStopped = true;
             
-        if (animator != null)
-            animator.SetTrigger("Die");
+        if (animator != null) animator.SetTrigger("Die");
         
         Collider[] colliders = GetComponents<Collider>();
-        foreach (Collider col in colliders)
-        {
-            col.enabled = false;
-        }
+        foreach (Collider col in colliders) col.enabled = false;
         
         Destroy(gameObject, 2f);
     }

@@ -12,18 +12,18 @@ public class WallModel
     public int Health;
     public int MaxHealth;
 
-    public WallModel(Vector2Int position, WallType type, bool isDestructible = false)
-    {
-        Position = position;
-        Type = type;
-        IsDestructible = isDestructible;
+    // public WallModel(Vector2Int position, WallType type, bool isDestructible = false)
+    // {
+    //     Position = position;
+    //     Type = type;
+    //     IsDestructible = isDestructible;
         
-        if (isDestructible)
-        {
-            MaxHealth = CalculateMaxHealth(type);
-            Health = MaxHealth;
-        }
-    }
+    //     if (isDestructible)
+    //     {
+    //         MaxHealth = CalculateMaxHealth(type);
+    //         Health = MaxHealth;
+    //     }
+    // }
 
     private int CalculateMaxHealth(WallType wallType)
     {

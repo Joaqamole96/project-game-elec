@@ -9,7 +9,7 @@ using System.Linq;
 using Debug = UnityEngine.Debug;
 
 [RequireComponent(typeof(BiomeManager))]
-[RequireComponent(typeof(PlayerSpawner))]
+[RequireComponent(typeof(PlayerManager))]
 public class LayoutManager : MonoBehaviour
 {
     // Configuration
@@ -201,7 +201,7 @@ public class LayoutManager : MonoBehaviour
 
     private void NotifyDungeonReady()
     {
-        GetComponent<PlayerSpawner>().OnDungeonGenerated();
+        GetComponent<PlayerManager>().OnDungeonGenerated();
     }
 
     [ContextMenu("Next Floor")]

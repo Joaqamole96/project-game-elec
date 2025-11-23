@@ -1,24 +1,24 @@
+// -------------------------------------------------- //
+// Scripts/Controllers/DoorController.cs
+// -------------------------------------------------- //
+
 using UnityEngine;
 
+[RequireComponent(typeof(Collider))]
 public class DoorController : MonoBehaviour
 {
-    [Header("Door Settings")]
     public bool isLocked = false;
     public bool isOpen = false;
     public KeyType requiredKey = KeyType.None;
-    
-    [Header("References")]
     public GameObject doorModel;
     public Collider blockingCollider;
     public Collider triggerCollider;
     
     void Start()
     {
-        if (blockingCollider == null)
-            blockingCollider = GetComponent<Collider>();
+        if (blockingCollider == null) blockingCollider = GetComponent<Collider>();
             
-        if (doorModel == null && transform.childCount > 0)
-            doorModel = transform.GetChild(0).gameObject;
+        if (doorModel == null && transform.childCount > 0) doorModel = transform.GetChild(0).gameObject;
             
         SetupTriggerCollider();
     }
@@ -26,14 +26,13 @@ public class DoorController : MonoBehaviour
     private void SetupTriggerCollider()
     {
         Collider[] colliders = GetComponents<Collider>();
+
         foreach (Collider col in colliders)
-        {
             if (col.isTrigger)
             {
                 triggerCollider = col;
                 return;
             }
-        }
         
         BoxCollider trigger = gameObject.AddComponent<BoxCollider>();
         trigger.isTrigger = true;
@@ -44,25 +43,13 @@ public class DoorController : MonoBehaviour
     
     void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("Player"))
-        {
-            TryOpenDoor();
-        }
+        if (other.CompareTag("Player")) TryOpenDoor();
     }
     
     public void TryOpenDoor()
     {
-        if (isLocked)
-        {
-            if (PlayerHasRequiredKey())
-            {
-                OpenDoor();
-            }
-        }
-        else
-        {
-            OpenDoor();
-        }
+        if (isLocked && PlayerHasRequiredKey()) OpenDoor();
+        else OpenDoor();
     }
     
     private bool PlayerHasRequiredKey()
@@ -77,11 +64,9 @@ public class DoorController : MonoBehaviour
         {
             isOpen = true;
             
-            if (blockingCollider != null)
-                blockingCollider.enabled = false;
+            if (blockingCollider != null) blockingCollider.enabled = false;
                 
-            if (doorModel != null)
-                doorModel.SetActive(false);
+            if (doorModel != null) doorModel.SetActive(false);
         }
     }
     
@@ -91,32 +76,9 @@ public class DoorController : MonoBehaviour
         {
             isOpen = false;
             
-            if (blockingCollider != null)
-                blockingCollider.enabled = true;
+            if (blockingCollider != null) blockingCollider.enabled = true;
                 
-            if (doorModel != null)
-                doorModel.SetActive(true);
+            if (doorModel != null) doorModel.SetActive(true);
         }
-    }
-    
-    public void LockDoor(KeyType keyType)
-    {
-        isLocked = true;
-        requiredKey = keyType;
-        CloseDoor();
-    }
-    
-    public void UnlockDoor()
-    {
-        isLocked = false;
-        requiredKey = KeyType.None;
-    }
-    
-    public void Interact()
-    {
-        if (isOpen)
-            CloseDoor();
-        else
-            TryOpenDoor();
     }
 }

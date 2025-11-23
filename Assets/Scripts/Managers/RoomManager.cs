@@ -1,25 +1,18 @@
+// -------------------------------------------------- //
+// Scripts/Manaers/RoomManager.cs
+// -------------------------------------------------- //
+
 using UnityEngine;
 
 public class RoomManager : MonoBehaviour
 {
     public static RoomManager Instance { get; private set; }
-    
     public RoomModel CurrentRoom { get; private set; }
-    
     private LevelModel currentLevel;
     
     void Awake()
     {
-        if (Instance == null)
-        {
-            Instance = this;
-        }
-    }
-    
-    public void SetCurrentLevel(LevelModel level)
-    {
-        currentLevel = level;
-        Debug.Log($"RoomManager: Tracking {level.Rooms.Count} rooms");
+        if (Instance == null) Instance = this;
     }
     
     public void UpdatePlayerRoom(Vector3 playerPosition)
@@ -44,23 +37,12 @@ public class RoomManager : MonoBehaviour
     {
         Debug.Log($"Entered {room.Type} room (ID: {room.ID})");
         
-        if (room.Type == RoomType.Combat && !room.IsCleared)
-        {
-            StartCombatInRoom(room);
-        }
+        if (room.Type == RoomType.Combat && !room.IsCleared) StartCombatInRoom();
     }
     
-    private void StartCombatInRoom(RoomModel room)
+    private void StartCombatInRoom()
     {
         Debug.Log("Combat started!");
         // Future: Close doors, spawn enemies if not already present
-    }
-    
-    public void MarkRoomCleared(RoomModel room)
-    {
-        if (room != null)
-        {
-            room.MarkAsCleared();
-        }
     }
 }

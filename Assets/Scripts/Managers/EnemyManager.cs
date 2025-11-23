@@ -1,14 +1,15 @@
+// -------------------------------------------------- //
+// Scripts/Manager/EnemyManager.cs
+// -------------------------------------------------- //
+
 using UnityEngine;
 using System.Collections;
 
-public class EnemySpawner : MonoBehaviour
+public class EnemyManager : MonoBehaviour
 {
-    [Header("Enemy Prefabs")]
+    private static WaitForSeconds _waitForSeconds1 = new WaitForSeconds(1f);
     public GameObject enemyPrefab;
-    
-    [Header("Spawning Settings")]
     public int maxEnemiesPerRoom = 2;
-    
     private LevelModel currentLevel;
     
     void Start()
@@ -18,7 +19,7 @@ public class EnemySpawner : MonoBehaviour
     
     private IEnumerator InitializeSpawning()
     {
-        yield return new WaitForSeconds(1f);
+        yield return _waitForSeconds1;
         
         LayoutManager generator = FindObjectOfType<LayoutManager>();
         if (generator != null && generator.CurrentLayout != null)
@@ -35,12 +36,7 @@ public class EnemySpawner : MonoBehaviour
         int totalEnemies = 0;
         
         foreach (var room in currentLevel.Rooms)
-        {
-            if (room.Type == RoomType.Combat && !room.IsCleared)
-            {
-                totalEnemies += SpawnEnemiesInRoom(room);
-            }
-        }
+            if (room.Type == RoomType.Combat && !room.IsCleared) totalEnemies += SpawnEnemiesInRoom(room);
         
         Debug.Log($"Spawned {totalEnemies} enemies across dungeon");
     }
