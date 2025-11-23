@@ -1,11 +1,10 @@
-// AdvancedMeshCombiner.cs
+// -------------------------------------------------- //
+// Scripts/Renderers/AdvancedMeshCombiner.cs
+// -------------------------------------------------- //
+
 using UnityEngine;
 using System.Collections.Generic;
 
-/// <summary>
-/// Advanced mesh combining system that handles large numbers of meshes efficiently.
-/// Supports material-based grouping and automatic vertex limit management.
-/// </summary>
 [System.Serializable]
 public class AdvancedMeshCombiner
 {
