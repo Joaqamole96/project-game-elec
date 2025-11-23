@@ -9,6 +9,7 @@ using System.Linq;
 using Debug = UnityEngine.Debug;
 
 [RequireComponent(typeof(BiomeManager))]
+[RequireComponent(typeof(PlayerSpawner))]
 public class LayoutManager : MonoBehaviour
 {
     // Configuration
@@ -16,9 +17,6 @@ public class LayoutManager : MonoBehaviour
     public LevelConfig LevelConfig;
     public PartitionConfig PartitionConfig;
     public RoomConfig RoomConfig;
-    
-    // Rendering Mode
-    // public RenderMode Mode = RenderMode.Real;
     
     // Environment Settings
     public bool EnableCeiling = true;
@@ -37,11 +35,6 @@ public class LayoutManager : MonoBehaviour
     public bool EnableWallCollision = true;
     public bool EnableDoorCollision = false;
     
-    // Material Settings - Gizmo Mode
-    // public Material DefaultFloorMaterial;
-    // public Material DefaultWallMaterial;
-    // public Material DefaultDoorMaterial;
-    
     // Public Accessors
     public LevelModel CurrentLayout => _layout;
     
@@ -56,9 +49,6 @@ public class LayoutManager : MonoBehaviour
     private ConfigService _configService;
     
     // Rendering components
-    // private IFloorRenderer _floorRenderer;
-    // private IWallRenderer _wallRenderer;
-    // private IDoorRenderer _doorRenderer;
     private PrefabFloorRenderer _floorRenderer;
     private PrefabWallRenderer _wallRenderer;
     private PrefabDoorRenderer _doorRenderer;
@@ -74,8 +64,6 @@ public class LayoutManager : MonoBehaviour
     private LevelConfig RuntimeLevelConfig => _configService?.LevelConfig ?? LevelConfig;
     private PartitionConfig RuntimePartitionConfig => _configService?.PartitionConfig ?? PartitionConfig;
     private RoomConfig RuntimeRoomConfig => _configService?.RoomConfig ?? RoomConfig;
-
-    // public enum RenderMode { Gizmo, Real }
 
     // ------------------------- //
     
@@ -110,9 +98,10 @@ public class LayoutManager : MonoBehaviour
 
     private void InitializeRenderingComponents()
     {
-        // _materialService = new MaterialService(DefaultFloorMaterial, DefaultWallMaterial, DefaultDoorMaterial);
-        _biomeManager = new BiomeManager(RuntimeLevelConfig.Seed);
-        _optimizedRenderer = new OptimizedPrefabRenderer(_biomeManager);
+        // Find a way to use GetComponent for BiomeManager AND pass on Seed as argument.
+        _biomeManager = gameObject.AddComponent<BiomeManager>();
+        _biomeManager.InitializeRandom(RuntimeLevelConfig.Seed);
+        _optimizedRenderer = new(_biomeManager);
 
         // Find or create parent transforms
         FloorsParent = CreateParentIfNull(FloorsParent, "Floors");
@@ -123,7 +112,7 @@ public class LayoutManager : MonoBehaviour
         
         InitializeRenderers();
         
-        _specialRenderer = new SpecialRoomRenderer(
+        _specialRenderer = new(
             _biomeManager.GetSpecialRoomPrefab(RoomType.Entrance), 
             _biomeManager.GetSpecialRoomPrefab(RoomType.Exit), 
             _biomeManager
@@ -132,18 +121,6 @@ public class LayoutManager : MonoBehaviour
 
     private void InitializeRenderers()
     {
-        // if (Mode == RenderMode.Gizmo)
-        // {
-        //     _floorRenderer = new GizmoFloorRenderer(_materialService);
-        //     _wallRenderer = new GizmoWallRenderer(_materialService);
-        //     _doorRenderer = new GizmoDoorRenderer(_materialService);
-        // }
-        // else
-        // {
-        //     _floorRenderer = new PrefabFloorRenderer(_biomeManager.GetPrefab("Biomes/Default/FloorPrefab"), _materialService, _biomeManager);
-        //     _wallRenderer = new PrefabWallRenderer(_biomeManager.GetPrefab("Biomes/Default/WallPrefab"), _materialService, _biomeManager);
-        //     _doorRenderer = new PrefabDoorRenderer(_biomeManager.GetPrefab("Biomes/Default/DoorPrefab"), _materialService, _biomeManager);
-        // }
         _floorRenderer = new PrefabFloorRenderer(_biomeManager.GetPrefab("Biomes/Default/FloorPrefab"), _materialService, _biomeManager);
         _wallRenderer = new PrefabWallRenderer(_biomeManager.GetPrefab("Biomes/Default/WallPrefab"), _materialService, _biomeManager);
         _doorRenderer = new PrefabDoorRenderer(_biomeManager.GetPrefab("Biomes/Default/DoorPrefab"), _materialService, _biomeManager);
@@ -195,21 +172,11 @@ public class LayoutManager : MonoBehaviour
         ClearRendering();
         CreateParentContainers();
 
-        // if (Mode == RenderMode.Gizmo) RenderGizmoMode(_layout, _rooms);
-        // else RenderRealMode(_layout, RuntimeLevelConfig.FloorLevel);
         RenderRealMode(_layout, RuntimeLevelConfig.FloorLevel);
         
         RenderSpecialObjects(_layout, _rooms);
         LogRenderingResults();
     }
-
-    // private void RenderGizmoMode(LevelModel layout, List<RoomModel> rooms)
-    // {
-    //     _materialService.InitializeMaterialCache();
-    //     RenderFloors(layout, rooms);
-    //     RenderWalls(layout);
-    //     RenderDoors(layout);
-    // }
 
     private void RenderRealMode(LevelModel layout, int floorLevel)
     {
@@ -234,7 +201,7 @@ public class LayoutManager : MonoBehaviour
 
     private void NotifyDungeonReady()
     {
-        GetComponent<PlayerSpawner>()?.OnDungeonGenerated();
+        GetComponent<PlayerSpawner>().OnDungeonGenerated();
     }
 
     [ContextMenu("Next Floor")]
@@ -254,14 +221,8 @@ public class LayoutManager : MonoBehaviour
     private void GrowFloorSize()
     {
         bool growWidth = _random.NextDouble() > 0.5;
-        if (growWidth)
-        {
-            RuntimeLevelConfig.Width = Mathf.Min(RuntimeLevelConfig.Width + RuntimeLevelConfig.FloorGrowth, RuntimeLevelConfig.MaxFloorSize);
-        }
-        else
-        {
-            RuntimeLevelConfig.Height = Mathf.Min(RuntimeLevelConfig.Height + RuntimeLevelConfig.FloorGrowth, RuntimeLevelConfig.MaxFloorSize);
-        }
+        if (growWidth) RuntimeLevelConfig.Width = Mathf.Min(RuntimeLevelConfig.Width + RuntimeLevelConfig.FloorGrowth, RuntimeLevelConfig.MaxFloorSize);
+        else RuntimeLevelConfig.Height = Mathf.Min(RuntimeLevelConfig.Height + RuntimeLevelConfig.FloorGrowth, RuntimeLevelConfig.MaxFloorSize);
     }
 
     private LevelModel GenerateDungeonLayout()
@@ -320,82 +281,10 @@ public class LayoutManager : MonoBehaviour
             InitializeRenderingComponents();
     }
 
-    private void RenderFloors(LevelModel layout, List<RoomModel> rooms)
-    {
-        if (layout?.AllFloorTiles == null || rooms == null) throw new("Cannot render floors: layout or rooms is null");
-        
-        Debug.Log($"Starting floor rendering: {layout.AllFloorTiles.Count} floor tiles, {rooms.Count} rooms");
-        
-        // if (CombineMeshes && Mode == RenderMode.Gizmo) RenderCombinedFloors(layout, rooms);
-        // else RenderIndividualFloors(layout, rooms);
-        RenderIndividualFloors(layout, rooms);
-        
-        LogFloorRenderingResults();
-    }
-
-    private void RenderCombinedFloors(LevelModel layout, List<RoomModel> rooms)
-    {
-        Debug.Log("Using combined mesh rendering for floors");
-        var floorMeshes = _floorRenderer.RenderCombinedFloorsByRoomType(layout, rooms, FloorsParent);
-        _spawnedContainers.AddRange(floorMeshes);
-        
-        if (EnableFloorCollision)
-            foreach (var mesh in floorMeshes)
-                AddCollisionToObject(mesh, "Floor");
-        
-        Debug.Log($"Combined mesh rendering complete: {floorMeshes.Count} mesh objects created");
-    }
-
-    private void RenderIndividualFloors(LevelModel layout, List<RoomModel> rooms)
-    {
-        Debug.Log("Using individual floor rendering");
-        _floorRenderer.RenderIndividualFloors(layout, rooms, FloorsParent, EnableFloorCollision);
-    }
-
-    private void RenderWalls(LevelModel layout)
-    {
-        if (layout?.AllWallTiles == null || layout.WallTypes == null) return;
-        
-        // if (CombineMeshes && Mode == RenderMode.Gizmo)
-        // {
-        //     var wallMeshes = _wallRenderer.RenderCombinedWallsByType(layout, WallsParent);
-        //     _spawnedContainers.AddRange(wallMeshes);
-            
-        //     if (EnableWallCollision)
-        //         foreach (var mesh in wallMeshes)
-        //             AddCollisionToObject(mesh, "Wall");
-        // }
-        else _wallRenderer.RenderIndividualWalls(layout, WallsParent, EnableWallCollision);
-        _wallRenderer.RenderIndividualWalls(layout, WallsParent, EnableWallCollision);
-    }
-
-    private void RenderDoors(LevelModel layout)
-    {
-        if (layout?.AllDoorTiles == null) return;
-        _doorRenderer.RenderDoors(layout, DoorsParent, EnableDoorCollision);
-    }
-
     private void RenderSpecialObjects(LevelModel layout, List<RoomModel> rooms)
     {
         // if (Mode == RenderMode.Real) _specialRenderer.RenderSpecialObjects(layout, rooms, SpecialObjectsParent);
         _specialRenderer.RenderSpecialObjects(layout, rooms, SpecialObjectsParent);
-    }
-
-    private void AddCollisionToObject(GameObject obj, string objectType)
-    {
-        if (obj == null) return;
-
-        if (obj.GetComponent<Collider>() == null) obj.AddComponent<BoxCollider>();
-
-        if (objectType == "Door")
-        {
-            var rb = obj.GetComponent<Rigidbody>();
-            if (rb == null)
-            {
-                rb = obj.AddComponent<Rigidbody>();
-                rb.isKinematic = true;
-            }
-        }
     }
 
     private void CreateParentContainers()
@@ -409,7 +298,7 @@ public class LayoutManager : MonoBehaviour
 
     private Transform CreateParentIfNull(Transform parent, string name)
     {
-        return parent ?? CreateParent(name);
+        return parent != null ? parent : CreateParent(name);
     }
 
     private Transform CreateParent(string name)
@@ -472,12 +361,6 @@ public class LayoutManager : MonoBehaviour
         ClearSpawnedContainers();
         ClearAllChildObjects();
         CleanupMaterials();
-    }
-
-    private void LogFloorRenderingResults()
-    {
-        int renderedFloors = FloorsParent?.childCount ?? 0;
-        Debug.Log($"Floor rendering complete: {renderedFloors} floor objects in scene");
     }
 
     private void LogRenderingResults()

@@ -16,21 +16,14 @@ public class BiomeManager : MonoBehaviour
 
     public Dictionary<string, GameObject> _prefabCache = new();
 
-    private readonly System.Random _random;
+    private System.Random _random;
 
     // ------------------------- //
 
-    public BiomeManager(int seed)
+    public void InitializeRandom(int seed) 
     {
         _random = new(seed);
-        // InitializeDefaultBiomes();
     }
-
-    // private void InitializeDefaultBiomes()
-    // {
-    //     Biomes.Add(new BiomeModel("Default", 1, 100));
-    //     // Biomes.Add(new BiomeModel("Grasslands", 1, 100));
-    // }
 
     public BiomeModel GetBiomeForFloor(int floorLevel)
     {
@@ -41,37 +34,8 @@ public class BiomeManager : MonoBehaviour
 
         if (validBiomes.Count == 1) return validBiomes[0];
 
-        // Weighted random selection
-        // float totalWeight = CalculateTotalWeight(validBiomes);
-        // float randomValue = (float)_random.NextDouble() * totalWeight;
-        
-        // return SelectBiomeByWeight(validBiomes, randomValue);
-
         return validBiomes[_random.Next(0, validBiomes.Count)];
     }
-
-    // private float CalculateTotalWeight(List<BiomeModel> biomes)
-    // {
-    //     float total = 0f;
-
-    //     foreach (var biome in biomes) total += biome.Weight;
-
-    //     return total;
-    // }
-
-    // private BiomeModel SelectBiomeByWeight(List<BiomeModel> biomes, float randomValue)
-    // {
-    //     float currentWeight = 0f;
-
-    //     foreach (var biome in biomes)
-    //     {
-    //         currentWeight += biome.Weight;
-    //         if (randomValue <= currentWeight)
-    //             return biome;
-    //     }
-
-    //     return biomes[0];
-    // }
 
     public GameObject GetPrefab(string prefabPath)
     {
@@ -91,16 +55,6 @@ public class BiomeManager : MonoBehaviour
 
         return prefab;
     }
-
-    // private void LogAvailableResources(string failedPath)
-    // {
-    //     var availableFloors = Resources.LoadAll<GameObject>("Biomes/Default");
-    //     Debug.Log($"Available resources in Biomes/Default: {availableFloors.Length}");
-    //     foreach (var resource in availableFloors)
-    //     {
-    //         Debug.Log($" - {resource.name}");
-    //     }
-    // }
 
     public GameObject GetSpecialRoomPrefab(RoomType roomType)
     {
