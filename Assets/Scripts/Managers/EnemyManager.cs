@@ -7,7 +7,7 @@ using System.Collections;
 
 public class EnemyManager : MonoBehaviour
 {
-    private static WaitForSeconds _waitForSeconds1 = new WaitForSeconds(1f);
+    private static WaitForSeconds _waitForSeconds1 = new(1f);
     public GameObject enemyPrefab;
     public int maxEnemiesPerRoom = 2;
     private LevelModel currentLevel;

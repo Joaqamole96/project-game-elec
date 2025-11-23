@@ -70,14 +70,18 @@ public class MaterialService
     {
         if (_defaultFloorMaterial != null)
         {
-            Material newMaterial = new(_defaultFloorMaterial);
-            newMaterial.color = color;
+            Material newMaterial = new(_defaultFloorMaterial)
+            {
+                color = color
+            };
             return newMaterial;
         }
         else
         {
-            Material newMaterial = new(Shader.Find("Standard"));
-            newMaterial.color = color;
+            Material newMaterial = new(Shader.Find("Standard"))
+            {
+                color = color
+            };
             return newMaterial;
         }
     }

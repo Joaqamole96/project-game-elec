@@ -1,4 +1,6 @@
-// ConfigService.cs
+// -------------------------------------------------- //
+// Scripts/Services/ConfigService.cs
+// -------------------------------------------------- //
 using UnityEngine;
 
 /// <summary>

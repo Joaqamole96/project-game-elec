@@ -1,12 +1,12 @@
 // -------------------------------------------------- //
-// Scripts/Renderers/AdvancedMeshCombiner.cs
+// Scripts/Generators/MeshGenerator.cs
 // -------------------------------------------------- //
 
 using UnityEngine;
 using System.Collections.Generic;
 
 [System.Serializable]
-public class AdvancedMeshCombiner
+public class MeshGenerator
 {
     [System.Serializable]
     public class CombinedMeshData

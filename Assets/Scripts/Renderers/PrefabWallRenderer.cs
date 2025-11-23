@@ -1,55 +1,31 @@
-// PrefabWallRenderer.cs
+// -------------------------------------------------- //
+// Scripts/Renderers/PrefabWallRenderer.cs
+// -------------------------------------------------- //
+
 using UnityEngine;
 using System.Collections.Generic;
-using System.Linq;
 
-/// <summary>
-/// Renders walls in Real mode using actual prefabs for gameplay.
-/// Supports biome biomes and proper wall orientation.
-/// </summary>
 public class PrefabWallRenderer : IWallRenderer
 {
     private GameObject _fallbackWallPrefab;
-    private MaterialService _materialService;
     private BiomeManager _biomeManager;
     private BiomeModel _currentBiome;
 
-    public PrefabWallRenderer(GameObject wallPrefab, MaterialService materialService, BiomeManager biomeManager)
+    public PrefabWallRenderer(GameObject wallPrefab, BiomeManager biomeManager)
     {
         _fallbackWallPrefab = wallPrefab;
-        _materialService = materialService;
         _biomeManager = biomeManager;
     }
 
-    /// <summary>
-    /// Sets the current biome biome for prefab selection.
-    /// </summary>
-    public void SetBiome(BiomeModel biome)
-    {
-        _currentBiome = biome;
-    }
-
-    /// <summary>
-    /// Renders walls as combined meshes (not typically used in Real mode with prefabs).
-    /// </summary>
     public List<GameObject> RenderCombinedWallsByType(LevelModel layout, Transform parent)
     {
-        // In real mode with prefabs, we typically don't combine meshes
-        // But we'll return empty list for interface compliance
         RenderIndividualWalls(layout, parent, false);
         return new List<GameObject>();
     }
 
-    /// <summary>
-    /// Renders walls as individual prefab instances with proper orientation.
-    /// </summary>
     public void RenderIndividualWalls(LevelModel layout, Transform parent, bool enableCollision)
     {
-        if (layout?.AllWallTiles == null || layout.WallTypes == null)
-        {
-            Debug.LogError("Cannot render prefab walls: layout data is null");
-            return;
-        }
+        if (layout?.AllWallTiles == null || layout.WallTypes == null) throw new("Cannot render prefab walls: layout data is null");
 
         int wallsCreated = 0;
         foreach (var wallPos in layout.AllWallTiles)
@@ -62,10 +38,7 @@ public class PrefabWallRenderer : IWallRenderer
                 if (wall != null)
                 {
                     wall.transform.SetParent(parent);
-                    
-                    if (enableCollision)
-                        AddCollisionToObject(wall, "Wall");
-                    
+                    if (enableCollision) AddCollisionToObject(wall);
                     wallsCreated++;
                 }
             }
@@ -76,10 +49,9 @@ public class PrefabWallRenderer : IWallRenderer
 
     private GameObject CreateWallAtPosition(Vector2Int gridPos, WallType wallType, GameObject prefab)
     {
-        Vector3 worldPos = new(gridPos.x + 0.5f, 1f, gridPos.y + 0.5f); // Walls at 1 unit height
+        Vector3 worldPos = new(gridPos.x + 0.5f, 1f, gridPos.y + 0.5f);
         
-        // Use the biome-specific prefab if available, otherwise use fallback
-        GameObject wallPrefabToUse = prefab ?? _fallbackWallPrefab;
+        GameObject wallPrefabToUse = prefab != null ? prefab : _fallbackWallPrefab;
         
         if (wallPrefabToUse == null)
         {
@@ -90,7 +62,6 @@ public class PrefabWallRenderer : IWallRenderer
         var wall = Object.Instantiate(wallPrefabToUse, worldPos, Quaternion.identity);
         wall.name = $"Wall_{wallType}_{gridPos.x}_{gridPos.y}";
         
-        // Apply wall rotation for better visual alignment
         ApplyWallRotation(wall, wallType);
         
         return wall;
@@ -100,7 +71,6 @@ public class PrefabWallRenderer : IWallRenderer
     {
         if (wall == null) return;
 
-        // Adjust rotation based on wall type for better visual presentation
         Quaternion rotation = GetWallRotation(wallType);
         wall.transform.rotation = rotation;
     }
@@ -118,10 +88,9 @@ public class PrefabWallRenderer : IWallRenderer
         };
     }
 
-    private void AddCollisionToObject(GameObject obj, string objectType)
+    private void AddCollisionToObject(GameObject obj)
     {
         if (obj == null) return;
-        if (obj.GetComponent<Collider>() == null)
-            obj.AddComponent<BoxCollider>();
+        if (obj.GetComponent<Collider>() == null) obj.AddComponent<BoxCollider>();
     }
 }

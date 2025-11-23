@@ -1,55 +1,31 @@
-// PrefabFloorRenderer.cs
+// -------------------------------------------------- //
+// Scripts/Renderers/PrefabFloorRenderer.cs
+// -------------------------------------------------- //
+
 using UnityEngine;
 using System.Collections.Generic;
-using System.Linq;
 
-/// <summary>
-/// Renders floors in Real mode using actual prefabs for gameplay.
-/// Supports biome biomes and individual prefab instantiation.
-/// </summary>
 public class PrefabFloorRenderer : IFloorRenderer
 {
     private GameObject _fallbackFloorPrefab;
-    private MaterialService _materialService;
     private BiomeManager _biomeManager;
     private BiomeModel _currentBiome;
 
-    public PrefabFloorRenderer(GameObject floorPrefab, MaterialService materialService, BiomeManager biomeManager)
+    public PrefabFloorRenderer(GameObject floorPrefab, BiomeManager biomeManager)
     {
         _fallbackFloorPrefab = floorPrefab;
-        _materialService = materialService;
         _biomeManager = biomeManager;
     }
 
-    /// <summary>
-    /// Sets the current biome biome for prefab selection.
-    /// </summary>
-    public void SetBiome(BiomeModel biome)
-    {
-        _currentBiome = biome;
-    }
-
-    /// <summary>
-    /// Renders floors as combined meshes (not typically used in Real mode with prefabs).
-    /// </summary>
     public List<GameObject> RenderCombinedFloorsByRoomType(LevelModel layout, List<RoomModel> rooms, Transform parent)
     {
-        // In real mode with prefabs, we typically don't combine meshes
-        // But we'll return empty list for interface compliance
         RenderIndividualFloors(layout, rooms, parent, false);
         return new List<GameObject>();
     }
 
-    /// <summary>
-    /// Renders floors as individual prefab instances.
-    /// </summary>
     public void RenderIndividualFloors(LevelModel layout, List<RoomModel> rooms, Transform parent, bool enableCollision)
     {
-        if (layout?.AllFloorTiles == null)
-        {
-            Debug.LogError("Cannot render prefab floors: layout or floor tiles is null");
-            return;
-        }
+        if (layout?.AllFloorTiles == null) throw new("Cannot render prefab floors: layout or floor tiles is null");
 
         int floorsCreated = 0;
         foreach (var floorPos in layout.AllFloorTiles)
@@ -60,10 +36,7 @@ public class PrefabFloorRenderer : IFloorRenderer
             if (floor != null)
             {
                 floor.transform.SetParent(parent);
-                
-                if (enableCollision)
-                    AddCollisionToObject(floor, "Floor");
-                
+                if (enableCollision) AddCollisionToObject(floor);
                 floorsCreated++;
             }
         }
@@ -75,7 +48,6 @@ public class PrefabFloorRenderer : IFloorRenderer
     {
         Vector3 worldPos = new(gridPos.x + 0.5f, 0f, gridPos.y + 0.5f);
         
-        // Use the biome-specific prefab if available, otherwise use fallback
         GameObject floorPrefabToUse = prefab ?? _fallbackFloorPrefab;
         
         if (floorPrefabToUse == null)
@@ -90,10 +62,9 @@ public class PrefabFloorRenderer : IFloorRenderer
         return floor;
     }
 
-    private void AddCollisionToObject(GameObject obj, string objectType)
+    private void AddCollisionToObject(GameObject obj)
     {
         if (obj == null) return;
-        if (obj.GetComponent<Collider>() == null)
-            obj.AddComponent<BoxCollider>();
+        if (obj.GetComponent<Collider>() == null) obj.AddComponent<BoxCollider>();
     }
 }

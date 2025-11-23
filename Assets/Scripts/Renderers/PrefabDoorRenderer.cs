@@ -1,60 +1,35 @@
-// PrefabDoorRenderer.cs
-using UnityEngine;
-using System.Collections.Generic;
+// -------------------------------------------------- //
+// Scripts/Renderers/PrefabDoorRenderer.cs
+// -------------------------------------------------- //
 
-/// <summary>
-/// Renders doors in Real mode using actual prefabs for gameplay.
-/// Supports biome biomes and proper door placement.
-/// </summary>
+using UnityEngine;
+
 public class PrefabDoorRenderer : IDoorRenderer
 {
     private GameObject _fallbackDoorPrefab;
-    private MaterialService _materialService;
     private BiomeManager _biomeManager;
     private BiomeModel _currentBiome;
 
-    public PrefabDoorRenderer(GameObject doorPrefab, MaterialService materialService, BiomeManager biomeManager)
+    public PrefabDoorRenderer(GameObject doorPrefab, BiomeManager biomeManager)
     {
         _fallbackDoorPrefab = doorPrefab;
-        _materialService = materialService;
         _biomeManager = biomeManager;
     }
 
-    /// <summary>
-    /// Sets the current biome biome for prefab selection.
-    /// </summary>
-    public void SetBiome(BiomeModel biome)
-    {
-        _currentBiome = biome;
-    }
-
-    /// <summary>
-    /// Renders all doors as individual prefab instances.
-    /// </summary>
     public void RenderDoors(LevelModel layout, Transform parent, bool enableCollision)
     {
-        if (layout?.AllDoorTiles == null)
-        {
-            Debug.LogError("Cannot render prefab doors: layout or door tiles is null");
-            return;
-        }
+        if (layout?.AllDoorTiles == null) throw new("Cannot render prefab doors: layout or door tiles is null");
         
         int doorsCreated = 0;
         foreach (var doorPos in layout.AllDoorTiles)
         {
-            // Use the current biome's door prefab
             var doorPrefab = _biomeManager.GetDoorPrefab(_currentBiome);
             var door = CreateDoorAtPosition(doorPos, doorPrefab);
             
             if (door != null)
             {
                 door.transform.SetParent(parent);
-                
-                if (enableCollision) 
-                {
-                    AddCollisionToObject(door, "Door");
-                }
-                
+                if (enableCollision) AddCollisionToObject(door, "Door");
                 doorsCreated++;
             }
         }
@@ -64,10 +39,9 @@ public class PrefabDoorRenderer : IDoorRenderer
 
     private GameObject CreateDoorAtPosition(Vector2Int gridPos, GameObject prefab)
     {
-        Vector3 worldPos = new(gridPos.x + 0.5f, 0f, gridPos.y + 0.5f); // Door at floor level
+        Vector3 worldPos = new(gridPos.x + 0.5f, 0f, gridPos.y + 0.5f);
         
-        // Use the biome-specific prefab if available, otherwise use fallback
-        GameObject doorPrefabToUse = prefab ?? _fallbackDoorPrefab;
+        GameObject doorPrefabToUse = prefab != null ? prefab : _fallbackDoorPrefab;
         
         if (doorPrefabToUse == null)
         {
@@ -84,14 +58,10 @@ public class PrefabDoorRenderer : IDoorRenderer
     private void AddCollisionToObject(GameObject obj, string objectType)
     {
         if (obj == null) return;
-
-        if (obj.GetComponent<Collider>() == null)
-            obj.AddComponent<BoxCollider>();
-
+        if (obj.GetComponent<Collider>() == null) obj.AddComponent<BoxCollider>();
         if (objectType == "Door")
         {
-            var rb = obj.GetComponent<Rigidbody>();
-            if (rb == null)
+            if (!obj.TryGetComponent<Rigidbody>(out var rb))
             {
                 rb = obj.AddComponent<Rigidbody>();
                 rb.isKinematic = true;

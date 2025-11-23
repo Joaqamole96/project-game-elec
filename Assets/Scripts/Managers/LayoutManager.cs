@@ -26,7 +26,7 @@ public class LayoutManager : MonoBehaviour
     public Transform FloorsParent;
     public Transform WallsParent;
     public Transform DoorsParent;
-    public Transform SpecialObjectsParent;
+    public Transform LandmarksParent;
     public Transform EnvironmentParent;
     
     // Mobile Optimization
@@ -52,7 +52,7 @@ public class LayoutManager : MonoBehaviour
     private PrefabFloorRenderer _floorRenderer;
     private PrefabWallRenderer _wallRenderer;
     private PrefabDoorRenderer _doorRenderer;
-    private SpecialRoomRenderer _specialRenderer;
+    private LandmarkRenderer _specialRenderer;
     private MaterialService _materialService;
     private OptimizedPrefabRenderer _optimizedRenderer;
     private BiomeManager _biomeManager;
@@ -107,7 +107,7 @@ public class LayoutManager : MonoBehaviour
         FloorsParent = CreateParentIfNull(FloorsParent, "Floors");
         WallsParent = CreateParentIfNull(WallsParent, "Walls");
         DoorsParent = CreateParentIfNull(DoorsParent, "Doors");
-        SpecialObjectsParent = CreateParentIfNull(SpecialObjectsParent, "SpecialObjects");
+        LandmarksParent = CreateParentIfNull(LandmarksParent, "Landmarks");
         EnvironmentParent = CreateParentIfNull(EnvironmentParent, "Environment");
         
         InitializeRenderers();
@@ -121,9 +121,9 @@ public class LayoutManager : MonoBehaviour
 
     private void InitializeRenderers()
     {
-        _floorRenderer = new PrefabFloorRenderer(_biomeManager.GetPrefab("Biomes/Default/FloorPrefab"), _materialService, _biomeManager);
-        _wallRenderer = new PrefabWallRenderer(_biomeManager.GetPrefab("Biomes/Default/WallPrefab"), _materialService, _biomeManager);
-        _doorRenderer = new PrefabDoorRenderer(_biomeManager.GetPrefab("Biomes/Default/DoorPrefab"), _materialService, _biomeManager);
+        _floorRenderer = new PrefabFloorRenderer(_biomeManager.GetPrefab("Biomes/Default/FloorPrefab"), _biomeManager);
+        _wallRenderer = new PrefabWallRenderer(_biomeManager.GetPrefab("Biomes/Default/WallPrefab"), _biomeManager);
+        _doorRenderer = new PrefabDoorRenderer(_biomeManager.GetPrefab("Biomes/Default/DoorPrefab"), _biomeManager);
     }
 
     [ContextMenu("Generate Dungeon")]
@@ -174,7 +174,7 @@ public class LayoutManager : MonoBehaviour
 
         RenderRealMode(_layout, RuntimeLevelConfig.FloorLevel);
         
-        RenderSpecialObjects(_layout, _rooms);
+        RenderLandmarks(_rooms);
         LogRenderingResults();
     }
 
@@ -281,10 +281,10 @@ public class LayoutManager : MonoBehaviour
             InitializeRenderingComponents();
     }
 
-    private void RenderSpecialObjects(LevelModel layout, List<RoomModel> rooms)
+    private void RenderLandmarks(List<RoomModel> rooms)
     {
-        // if (Mode == RenderMode.Real) _specialRenderer.RenderSpecialObjects(layout, rooms, SpecialObjectsParent);
-        _specialRenderer.RenderSpecialObjects(layout, rooms, SpecialObjectsParent);
+        // if (Mode == RenderMode.Real) _specialRenderer.RenderLandmarks(layout, rooms, LandmarksParent);
+        _specialRenderer.RenderLandmarks(rooms, LandmarksParent);
     }
 
     private void CreateParentContainers()
@@ -292,7 +292,7 @@ public class LayoutManager : MonoBehaviour
         FloorsParent = CreateParentIfNull(FloorsParent, "Floors");
         WallsParent = CreateParentIfNull(WallsParent, "Walls");
         DoorsParent = CreateParentIfNull(DoorsParent, "Doors");
-        SpecialObjectsParent = CreateParentIfNull(SpecialObjectsParent, "SpecialObjects");
+        LandmarksParent = CreateParentIfNull(LandmarksParent, "Landmarks");
         EnvironmentParent = CreateParentIfNull(EnvironmentParent, "Environment");
     }
 
@@ -327,7 +327,7 @@ public class LayoutManager : MonoBehaviour
         ClearChildObjects(FloorsParent);
         ClearChildObjects(WallsParent);
         ClearChildObjects(DoorsParent);
-        ClearChildObjects(SpecialObjectsParent);
+        ClearChildObjects(LandmarksParent);
         ClearChildObjects(EnvironmentParent);
     }
 
