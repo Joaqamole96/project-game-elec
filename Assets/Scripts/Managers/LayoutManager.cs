@@ -18,7 +18,7 @@ public class LayoutManager : MonoBehaviour
     public RoomConfig RoomConfig;
     
     // Rendering Mode
-    public RenderMode Mode = RenderMode.Real;
+    // public RenderMode Mode = RenderMode.Real;
     
     // Environment Settings
     public bool EnableCeiling = true;
@@ -38,9 +38,9 @@ public class LayoutManager : MonoBehaviour
     public bool EnableDoorCollision = false;
     
     // Material Settings - Gizmo Mode
-    public Material DefaultFloorMaterial;
-    public Material DefaultWallMaterial;
-    public Material DefaultDoorMaterial;
+    // public Material DefaultFloorMaterial;
+    // public Material DefaultWallMaterial;
+    // public Material DefaultDoorMaterial;
     
     // Public Accessors
     public LevelModel CurrentLayout => _layout;
@@ -56,9 +56,12 @@ public class LayoutManager : MonoBehaviour
     private ConfigService _configService;
     
     // Rendering components
-    private IFloorRenderer _floorRenderer;
-    private IWallRenderer _wallRenderer;
-    private IDoorRenderer _doorRenderer;
+    // private IFloorRenderer _floorRenderer;
+    // private IWallRenderer _wallRenderer;
+    // private IDoorRenderer _doorRenderer;
+    private PrefabFloorRenderer _floorRenderer;
+    private PrefabWallRenderer _wallRenderer;
+    private PrefabDoorRenderer _doorRenderer;
     private SpecialRoomRenderer _specialRenderer;
     private MaterialService _materialService;
     private OptimizedPrefabRenderer _optimizedRenderer;
@@ -72,7 +75,7 @@ public class LayoutManager : MonoBehaviour
     private PartitionConfig RuntimePartitionConfig => _configService?.PartitionConfig ?? PartitionConfig;
     private RoomConfig RuntimeRoomConfig => _configService?.RoomConfig ?? RoomConfig;
 
-    public enum RenderMode { Gizmo, Real }
+    // public enum RenderMode { Gizmo, Real }
 
     // ------------------------- //
     
@@ -107,7 +110,7 @@ public class LayoutManager : MonoBehaviour
 
     private void InitializeRenderingComponents()
     {
-        _materialService = new MaterialService(DefaultFloorMaterial, DefaultWallMaterial, DefaultDoorMaterial);
+        // _materialService = new MaterialService(DefaultFloorMaterial, DefaultWallMaterial, DefaultDoorMaterial);
         _biomeManager = new BiomeManager(RuntimeLevelConfig.Seed);
         _optimizedRenderer = new OptimizedPrefabRenderer(_biomeManager);
 
@@ -129,18 +132,21 @@ public class LayoutManager : MonoBehaviour
 
     private void InitializeRenderers()
     {
-        if (Mode == RenderMode.Gizmo)
-        {
-            _floorRenderer = new GizmoFloorRenderer(_materialService);
-            _wallRenderer = new GizmoWallRenderer(_materialService);
-            _doorRenderer = new GizmoDoorRenderer(_materialService);
-        }
-        else
-        {
-            _floorRenderer = new PrefabFloorRenderer(_biomeManager.GetPrefab("Biomes/Default/FloorPrefab"), _materialService, _biomeManager);
-            _wallRenderer = new PrefabWallRenderer(_biomeManager.GetPrefab("Biomes/Default/WallPrefab"), _materialService, _biomeManager);
-            _doorRenderer = new PrefabDoorRenderer(_biomeManager.GetPrefab("Biomes/Default/DoorPrefab"), _materialService, _biomeManager);
-        }
+        // if (Mode == RenderMode.Gizmo)
+        // {
+        //     _floorRenderer = new GizmoFloorRenderer(_materialService);
+        //     _wallRenderer = new GizmoWallRenderer(_materialService);
+        //     _doorRenderer = new GizmoDoorRenderer(_materialService);
+        // }
+        // else
+        // {
+        //     _floorRenderer = new PrefabFloorRenderer(_biomeManager.GetPrefab("Biomes/Default/FloorPrefab"), _materialService, _biomeManager);
+        //     _wallRenderer = new PrefabWallRenderer(_biomeManager.GetPrefab("Biomes/Default/WallPrefab"), _materialService, _biomeManager);
+        //     _doorRenderer = new PrefabDoorRenderer(_biomeManager.GetPrefab("Biomes/Default/DoorPrefab"), _materialService, _biomeManager);
+        // }
+        _floorRenderer = new PrefabFloorRenderer(_biomeManager.GetPrefab("Biomes/Default/FloorPrefab"), _materialService, _biomeManager);
+        _wallRenderer = new PrefabWallRenderer(_biomeManager.GetPrefab("Biomes/Default/WallPrefab"), _materialService, _biomeManager);
+        _doorRenderer = new PrefabDoorRenderer(_biomeManager.GetPrefab("Biomes/Default/DoorPrefab"), _materialService, _biomeManager);
     }
 
     [ContextMenu("Generate Dungeon")]
@@ -189,26 +195,21 @@ public class LayoutManager : MonoBehaviour
         ClearRendering();
         CreateParentContainers();
 
-        if (Mode == RenderMode.Gizmo)
-        {
-            RenderGizmoMode(_layout, _rooms);
-        }
-        else
-        {
-            RenderRealMode(_layout, RuntimeLevelConfig.FloorLevel);
-        }
+        // if (Mode == RenderMode.Gizmo) RenderGizmoMode(_layout, _rooms);
+        // else RenderRealMode(_layout, RuntimeLevelConfig.FloorLevel);
+        RenderRealMode(_layout, RuntimeLevelConfig.FloorLevel);
         
         RenderSpecialObjects(_layout, _rooms);
         LogRenderingResults();
     }
 
-    private void RenderGizmoMode(LevelModel layout, List<RoomModel> rooms)
-    {
-        _materialService.InitializeMaterialCache();
-        RenderFloors(layout, rooms);
-        RenderWalls(layout);
-        RenderDoors(layout);
-    }
+    // private void RenderGizmoMode(LevelModel layout, List<RoomModel> rooms)
+    // {
+    //     _materialService.InitializeMaterialCache();
+    //     RenderFloors(layout, rooms);
+    //     RenderWalls(layout);
+    //     RenderDoors(layout);
+    // }
 
     private void RenderRealMode(LevelModel layout, int floorLevel)
     {
@@ -313,32 +314,21 @@ public class LayoutManager : MonoBehaviour
         return spawnPosition;
     }
 
-    #region Rendering Methods (formerly in LayoutRenderer)
     private void EnsureRenderingComponentsInitialized()
     {
         if (_materialService == null)
             InitializeRenderingComponents();
     }
 
-    #region Rendering Orchestration
     private void RenderFloors(LevelModel layout, List<RoomModel> rooms)
     {
-        if (layout?.AllFloorTiles == null || rooms == null) 
-        {
-            Debug.LogError("Cannot render floors: layout or rooms is null");
-            return;
-        }
+        if (layout?.AllFloorTiles == null || rooms == null) throw new("Cannot render floors: layout or rooms is null");
         
         Debug.Log($"Starting floor rendering: {layout.AllFloorTiles.Count} floor tiles, {rooms.Count} rooms");
         
-        if (CombineMeshes && Mode == RenderMode.Gizmo)
-        {
-            RenderCombinedFloors(layout, rooms);
-        }
-        else
-        {
-            RenderIndividualFloors(layout, rooms);
-        }
+        // if (CombineMeshes && Mode == RenderMode.Gizmo) RenderCombinedFloors(layout, rooms);
+        // else RenderIndividualFloors(layout, rooms);
+        RenderIndividualFloors(layout, rooms);
         
         LogFloorRenderingResults();
     }
@@ -350,10 +340,8 @@ public class LayoutManager : MonoBehaviour
         _spawnedContainers.AddRange(floorMeshes);
         
         if (EnableFloorCollision)
-        {
             foreach (var mesh in floorMeshes)
                 AddCollisionToObject(mesh, "Floor");
-        }
         
         Debug.Log($"Combined mesh rendering complete: {floorMeshes.Count} mesh objects created");
     }
@@ -368,21 +356,17 @@ public class LayoutManager : MonoBehaviour
     {
         if (layout?.AllWallTiles == null || layout.WallTypes == null) return;
         
-        if (CombineMeshes && Mode == RenderMode.Gizmo)
-        {
-            var wallMeshes = _wallRenderer.RenderCombinedWallsByType(layout, WallsParent);
-            _spawnedContainers.AddRange(wallMeshes);
+        // if (CombineMeshes && Mode == RenderMode.Gizmo)
+        // {
+        //     var wallMeshes = _wallRenderer.RenderCombinedWallsByType(layout, WallsParent);
+        //     _spawnedContainers.AddRange(wallMeshes);
             
-            if (EnableWallCollision)
-            {
-                foreach (var mesh in wallMeshes)
-                    AddCollisionToObject(mesh, "Wall");
-            }
-        }
-        else
-        {
-            _wallRenderer.RenderIndividualWalls(layout, WallsParent, EnableWallCollision);
-        }
+        //     if (EnableWallCollision)
+        //         foreach (var mesh in wallMeshes)
+        //             AddCollisionToObject(mesh, "Wall");
+        // }
+        else _wallRenderer.RenderIndividualWalls(layout, WallsParent, EnableWallCollision);
+        _wallRenderer.RenderIndividualWalls(layout, WallsParent, EnableWallCollision);
     }
 
     private void RenderDoors(LevelModel layout)
@@ -393,22 +377,15 @@ public class LayoutManager : MonoBehaviour
 
     private void RenderSpecialObjects(LevelModel layout, List<RoomModel> rooms)
     {
-        if (Mode == RenderMode.Real)
-        {
-            _specialRenderer.RenderSpecialObjects(layout, rooms, SpecialObjectsParent);
-        }
+        // if (Mode == RenderMode.Real) _specialRenderer.RenderSpecialObjects(layout, rooms, SpecialObjectsParent);
+        _specialRenderer.RenderSpecialObjects(layout, rooms, SpecialObjectsParent);
     }
-    #endregion
 
-    #region Utility Methods
     private void AddCollisionToObject(GameObject obj, string objectType)
     {
         if (obj == null) return;
 
-        if (obj.GetComponent<Collider>() == null)
-        {
-            obj.AddComponent<BoxCollider>();
-        }
+        if (obj.GetComponent<Collider>() == null) obj.AddComponent<BoxCollider>();
 
         if (objectType == "Door")
         {
@@ -445,7 +422,6 @@ public class LayoutManager : MonoBehaviour
     private void ClearSpawnedContainers()
     {
         foreach (var container in _spawnedContainers)
-        {
             if (container != null)
             {
                 #if UNITY_EDITOR
@@ -454,7 +430,6 @@ public class LayoutManager : MonoBehaviour
                 Destroy(container);
                 #endif
             }
-        }
         _spawnedContainers.Clear();
     }
 
@@ -509,6 +484,4 @@ public class LayoutManager : MonoBehaviour
     {
         Debug.Log($"Rendering complete - Floors: {FloorsParent.childCount}, Walls: {WallsParent.childCount}, Doors: {DoorsParent.childCount}");
     }
-    #endregion
-    #endregion
 }
