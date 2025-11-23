@@ -8,12 +8,12 @@ using System.Linq;
 /// </summary>
 public class GizmoWallRenderer : IWallRenderer
 {
-    private MaterialManager _materialManager;
+    private MaterialService _materialService;
     private MeshCombiner _meshCombiner;
 
-    public GizmoWallRenderer(MaterialManager materialManager)
+    public GizmoWallRenderer(MaterialService materialService)
     {
-        _materialManager = materialManager;
+        _materialService = materialService;
         _meshCombiner = new MeshCombiner();
     }
 
@@ -106,7 +106,7 @@ public class GizmoWallRenderer : IWallRenderer
         var renderer = obj.GetComponent<Renderer>();
         if (renderer != null)
         {
-            renderer.sharedMaterial = _materialManager.GetWallMaterial(wallType);
+            renderer.sharedMaterial = _materialService.GetWallMaterial(wallType);
         }
     }
 

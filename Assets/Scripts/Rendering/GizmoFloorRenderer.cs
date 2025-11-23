@@ -8,12 +8,12 @@ using System.Linq;
 /// </summary>
 public class GizmoFloorRenderer : IFloorRenderer
 {
-    private MaterialManager _materialManager;
+    private MaterialService _materialService;
     private MeshCombiner _meshCombiner;
 
-    public GizmoFloorRenderer(MaterialManager materialManager)
+    public GizmoFloorRenderer(MaterialService materialService)
     {
-        _materialManager = materialManager;
+        _materialService = materialService;
         _meshCombiner = new MeshCombiner();
     }
 
@@ -129,7 +129,7 @@ public class GizmoFloorRenderer : IFloorRenderer
         var renderer = obj.GetComponent<Renderer>();
         if (renderer != null)
         {
-            renderer.sharedMaterial = _materialManager.GetRoomMaterial(roomType);
+            renderer.sharedMaterial = _materialService.GetRoomMaterial(roomType);
         }
     }
 

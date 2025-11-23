@@ -9,14 +9,14 @@ using System.Collections.Generic;
 public class PrefabDoorRenderer : IDoorRenderer
 {
     private GameObject _fallbackDoorPrefab;
-    private MaterialManager _materialManager;
+    private MaterialService _materialService;
     private BiomeManager _biomeManager;
     private BiomeModel _currentBiome;
 
-    public PrefabDoorRenderer(GameObject doorPrefab, MaterialManager materialManager, BiomeManager biomeManager)
+    public PrefabDoorRenderer(GameObject doorPrefab, MaterialService materialService, BiomeManager biomeManager)
     {
         _fallbackDoorPrefab = doorPrefab;
-        _materialManager = materialManager;
+        _materialService = materialService;
         _biomeManager = biomeManager;
     }
 

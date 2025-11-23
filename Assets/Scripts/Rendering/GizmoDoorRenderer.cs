@@ -7,11 +7,11 @@ using System.Collections.Generic;
 /// </summary>
 public class GizmoDoorRenderer : IDoorRenderer
 {
-    private MaterialManager _materialManager;
+    private MaterialService _materialService;
 
-    public GizmoDoorRenderer(MaterialManager materialManager)
+    public GizmoDoorRenderer(MaterialService materialService)
     {
-        _materialManager = materialManager;
+        _materialService = materialService;
     }
 
     /// <summary>
@@ -59,7 +59,7 @@ public class GizmoDoorRenderer : IDoorRenderer
         var renderer = obj.GetComponent<Renderer>();
         if (renderer != null)
         {
-            renderer.sharedMaterial = _materialManager.GetDoorMaterial();
+            renderer.sharedMaterial = _materialService.GetDoorMaterial();
         }
     }
 

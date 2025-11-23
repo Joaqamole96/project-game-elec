@@ -60,7 +60,7 @@ public class LayoutManager : MonoBehaviour
     private IWallRenderer _wallRenderer;
     private IDoorRenderer _doorRenderer;
     private SpecialRoomRenderer _specialRenderer;
-    private MaterialManager _materialManager;
+    private MaterialService _materialService;
     private OptimizedPrefabRenderer _optimizedRenderer;
     private BiomeManager _biomeManager;
     
@@ -81,7 +81,11 @@ public class LayoutManager : MonoBehaviour
         InitializeComponents();
     }
 
-    void Start() => GenerateDungeon();
+    void Start() 
+    {
+        // Spawn Player here.
+        GenerateDungeon();
+    }
 
     // ------------------------- //
 
@@ -103,7 +107,7 @@ public class LayoutManager : MonoBehaviour
 
     private void InitializeRenderingComponents()
     {
-        _materialManager = new MaterialManager(DefaultFloorMaterial, DefaultWallMaterial, DefaultDoorMaterial);
+        _materialService = new MaterialService(DefaultFloorMaterial, DefaultWallMaterial, DefaultDoorMaterial);
         _biomeManager = new BiomeManager(RuntimeLevelConfig.Seed);
         _optimizedRenderer = new OptimizedPrefabRenderer(_biomeManager);
 
@@ -127,15 +131,15 @@ public class LayoutManager : MonoBehaviour
     {
         if (Mode == RenderMode.Gizmo)
         {
-            _floorRenderer = new GizmoFloorRenderer(_materialManager);
-            _wallRenderer = new GizmoWallRenderer(_materialManager);
-            _doorRenderer = new GizmoDoorRenderer(_materialManager);
+            _floorRenderer = new GizmoFloorRenderer(_materialService);
+            _wallRenderer = new GizmoWallRenderer(_materialService);
+            _doorRenderer = new GizmoDoorRenderer(_materialService);
         }
         else
         {
-            _floorRenderer = new PrefabFloorRenderer(_biomeManager.GetPrefab("Biomes/Default/FloorPrefab"), _materialManager, _biomeManager);
-            _wallRenderer = new PrefabWallRenderer(_biomeManager.GetPrefab("Biomes/Default/WallPrefab"), _materialManager, _biomeManager);
-            _doorRenderer = new PrefabDoorRenderer(_biomeManager.GetPrefab("Biomes/Default/DoorPrefab"), _materialManager, _biomeManager);
+            _floorRenderer = new PrefabFloorRenderer(_biomeManager.GetPrefab("Biomes/Default/FloorPrefab"), _materialService, _biomeManager);
+            _wallRenderer = new PrefabWallRenderer(_biomeManager.GetPrefab("Biomes/Default/WallPrefab"), _materialService, _biomeManager);
+            _doorRenderer = new PrefabDoorRenderer(_biomeManager.GetPrefab("Biomes/Default/DoorPrefab"), _materialService, _biomeManager);
         }
     }
 
@@ -200,7 +204,7 @@ public class LayoutManager : MonoBehaviour
 
     private void RenderGizmoMode(LevelModel layout, List<RoomModel> rooms)
     {
-        _materialManager.InitializeMaterialCache();
+        _materialService.InitializeMaterialCache();
         RenderFloors(layout, rooms);
         RenderWalls(layout);
         RenderDoors(layout);
@@ -312,7 +316,7 @@ public class LayoutManager : MonoBehaviour
     #region Rendering Methods (formerly in LayoutRenderer)
     private void EnsureRenderingComponentsInitialized()
     {
-        if (_materialManager == null)
+        if (_materialService == null)
             InitializeRenderingComponents();
     }
 
@@ -483,7 +487,7 @@ public class LayoutManager : MonoBehaviour
 
     private void CleanupMaterials()
     {
-        _materialManager?.CleanupMaterialCache();
+        _materialService?.CleanupMaterialCache();
     }
 
     public void ClearRendering()

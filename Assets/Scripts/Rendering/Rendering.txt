@@ -149,11 +149,11 @@ using System.Collections.Generic;
 /// </summary>
 public class GizmoDoorRenderer : IDoorRenderer
 {
-    private MaterialManager _materialManager;
+    private MaterialService _materialService;
 
-    public GizmoDoorRenderer(MaterialManager materialManager)
+    public GizmoDoorRenderer(MaterialService materialService)
     {
-        _materialManager = materialManager;
+        _materialService = materialService;
     }
 
     /// <summary>
@@ -201,7 +201,7 @@ public class GizmoDoorRenderer : IDoorRenderer
         var renderer = obj.GetComponent<Renderer>();
         if (renderer != null)
         {
-            renderer.sharedMaterial = _materialManager.GetDoorMaterial();
+            renderer.sharedMaterial = _materialService.GetDoorMaterial();
         }
     }
 
@@ -234,12 +234,12 @@ using System.Linq;
 /// </summary>
 public class GizmoFloorRenderer : IFloorRenderer
 {
-    private MaterialManager _materialManager;
+    private MaterialService _materialService;
     private MeshCombiner _meshCombiner;
 
-    public GizmoFloorRenderer(MaterialManager materialManager)
+    public GizmoFloorRenderer(MaterialService materialService)
     {
-        _materialManager = materialManager;
+        _materialService = materialService;
         _meshCombiner = new MeshCombiner();
     }
 
@@ -355,7 +355,7 @@ public class GizmoFloorRenderer : IFloorRenderer
         var renderer = obj.GetComponent<Renderer>();
         if (renderer != null)
         {
-            renderer.sharedMaterial = _materialManager.GetRoomMaterial(roomType);
+            renderer.sharedMaterial = _materialService.GetRoomMaterial(roomType);
         }
     }
 
@@ -377,12 +377,12 @@ using System.Linq;
 /// </summary>
 public class GizmoWallRenderer : IWallRenderer
 {
-    private MaterialManager _materialManager;
+    private MaterialService _materialService;
     private MeshCombiner _meshCombiner;
 
-    public GizmoWallRenderer(MaterialManager materialManager)
+    public GizmoWallRenderer(MaterialService materialService)
     {
-        _materialManager = materialManager;
+        _materialService = materialService;
         _meshCombiner = new MeshCombiner();
     }
 
@@ -475,7 +475,7 @@ public class GizmoWallRenderer : IWallRenderer
         var renderer = obj.GetComponent<Renderer>();
         if (renderer != null)
         {
-            renderer.sharedMaterial = _materialManager.GetWallMaterial(wallType);
+            renderer.sharedMaterial = _materialService.GetWallMaterial(wallType);
         }
     }
 
@@ -1232,14 +1232,14 @@ using System.Collections.Generic;
 public class PrefabDoorRenderer : IDoorRenderer
 {
     private GameObject _fallbackDoorPrefab;
-    private MaterialManager _materialManager;
+    private MaterialService _materialService;
     private BiomeManager _biomeManager;
     private BiomeModel _currentBiome;
 
-    public PrefabDoorRenderer(GameObject doorPrefab, MaterialManager materialManager, BiomeManager biomeManager)
+    public PrefabDoorRenderer(GameObject doorPrefab, MaterialService materialService, BiomeManager biomeManager)
     {
         _fallbackDoorPrefab = doorPrefab;
-        _materialManager = materialManager;
+        _materialService = materialService;
         _biomeManager = biomeManager;
     }
 
@@ -1335,14 +1335,14 @@ using System.Linq;
 public class PrefabFloorRenderer : IFloorRenderer
 {
     private GameObject _fallbackFloorPrefab;
-    private MaterialManager _materialManager;
+    private MaterialService _materialService;
     private BiomeManager _biomeManager;
     private BiomeModel _currentBiome;
 
-    public PrefabFloorRenderer(GameObject floorPrefab, MaterialManager materialManager, BiomeManager biomeManager)
+    public PrefabFloorRenderer(GameObject floorPrefab, MaterialService materialService, BiomeManager biomeManager)
     {
         _fallbackFloorPrefab = floorPrefab;
-        _materialManager = materialManager;
+        _materialService = materialService;
         _biomeManager = biomeManager;
     }
 
@@ -1435,14 +1435,14 @@ using System.Linq;
 public class PrefabWallRenderer : IWallRenderer
 {
     private GameObject _fallbackWallPrefab;
-    private MaterialManager _materialManager;
+    private MaterialService _materialService;
     private BiomeManager _biomeManager;
     private BiomeModel _currentBiome;
 
-    public PrefabWallRenderer(GameObject wallPrefab, MaterialManager materialManager, BiomeManager biomeManager)
+    public PrefabWallRenderer(GameObject wallPrefab, MaterialService materialService, BiomeManager biomeManager)
     {
         _fallbackWallPrefab = wallPrefab;
-        _materialManager = materialManager;
+        _materialService = materialService;
         _biomeManager = biomeManager;
     }
 

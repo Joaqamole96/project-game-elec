@@ -10,14 +10,14 @@ using System.Linq;
 public class PrefabFloorRenderer : IFloorRenderer
 {
     private GameObject _fallbackFloorPrefab;
-    private MaterialManager _materialManager;
+    private MaterialService _materialService;
     private BiomeManager _biomeManager;
     private BiomeModel _currentBiome;
 
-    public PrefabFloorRenderer(GameObject floorPrefab, MaterialManager materialManager, BiomeManager biomeManager)
+    public PrefabFloorRenderer(GameObject floorPrefab, MaterialService materialService, BiomeManager biomeManager)
     {
         _fallbackFloorPrefab = floorPrefab;
-        _materialManager = materialManager;
+        _materialService = materialService;
         _biomeManager = biomeManager;
     }
 

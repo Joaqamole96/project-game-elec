@@ -1,11 +1,11 @@
-// MaterialManager.cs
+// -------------------------------------------------- //
+// Scripts/Services/MaterialService.cs
+// -------------------------------------------------- //
+
 using UnityEngine;
 using System.Collections.Generic;
 
-/// <summary>
-/// Manages materials for different room and wall types, with caching for performance.
-/// </summary>
-public class MaterialManager
+public class MaterialService
 {
     private readonly Dictionary<RoomType, Material> _roomTypeMaterials = new();
     private readonly Dictionary<WallType, Material> _wallTypeMaterials = new();
@@ -14,7 +14,7 @@ public class MaterialManager
     private readonly Material _defaultWallMaterial;
     private readonly Material _defaultDoorMaterial;
 
-    public MaterialManager(Material defaultFloorMaterial, Material defaultWallMaterial, Material defaultDoorMaterial)
+    public MaterialService(Material defaultFloorMaterial, Material defaultWallMaterial, Material defaultDoorMaterial)
     {
         _defaultFloorMaterial = defaultFloorMaterial;
         _defaultWallMaterial = defaultWallMaterial;

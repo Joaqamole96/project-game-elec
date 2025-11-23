@@ -10,14 +10,14 @@ using System.Linq;
 public class PrefabWallRenderer : IWallRenderer
 {
     private GameObject _fallbackWallPrefab;
-    private MaterialManager _materialManager;
+    private MaterialService _materialService;
     private BiomeManager _biomeManager;
     private BiomeModel _currentBiome;
 
-    public PrefabWallRenderer(GameObject wallPrefab, MaterialManager materialManager, BiomeManager biomeManager)
+    public PrefabWallRenderer(GameObject wallPrefab, MaterialService materialService, BiomeManager biomeManager)
     {
         _fallbackWallPrefab = wallPrefab;
-        _materialManager = materialManager;
+        _materialService = materialService;
         _biomeManager = biomeManager;
     }
 
