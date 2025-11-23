@@ -19,11 +19,10 @@ public class AdvancedMeshCombiner
         private int CalculateVertexCount()
         {
             int total = 0;
+
             foreach (var instance in CombineInstances)
-            {
-                if (instance.mesh != null)
-                    total += instance.mesh.vertexCount;
-            }
+                if (instance.mesh != null) total += instance.mesh.vertexCount;
+
             return total;
         }
     }
@@ -37,14 +36,14 @@ public class AdvancedMeshCombiner
 
         if (!_materialMeshes.ContainsKey(material))
         {
-            _materialMeshes[material] = new CombinedMeshData
+            _materialMeshes[material] = new()
             {
                 Name = $"Combined_{material.name}",
                 Material = material
             };
         }
 
-        var combineInstance = new CombineInstance
+        CombineInstance combineInstance = new()
         {
             mesh = mesh,
             transform = Matrix4x4.TRS(position, rotation, scale)
@@ -63,7 +62,6 @@ public class AdvancedMeshCombiner
             
             if (meshData.CombineInstances.Count == 0) continue;
 
-            // Split if too large
             if (meshData.VertexCount > MAX_VERTICES_PER_MESH)
             {
                 var splitMeshes = BuildSplitMeshes(meshData, parent);
@@ -90,8 +88,10 @@ public class AdvancedMeshCombiner
             MeshFilter meshFilter = combinedObject.AddComponent<MeshFilter>();
             MeshRenderer meshRenderer = combinedObject.AddComponent<MeshRenderer>();
 
-            Mesh combinedMesh = new();
-            combinedMesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
+            Mesh combinedMesh = new()
+            {
+                indexFormat = UnityEngine.Rendering.IndexFormat.UInt32
+            };
             combinedMesh.CombineMeshes(meshData.CombineInstances.ToArray());
             
             meshFilter.mesh = combinedMesh;
@@ -122,7 +122,7 @@ public class AdvancedMeshCombiner
             int startIndex = i * maxInstancesPerChunk;
             int count = Mathf.Min(maxInstancesPerChunk, instanceCount - startIndex);
             
-            var chunkData = new CombinedMeshData
+            CombinedMeshData chunkData = new()
             {
                 Name = $"{meshData.Name}_Chunk{i+1}",
                 Material = meshData.Material
