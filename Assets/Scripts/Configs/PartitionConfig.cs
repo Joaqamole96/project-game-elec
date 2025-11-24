@@ -5,7 +5,7 @@
 using UnityEngine;
 
 [System.Serializable]
-public class PartitionConfig
+public class PartitionConfig : ScriptableObject
 {
     [Range(10, 50)] public int MinPartitionSize = 25;
 

@@ -5,7 +5,7 @@
 using UnityEngine;
 
 [System.Serializable]
-public class RoomConfig
+public class RoomConfig : ScriptableObject
 {
     [Range(1, 10)] public int MinInset = 4;
 

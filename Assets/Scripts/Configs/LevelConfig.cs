@@ -5,7 +5,7 @@
 using UnityEngine;
 
 [System.Serializable]
-public class LevelConfig
+public class LevelConfig : ScriptableObject
 {
     public int Seed = 0;
 

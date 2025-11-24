@@ -5,7 +5,7 @@
 using UnityEngine;
 
 [System.Serializable]
-public class PlayerConfig
+public class PlayerConfig : ScriptableObject
 {
     [Range(1, 100)] public int PlayerBaseHealth = 100;
 

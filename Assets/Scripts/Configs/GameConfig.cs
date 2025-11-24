@@ -5,7 +5,7 @@
 using UnityEngine;
 
 [System.Serializable]
-public class GameConfig
+public class GameConfig : ScriptableObject
 {
     public bool SimplifyGeometry = true;
 

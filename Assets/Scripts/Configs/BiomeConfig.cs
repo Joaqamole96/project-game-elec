@@ -1,4 +1,6 @@
-public class BiomeConfig
+using UnityEngine;
+
+public class BiomeConfig : ScriptableObject
 {
     
 }
