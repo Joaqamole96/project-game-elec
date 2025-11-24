@@ -16,6 +16,7 @@ public class GameDirector : MonoBehaviour
     public float initializationDelay = 0.1f;
     
     [Header("Prefab References")]
+    // Preferably, the Managers should be naturally constructed, not derived from the Inspector.
     public GameObject layoutManagerPrefab;
     public GameObject uiManagerPrefab;
     public GameObject entityManagerPrefab;
@@ -23,7 +24,6 @@ public class GameDirector : MonoBehaviour
     public GameObject playerPrefab;
     public GameObject mainCameraPrefab;
     
-    [Header("Manager References (Auto-Created)")]
     public LayoutManager layoutManager;
     public UIManager uiManager;
     public EntityManager entityManager;
@@ -153,7 +153,7 @@ public class GameDirector : MonoBehaviour
         }
         
         // Create new container
-        GameObject container = new GameObject(containerName);
+        GameObject container = new(containerName);
         container.transform.SetParent(transform);
         container.transform.localPosition = Vector3.zero;
         Debug.Log($"GameDirector: Created container '{containerName}'");
@@ -212,7 +212,7 @@ public class GameDirector : MonoBehaviour
         else
         {
             // Create from scratch if no prefab
-            GameObject layoutObj = new GameObject("LayoutManager");
+            GameObject layoutObj = new("LayoutManager");
             layoutObj.transform.SetParent(managersContainer.transform);
             layoutManager = layoutObj.AddComponent<LayoutManager>();
         }
@@ -245,7 +245,7 @@ public class GameDirector : MonoBehaviour
         }
         else
         {
-            GameObject entityObj = new GameObject("EntityManager");
+            GameObject entityObj = new("EntityManager");
             entityObj.transform.SetParent(managersContainer.transform);
             entityManager = entityObj.AddComponent<EntityManager>();
         }
@@ -280,7 +280,7 @@ public class GameDirector : MonoBehaviour
         }
         else
         {
-            GameObject uiObj = new GameObject("UIManager");
+            GameObject uiObj = new("UIManager");
             uiObj.transform.SetParent(managersContainer.transform);
             uiManager = uiObj.AddComponent<UIManager>();
         }
@@ -313,7 +313,7 @@ public class GameDirector : MonoBehaviour
         }
         else
         {
-            GameObject audioObj = new GameObject("AudioManager");
+            GameObject audioObj = new("AudioManager");
             audioObj.transform.SetParent(managersContainer.transform);
             audioManager = audioObj.AddComponent<AudioManager>();
         }

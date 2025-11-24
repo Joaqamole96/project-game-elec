@@ -30,7 +30,7 @@ public class AudioManager : MonoBehaviour
     {
         if (musicSource == null)
         {
-            GameObject musicObj = new GameObject("MusicSource");
+            GameObject musicObj = new("MusicSource");
             musicObj.transform.SetParent(transform);
             musicSource = musicObj.AddComponent<AudioSource>();
             musicSource.loop = true;
@@ -38,14 +38,14 @@ public class AudioManager : MonoBehaviour
         
         if (sfxSource == null)
         {
-            GameObject sfxObj = new GameObject("SFXSource");
+            GameObject sfxObj = new("SFXSource");
             sfxObj.transform.SetParent(transform);
             sfxSource = sfxObj.AddComponent<AudioSource>();
         }
         
         if (ambientSource == null)
         {
-            GameObject ambientObj = new GameObject("AmbientSource");
+            GameObject ambientObj = new("AmbientSource");
             ambientObj.transform.SetParent(transform);
             ambientSource = ambientObj.AddComponent<AudioSource>();
             ambientSource.loop = true;

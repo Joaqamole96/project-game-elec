@@ -104,8 +104,7 @@ public class EnemyController : MonoBehaviour
         
         if (PlayerInRange(attackRange))
         {
-            PlayerController playerController = player.GetComponent<PlayerController>();
-            if (playerController != null) playerController.TakeDamage(damage);
+            if (player.TryGetComponent<PlayerController>(out var playerController)) playerController.TakeDamage(damage);
         }
     }
     

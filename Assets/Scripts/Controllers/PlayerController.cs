@@ -57,10 +57,7 @@ public class PlayerController : MonoBehaviour
     void Start()
     {
         // Configure player components first
-        if (autoConfigureOnStart)
-        {
-            ConfigurePlayer();
-        }
+        if (autoConfigureOnStart) ConfigurePlayer();
         
         CurrentHealth = maxHealth;
         rb = GetComponent<Rigidbody>();
@@ -104,11 +101,7 @@ public class PlayerController : MonoBehaviour
     
     private void ConfigureRigidbody()
     {
-        Rigidbody rb = GetComponent<Rigidbody>();
-        if (rb == null)
-        {
-            rb = gameObject.AddComponent<Rigidbody>();
-        }
+        if (!TryGetComponent<Rigidbody>(out var rb)) rb = gameObject.AddComponent<Rigidbody>();
         
         // Critical settings for smooth movement
         rb.mass = mass;
@@ -127,11 +120,7 @@ public class PlayerController : MonoBehaviour
     
     private void ConfigureCollider()
     {
-        CapsuleCollider capsule = GetComponent<CapsuleCollider>();
-        if (capsule == null)
-        {
-            capsule = gameObject.AddComponent<CapsuleCollider>();
-        }
+        if (!TryGetComponent<CapsuleCollider>(out var capsule)) capsule = gameObject.AddComponent<CapsuleCollider>();
         
         capsule.height = capsuleHeight;
         capsule.radius = capsuleRadius;
@@ -149,10 +138,7 @@ public class PlayerController : MonoBehaviour
             gameObject.layer = playerLayer;
             Debug.Log("✓ Layer set to 'Player'");
         }
-        else
-        {
-            Debug.LogWarning("'Player' layer not found. Using Default layer.");
-        }
+        else Debug.LogWarning("'Player' layer not found. Using Default layer.");
     }
     
     private void ConfigureTag()
@@ -191,53 +177,26 @@ public class PlayerController : MonoBehaviour
         Debug.Log("=== Player Configuration Validation ===");
         
         // Check Rigidbody
-        Rigidbody rb = GetComponent<Rigidbody>();
-        if (rb != null)
+        if (TryGetComponent<Rigidbody>(out var rb))
         {
             Debug.Log($"✓ Rigidbody: Mass={rb.mass}, UseGravity={rb.useGravity}, IsKinematic={rb.isKinematic}");
             Debug.Log($"  Constraints: {rb.constraints}");
             
-            if (rb.constraints != RigidbodyConstraints.FreezeRotation)
-            {
-                Debug.LogWarning("⚠ Rigidbody rotation should be frozen!");
-            }
+            if (rb.constraints != RigidbodyConstraints.FreezeRotation) Debug.LogWarning("⚠ Rigidbody rotation should be frozen!");
         }
-        else
-        {
-            Debug.LogError("✗ Missing Rigidbody!");
-        }
+        else throw new("✗ Missing Rigidbody!");
         
         // Check Collider
-        CapsuleCollider collider = GetComponent<CapsuleCollider>();
-        if (collider != null)
-        {
-            Debug.Log($"✓ Collider: Height={collider.height}, Radius={collider.radius}");
-        }
-        else
-        {
-            Debug.LogError("✗ Missing CapsuleCollider!");
-        }
+        if (TryGetComponent<CapsuleCollider>(out var collider)) Debug.Log($"✓ Collider: Height={collider.height}, Radius={collider.radius}");
+        else throw new("✗ Missing CapsuleCollider!");
         
         // Check Controller
-        PlayerController controller = GetComponent<PlayerController>();
-        if (controller != null)
-        {
-            Debug.Log($"✓ PlayerController: Speed={controller.moveSpeed}, Health={controller.maxHealth}");
-        }
-        else
-        {
-            Debug.LogError("✗ Missing PlayerController!");
-        }
+        if (TryGetComponent<PlayerController>(out var controller)) Debug.Log($"✓ PlayerController: Speed={controller.moveSpeed}, Health={controller.maxHealth}");
+        else throw new("✗ Missing PlayerController!");
         
         // Check Tag
-        if (CompareTag("Player"))
-        {
-            Debug.Log("✓ Tag: Player");
-        }
-        else
-        {
-            Debug.LogWarning($"⚠ Tag is '{tag}' but should be 'Player'");
-        }
+        if (CompareTag("Player")) Debug.Log("✓ Tag: Player");
+        else Debug.LogWarning($"⚠ Tag is '{tag}' but should be 'Player'");
         
         // Check Layer
         Debug.Log($"Layer: {LayerMask.LayerToName(gameObject.layer)} ({gameObject.layer})");
@@ -253,16 +212,13 @@ public class PlayerController : MonoBehaviour
         float vertical = Input.GetAxisRaw("Vertical");
         
         // Get RAW input vector (not normalized yet)
-        Vector3 inputVector = new Vector3(horizontal, 0, vertical);
+        Vector3 inputVector = new(horizontal, 0, vertical);
         
         // Get camera-relative movement direction
         moveDirection = GetCameraRelativeMovement(inputVector);
         
         // Normalize AFTER camera transformation to maintain consistent speed
-        if (moveDirection.magnitude > 1f)
-        {
-            moveDirection.Normalize();
-        }
+        if (moveDirection.magnitude > 1f) moveDirection.Normalize();
         
         isMoving = moveDirection.magnitude > 0.1f;
     }
@@ -294,10 +250,7 @@ public class PlayerController : MonoBehaviour
     
     private void HandleCombatInput()
     {
-        if (Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0))
-        {
-            PerformAttack();
-        }
+        if (Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0)) PerformAttack();
     }
     
     private void HandleMovement()
@@ -316,11 +269,8 @@ public class PlayerController : MonoBehaviour
                 rotationSpeed * Time.fixedDeltaTime
             );
         }
-        else
-        {
             // Stop horizontal movement but keep vertical velocity (gravity)
-            rb.velocity = new Vector3(0, rb.velocity.y, 0);
-        }
+        else rb.velocity = new Vector3(0, rb.velocity.y, 0);
     }
     
     private void PerformAttack()
@@ -329,10 +279,7 @@ public class PlayerController : MonoBehaviour
         
         lastAttackTime = Time.time;
         
-        if (animator != null)
-        {
-            animator.SetTrigger("Attack");
-        }
+        if (animator != null) animator.SetTrigger("Attack");
         
         // Attack in a cone in front of player
         Vector3 attackDirection = transform.forward;
@@ -347,13 +294,11 @@ public class PlayerController : MonoBehaviour
             float angleToEnemy = Vector3.Angle(transform.forward, dirToEnemy);
             
             if (angleToEnemy < 60f) // 120 degree cone (60 degrees each side)
-            {
                 if (enemy.TryGetComponent<EnemyController>(out var enemyController))
                 {
                     enemyController.TakeDamage(playerDamage);
                     Debug.Log($"Hit enemy for {playerDamage} damage!");
                 }
-            }
         }
     }
     
@@ -372,10 +317,7 @@ public class PlayerController : MonoBehaviour
         if (Time.frameCount % 30 == 0)
         {
             RoomManager roomManager = FindObjectOfType<RoomManager>();
-            if (roomManager != null)
-            {
-                roomManager.UpdatePlayerRoom(transform.position);
-            }
+            if (roomManager != null) roomManager.UpdatePlayerRoom(transform.position);
         }
     }
     
@@ -386,17 +328,11 @@ public class PlayerController : MonoBehaviour
         CurrentHealth -= damage;
         CurrentHealth = Mathf.Max(0, CurrentHealth);
         
-        if (animator != null)
-        {
-            animator.SetTrigger("TakeDamage");
-        }
+        if (animator != null) animator.SetTrigger("TakeDamage");
         
         Debug.Log($"Player took {damage} damage! Health: {CurrentHealth}/{maxHealth}");
         
-        if (CurrentHealth <= 0)
-        {
-            Die();
-        }
+        if (CurrentHealth <= 0) Die();
     }
     
     public void Heal(int amount)
@@ -413,10 +349,7 @@ public class PlayerController : MonoBehaviour
         
         isDead = true;
         
-        if (animator != null)
-        {
-            animator.SetTrigger("Die");
-        }
+        if (animator != null) animator.SetTrigger("Die");
         
         // Stop movement
         rb.velocity = Vector3.zero;
@@ -449,29 +382,20 @@ public class PlayerController : MonoBehaviour
             
             // Ensure player is on NavMesh (if exists)
             NavMeshGenerator navMeshGen = generator.GetComponent<NavMeshGenerator>();
-            if (navMeshGen != null && navMeshGen.IsPositionOnNavMesh(spawnPosition))
-            {
-                transform.position = navMeshGen.GetNearestNavMeshPosition(spawnPosition);
-            }
+            if (navMeshGen != null && navMeshGen.IsPositionOnNavMesh(spawnPosition)) transform.position = navMeshGen.GetNearestNavMeshPosition(spawnPosition);
             
             Debug.Log($"Player spawned at: {transform.position}");
         }
-        else
-        {
-            Debug.LogWarning("Could not find entrance room for spawn");
-        }
+        else Debug.LogWarning("Could not find entrance room for spawn");
     }
     
     // ===== MOBILE CONTROLS INTERFACE ===== //
     public void SetMovementInput(Vector2 input)
     {
-        Vector3 inputVector = new Vector3(input.x, 0, input.y);
+        Vector3 inputVector = new(input.x, 0, input.y);
         moveDirection = GetCameraRelativeMovement(inputVector);
         
-        if (moveDirection.magnitude > 1f)
-        {
-            moveDirection.Normalize();
-        }
+        if (moveDirection.magnitude > 1f) moveDirection.Normalize();
         
         isMoving = moveDirection.magnitude > 0.1f;
     }

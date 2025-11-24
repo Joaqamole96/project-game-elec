@@ -13,6 +13,7 @@ using System.Collections;
 /// </summary>
 public class EntityManager : MonoBehaviour
 {
+    private static WaitForSeconds _waitForSeconds1 = new WaitForSeconds(1f);
     [Header("Entity Containers")]
     public Transform entitiesContainer;
     public Transform playersContainer;
@@ -24,8 +25,8 @@ public class EntityManager : MonoBehaviour
     public CameraController currentCamera;
     
     [Header("Entity Tracking")]
-    public List<GameObject> allEnemies = new List<GameObject>();
-    public List<GameObject> allNPCs = new List<GameObject>();
+    public List<GameObject> allEnemies = new();
+    public List<GameObject> allNPCs = new();
     
     [Header("Spawn Settings")]
     public float spawnHeight = 1f;
@@ -47,7 +48,7 @@ public class EntityManager : MonoBehaviour
     private IEnumerator SpawnEnemiesAfterGeneration()
     {
         // Wait for level to be fully generated
-        yield return new WaitForSeconds(1f);
+        yield return _waitForSeconds1;
         
         SpawnEnemiesInAllCombatRooms();
     }
@@ -76,7 +77,7 @@ public class EntityManager : MonoBehaviour
         Transform existing = entitiesContainer.Find(containerName);
         if (existing != null) return existing;
         
-        GameObject container = new GameObject(containerName);
+        GameObject container = new(containerName);
         container.transform.SetParent(entitiesContainer);
         container.transform.localPosition = Vector3.zero;
         return container.transform;
@@ -94,11 +95,7 @@ public class EntityManager : MonoBehaviour
     
     public void SpawnPlayer(GameObject playerPrefab)
     {
-        if (playerPrefab == null)
-        {
-            Debug.LogError("EntityManager: Cannot spawn player - prefab is null!");
-            return;
-        }
+        if (playerPrefab == null) throw new("EntityManager: Cannot spawn player - prefab is null!");
         
         // Destroy existing player if any
         if (currentPlayer != null)
@@ -122,7 +119,7 @@ public class EntityManager : MonoBehaviour
     
     private Vector3 GetPlayerSpawnPosition()
     {
-        LayoutManager layoutManager = GameDirector.Instance?.layoutManager;
+        LayoutManager layoutManager = GameDirector.Instance != null ? GameDirector.Instance.layoutManager : null;
         
         if (layoutManager != null && layoutManager.CurrentLayout != null)
         {
@@ -150,20 +147,14 @@ public class EntityManager : MonoBehaviour
         }
         
         // Find main camera
-        if (currentCamera == null)
-        {
-            currentCamera = Camera.main?.GetComponent<CameraController>();
-        }
+        if (currentCamera == null) currentCamera = Camera.main?.GetComponent<CameraController>();
         
         if (currentCamera != null)
         {
             currentCamera.SetTarget(currentPlayer.transform);
             Debug.Log("EntityManager: Camera target set to player");
         }
-        else
-        {
-            Debug.LogWarning("EntityManager: Could not find CameraController");
-        }
+        else Debug.LogWarning("EntityManager: Could not find CameraController");
     }
     
     public void RespawnPlayerAtEntrance()
@@ -178,12 +169,8 @@ public class EntityManager : MonoBehaviour
         currentPlayer.transform.position = spawnPosition;
         
         // Reset player health if needed
-        PlayerController playerController = currentPlayer.GetComponent<PlayerController>();
-        if (playerController != null)
-        {
-            // Add reset method to PlayerController if needed
-            Debug.Log($"EntityManager: Player respawned at {spawnPosition}");
-        }
+        // Add reset method to PlayerController if needed
+        if (currentPlayer.TryGetComponent<PlayerController>(out var playerController)) Debug.Log($"EntityManager: Player respawned at {spawnPosition}");
     }
     
     // ------------------------- //
@@ -216,7 +203,7 @@ public class EntityManager : MonoBehaviour
         for (int i = 0; i < count; i++)
         {
             Vector2Int spawnTile = room.GetRandomSpawnPosition();
-            Vector3 spawnPosition = new Vector3(spawnTile.x + 0.5f, spawnHeight, spawnTile.y + 0.5f);
+            Vector3 spawnPosition = new(spawnTile.x + 0.5f, spawnHeight, spawnTile.y + 0.5f);
             SpawnEnemy(enemyPrefab, spawnPosition);
         }
         
@@ -313,7 +300,7 @@ public class EntityManager : MonoBehaviour
     
     public List<GameObject> GetEnemiesInRadius(Vector3 center, float radius)
     {
-        List<GameObject> nearbyEnemies = new List<GameObject>();
+        List<GameObject> nearbyEnemies = new();
         
         foreach (GameObject enemy in allEnemies)
         {

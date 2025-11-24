@@ -9,7 +9,6 @@ using System.Linq;
 using Debug = UnityEngine.Debug;
 
 [RequireComponent(typeof(BiomeManager))]
-[RequireComponent(typeof(PlayerManager))]
 public class LayoutManager : MonoBehaviour
 {
     // Configuration
@@ -51,7 +50,6 @@ public class LayoutManager : MonoBehaviour
     
     // Private Fields - Managers (MonoBehaviours)
     private BiomeManager _biomeManager;
-    private PlayerManager _playerManager;
     
     // Private Fields - Renderers
     private PrefabFloorRenderer _floorRenderer;
@@ -113,13 +111,7 @@ public class LayoutManager : MonoBehaviour
         {
             _biomeManager = GetOrAddComponent<BiomeManager>();
         }
-        
-        // PlayerManager - always check
-        if (_playerManager == null)
-        {
-            _playerManager = GetOrAddComponent<PlayerManager>();
-        }
-        
+
         // NavMeshGenerator - always check
         if (_navMeshGenerator == null)
         {
@@ -219,8 +211,7 @@ public class LayoutManager : MonoBehaviour
     /// </summary>
     private T GetOrAddComponent<T>() where T : Component
     {
-        T component = GetComponent<T>();
-        if (component == null)
+        if (!TryGetComponent<T>(out var component))
         {
             component = gameObject.AddComponent<T>();
             Debug.Log($"Added missing component: {typeof(T).Name}");
@@ -361,10 +352,11 @@ public class LayoutManager : MonoBehaviour
 
     private void NotifyDungeonReady()
     {
-        if (_playerManager != null)
-        {
-            _playerManager.OnDungeonGenerated();
-        }
+        // LEGACY: PlayerManager replaced by EntityManager
+        // if (_playerManager != null)
+        // {
+        //     _playerManager.OnDungeonGenerated();
+        // }
     }
 
     // ------------------------- //
@@ -424,7 +416,7 @@ public class LayoutManager : MonoBehaviour
         
         var entrance = _rooms.FirstOrDefault(room => room.Type == RoomType.Entrance) ?? throw new System.Exception("GetEntranceRoomPosition: No entrance room found");
         Vector2Int spawnTile = entrance.Center;
-        Vector3 spawnPosition = new Vector3(spawnTile.x + 0.5f, 1f, spawnTile.y + 0.5f);
+        Vector3 spawnPosition = new(spawnTile.x + 0.5f, 1f, spawnTile.y + 0.5f);
         
         Debug.Log($"Spawning at entrance room center: {spawnTile} -> {spawnPosition}");
         return spawnPosition;
@@ -446,7 +438,7 @@ public class LayoutManager : MonoBehaviour
 
     private Transform CreateParent(string name)
     {
-        GameObject go = new GameObject(name);
+        GameObject go = new(name);
         go.transform.SetParent(transform);
         return go.transform;
     }

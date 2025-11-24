@@ -127,9 +127,8 @@ public class NavMeshGenerator : MonoBehaviour
             // Check all floor children
             if (child.GetComponent<MeshFilter>() != null)
             {
-                MeshCollider existingCollider = child.GetComponent<MeshCollider>();
                 
-                if (existingCollider == null)
+                if (!child.TryGetComponent<MeshCollider>(out var existingCollider))
                 {
                     var meshCollider = child.gameObject.AddComponent<MeshCollider>();
                     meshCollider.convex = false;
@@ -177,7 +176,7 @@ public class NavMeshGenerator : MonoBehaviour
         Debug.Log("Creating temporary floor colliders for NavMesh baking");
         
         // Create one large box collider for the entire floor
-        GameObject tempFloor = new GameObject("TempNavMeshFloor");
+        GameObject tempFloor = new("TempNavMeshFloor");
         tempFloor.layer = LayerMask.NameToLayer("Default");
         
         var bounds = layout.OverallBounds;
@@ -195,13 +194,13 @@ public class NavMeshGenerator : MonoBehaviour
         var bounds = layout.OverallBounds;
         
         // Create bounding volume that covers ENTIRE dungeon
-        Vector3 center = new Vector3(
+        Vector3 center = new(
             bounds.center.x, 
             1f,  // Center at floor height
             bounds.center.y
         );
         
-        Vector3 size = new Vector3(
+        Vector3 size = new(
             bounds.size.x + 20f,  // Add padding
             10f,  // Height for agents
             bounds.size.y + 20f   // Add padding
