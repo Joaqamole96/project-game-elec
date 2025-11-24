@@ -1,10 +1,11 @@
 // -------------------------------------------------- //
-// Scripts/Controllers/PlayerController.cs (FIXED)
+// Scripts/Controllers/PlayerController.cs
 // -------------------------------------------------- //
 
 using UnityEngine;
 
 [RequireComponent(typeof(Rigidbody))]
+[RequireComponent(typeof(CapsuleCollider))]
 public class PlayerController : MonoBehaviour
 {
     [Header("Movement")]
@@ -21,6 +22,14 @@ public class PlayerController : MonoBehaviour
     [Header("Components")]
     public Rigidbody rb;
     public Animator animator;
+    
+    [Header("Configuration Settings")]
+    public bool autoConfigureOnStart = true;
+    public float capsuleHeight = 2f;
+    public float capsuleRadius = 0.5f;
+    public float mass = 1f;
+    public float drag = 0f;
+    public float angularDrag = 0f;
     
     public static PlayerController Instance { get; private set; }
     public int CurrentHealth { get; private set; }
@@ -47,20 +56,17 @@ public class PlayerController : MonoBehaviour
     
     void Start()
     {
+        // Configure player components first
+        if (autoConfigureOnStart)
+        {
+            ConfigurePlayer();
+        }
+        
         CurrentHealth = maxHealth;
         rb = GetComponent<Rigidbody>();
         
-        // CRITICAL: Lock rotation to prevent physics from rotating player
-        rb.freezeRotation = true;
-        rb.constraints = RigidbodyConstraints.FreezeRotation;
-        
-        // Reduce drag for smoother movement
-        rb.drag = 0f;
-        rb.angularDrag = 0f;
-        
-        // Better physics settings
-        rb.interpolation = RigidbodyInterpolation.Interpolate;
-        rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
+        // Ensure configuration is applied (in case autoConfigureOnStart is false)
+        EnsureBasicConfiguration();
         
         SpawnAtEntrance();
     }
@@ -80,6 +86,166 @@ public class PlayerController : MonoBehaviour
         if (isDead) return;
         HandleMovement();
     }
+    
+    // ===== PLAYER CONFIGURATION METHODS ===== //
+    
+    [ContextMenu("Configure Player")]
+    public void ConfigurePlayer()
+    {
+        Debug.Log("Configuring player components...");
+        
+        ConfigureRigidbody();
+        ConfigureCollider();
+        ConfigureLayer();
+        ConfigureTag();
+        
+        Debug.Log("Player configuration complete!");
+    }
+    
+    private void ConfigureRigidbody()
+    {
+        Rigidbody rb = GetComponent<Rigidbody>();
+        if (rb == null)
+        {
+            rb = gameObject.AddComponent<Rigidbody>();
+        }
+        
+        // Critical settings for smooth movement
+        rb.mass = mass;
+        rb.drag = drag;
+        rb.angularDrag = angularDrag;
+        rb.useGravity = true;
+        rb.isKinematic = false;
+        rb.interpolation = RigidbodyInterpolation.Interpolate;
+        rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
+        
+        // CRITICAL: Freeze rotation to prevent tipping over
+        rb.constraints = RigidbodyConstraints.FreezeRotation;
+        
+        Debug.Log("✓ Rigidbody configured");
+    }
+    
+    private void ConfigureCollider()
+    {
+        CapsuleCollider capsule = GetComponent<CapsuleCollider>();
+        if (capsule == null)
+        {
+            capsule = gameObject.AddComponent<CapsuleCollider>();
+        }
+        
+        capsule.height = capsuleHeight;
+        capsule.radius = capsuleRadius;
+        capsule.center = new Vector3(0, capsuleHeight / 2f, 0);
+        
+        Debug.Log("✓ Collider configured");
+    }
+    
+    private void ConfigureLayer()
+    {
+        // Try to set to Player layer if it exists
+        int playerLayer = LayerMask.NameToLayer("Player");
+        if (playerLayer != -1)
+        {
+            gameObject.layer = playerLayer;
+            Debug.Log("✓ Layer set to 'Player'");
+        }
+        else
+        {
+            Debug.LogWarning("'Player' layer not found. Using Default layer.");
+        }
+    }
+    
+    private void ConfigureTag()
+    {
+        if (!CompareTag("Player"))
+        {
+            try
+            {
+                gameObject.tag = "Player";
+                Debug.Log("✓ Tag set to 'Player'");
+            }
+            catch
+            {
+                Debug.LogWarning("'Player' tag not found. Please create it in Tags & Layers.");
+            }
+        }
+    }
+    
+    private void EnsureBasicConfiguration()
+    {
+        // Ensure critical physics settings are applied even if auto-configure is off
+        if (rb != null)
+        {
+            rb.freezeRotation = true;
+            rb.constraints = RigidbodyConstraints.FreezeRotation;
+            rb.drag = drag;
+            rb.angularDrag = angularDrag;
+            rb.interpolation = RigidbodyInterpolation.Interpolate;
+            rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
+        }
+    }
+    
+    [ContextMenu("Validate Configuration")]
+    public void ValidateConfiguration()
+    {
+        Debug.Log("=== Player Configuration Validation ===");
+        
+        // Check Rigidbody
+        Rigidbody rb = GetComponent<Rigidbody>();
+        if (rb != null)
+        {
+            Debug.Log($"✓ Rigidbody: Mass={rb.mass}, UseGravity={rb.useGravity}, IsKinematic={rb.isKinematic}");
+            Debug.Log($"  Constraints: {rb.constraints}");
+            
+            if (rb.constraints != RigidbodyConstraints.FreezeRotation)
+            {
+                Debug.LogWarning("⚠ Rigidbody rotation should be frozen!");
+            }
+        }
+        else
+        {
+            Debug.LogError("✗ Missing Rigidbody!");
+        }
+        
+        // Check Collider
+        CapsuleCollider collider = GetComponent<CapsuleCollider>();
+        if (collider != null)
+        {
+            Debug.Log($"✓ Collider: Height={collider.height}, Radius={collider.radius}");
+        }
+        else
+        {
+            Debug.LogError("✗ Missing CapsuleCollider!");
+        }
+        
+        // Check Controller
+        PlayerController controller = GetComponent<PlayerController>();
+        if (controller != null)
+        {
+            Debug.Log($"✓ PlayerController: Speed={controller.moveSpeed}, Health={controller.maxHealth}");
+        }
+        else
+        {
+            Debug.LogError("✗ Missing PlayerController!");
+        }
+        
+        // Check Tag
+        if (CompareTag("Player"))
+        {
+            Debug.Log("✓ Tag: Player");
+        }
+        else
+        {
+            Debug.LogWarning($"⚠ Tag is '{tag}' but should be 'Player'");
+        }
+        
+        // Check Layer
+        Debug.Log($"Layer: {LayerMask.LayerToName(gameObject.layer)} ({gameObject.layer})");
+        
+        Debug.Log("=== Validation Complete ===");
+    }
+    
+    // ===== ORIGINAL PLAYERCONTROLLER METHODS ===== //
     
     private void HandleInput()
     {
