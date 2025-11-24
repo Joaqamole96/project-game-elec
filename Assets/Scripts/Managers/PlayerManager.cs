@@ -4,7 +4,6 @@
 
 using UnityEngine;
 
-[RequireComponent(typeof(LayoutManager))]
 public class PlayerManager : MonoBehaviour
 {
     public GameObject playerPrefab;

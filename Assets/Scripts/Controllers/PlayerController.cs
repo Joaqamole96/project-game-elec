@@ -1,5 +1,5 @@
 // -------------------------------------------------- //
-// Scripts/Controllers/PlayerController.cs
+// Scripts/Controllers/PlayerController.cs (FIXED)
 // -------------------------------------------------- //
 
 using UnityEngine;
@@ -7,22 +7,29 @@ using UnityEngine;
 [RequireComponent(typeof(Rigidbody))]
 public class PlayerController : MonoBehaviour
 {
+    [Header("Movement")]
     public float moveSpeed = 5f;
-    public float rotationSpeed = 10f;
+    public float rotationSpeed = 15f; // Increased for snappier rotation
+    
+    [Header("Combat")]
     public int maxHealth = 100;
     public int playerDamage = 15;
     public float attackRange = 2f;
     public float attackCooldown = 1f;
     public LayerMask enemyLayer = 1;
 
+    [Header("Components")]
     public Rigidbody rb;
     public Animator animator;
+    
     public static PlayerController Instance { get; private set; }
     public int CurrentHealth { get; private set; }
     
     private Vector3 movement;
+    private Vector3 moveDirection; // CAMERA-RELATIVE direction
     private bool isMoving;
     private float lastAttackTime = 0f;
+    private bool isDead = false;
     
     void Awake()
     {
@@ -31,18 +38,37 @@ public class PlayerController : MonoBehaviour
             Instance = this;
             DontDestroyOnLoad(gameObject);
         }
-        else Destroy(gameObject);
+        else
+        {
+            Destroy(gameObject);
+            return;
+        }
     }
     
     void Start()
     {
         CurrentHealth = maxHealth;
         rb = GetComponent<Rigidbody>();
+        
+        // CRITICAL: Lock rotation to prevent physics from rotating player
+        rb.freezeRotation = true;
+        rb.constraints = RigidbodyConstraints.FreezeRotation;
+        
+        // Reduce drag for smoother movement
+        rb.drag = 0f;
+        rb.angularDrag = 0f;
+        
+        // Better physics settings
+        rb.interpolation = RigidbodyInterpolation.Interpolate;
+        rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
+        
         SpawnAtEntrance();
     }
     
     void Update()
     {
+        if (isDead) return;
+        
         HandleInput();
         HandleCombatInput();
         UpdateAnimations();
@@ -51,6 +77,7 @@ public class PlayerController : MonoBehaviour
     
     void FixedUpdate()
     {
+        if (isDead) return;
         HandleMovement();
     }
     
@@ -59,58 +86,75 @@ public class PlayerController : MonoBehaviour
         float horizontal = Input.GetAxisRaw("Horizontal");
         float vertical = Input.GetAxisRaw("Vertical");
         
+        // Get RAW input vector (not normalized yet)
+        Vector3 inputVector = new Vector3(horizontal, 0, vertical);
+        
         // Get camera-relative movement direction
-        movement = GetCameraRelativeMovement(new Vector3(horizontal, 0, vertical));
-        isMoving = movement.magnitude > 0.1f;
+        moveDirection = GetCameraRelativeMovement(inputVector);
+        
+        // Normalize AFTER camera transformation to maintain consistent speed
+        if (moveDirection.magnitude > 1f)
+        {
+            moveDirection.Normalize();
+        }
+        
+        isMoving = moveDirection.magnitude > 0.1f;
     }
     
     private Vector3 GetCameraRelativeMovement(Vector3 input)
     {
-        if (Camera.main != null)
-        {
-            // Get camera's forward and right vectors (ignore Y for ground movement)
-            Vector3 cameraForward = Camera.main.transform.forward;
-            Vector3 cameraRight = Camera.main.transform.right;
-            
-            cameraForward.y = 0;
-            cameraRight.y = 0;
-            cameraForward.Normalize();
-            cameraRight.Normalize();
-            
-            // Combine input with camera direction
-            return (cameraForward * input.z) + (cameraRight * input.x);
-        }
+        if (input.magnitude < 0.01f) return Vector3.zero;
         
-        return input; // Fallback to original input
+        Camera mainCamera = Camera.main;
+        if (mainCamera == null) return input; // Fallback
+        
+        // Get camera's forward and right vectors (flatten to ground plane)
+        Vector3 cameraForward = mainCamera.transform.forward;
+        Vector3 cameraRight = mainCamera.transform.right;
+        
+        // CRITICAL: Project onto horizontal plane
+        cameraForward.y = 0;
+        cameraRight.y = 0;
+        
+        // CRITICAL: Normalize BEFORE using them
+        cameraForward.Normalize();
+        cameraRight.Normalize();
+        
+        // Calculate movement direction relative to camera
+        Vector3 result = (cameraForward * input.z) + (cameraRight * input.x);
+        
+        return result;
     }
     
     private void HandleCombatInput()
     {
-        if (Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0)) PerformAttack();
+        if (Input.GetKeyDown(KeyCode.Space) || Input.GetMouseButtonDown(0))
+        {
+            PerformAttack();
+        }
     }
     
-    // Alternative HandleMovement method - Player faces camera direction
     private void HandleMovement()
     {
-        if (isMoving)
+        if (isMoving && moveDirection.magnitude > 0.01f)
         {
-            Vector3 moveVelocity = movement * moveSpeed;
-            rb.velocity = new Vector3(moveVelocity.x, rb.velocity.y, moveVelocity.z);
+            // Apply velocity in the EXACT direction of moveDirection
+            Vector3 targetVelocity = moveDirection * moveSpeed;
+            rb.velocity = new Vector3(targetVelocity.x, rb.velocity.y, targetVelocity.z);
             
-            Debug.Log($"Movement: {movement}, Current Rotation: {transform.rotation.eulerAngles}");
-            
-            if (movement != Vector3.zero)
-            {
-                Quaternion targetRotation = Quaternion.LookRotation(movement);
-                Debug.Log($"Target Rotation: {targetRotation.eulerAngles}");
-                
-                // Force the rotation
-                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.fixedDeltaTime);
-                
-                Debug.Log($"New Rotation: {transform.rotation.eulerAngles}");
-            }
+            // Rotate player to face movement direction INSTANTLY
+            Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
+            transform.rotation = Quaternion.Slerp(
+                transform.rotation, 
+                targetRotation, 
+                rotationSpeed * Time.fixedDeltaTime
+            );
         }
-        else rb.velocity = new Vector3(0, rb.velocity.y, 0);
+        else
+        {
+            // Stop horizontal movement but keep vertical velocity (gravity)
+            rb.velocity = new Vector3(0, rb.velocity.y, 0);
+        }
     }
     
     private void PerformAttack()
@@ -119,14 +163,32 @@ public class PlayerController : MonoBehaviour
         
         lastAttackTime = Time.time;
         
-        if (animator != null) animator.SetTrigger("Attack");
+        if (animator != null)
+        {
+            animator.SetTrigger("Attack");
+        }
         
-        // Attack in the direction player is facing
+        // Attack in a cone in front of player
         Vector3 attackDirection = transform.forward;
-        Collider[] hitEnemies = Physics.OverlapSphere(transform.position + attackDirection * 1f, attackRange, enemyLayer);
+        Vector3 attackCenter = transform.position + attackDirection * (attackRange * 0.5f);
+        
+        Collider[] hitEnemies = Physics.OverlapSphere(attackCenter, attackRange, enemyLayer);
         
         foreach (Collider enemy in hitEnemies)
-            if (enemy.TryGetComponent<EnemyController>(out var enemyController)) enemyController.TakeDamage(playerDamage);
+        {
+            // Check if enemy is in front of player (within 120 degree cone)
+            Vector3 dirToEnemy = (enemy.transform.position - transform.position).normalized;
+            float angleToEnemy = Vector3.Angle(transform.forward, dirToEnemy);
+            
+            if (angleToEnemy < 60f) // 120 degree cone (60 degrees each side)
+            {
+                if (enemy.TryGetComponent<EnemyController>(out var enemyController))
+                {
+                    enemyController.TakeDamage(playerDamage);
+                    Debug.Log($"Hit enemy for {playerDamage} damage!");
+                }
+            }
+        }
     }
     
     private void UpdateAnimations()
@@ -134,62 +196,142 @@ public class PlayerController : MonoBehaviour
         if (animator != null)
         {
             animator.SetBool("IsMoving", isMoving);
-            animator.SetFloat("MoveSpeed", movement.magnitude);
+            animator.SetFloat("MoveSpeed", moveDirection.magnitude);
         }
     }
     
     private void UpdateRoomDetection()
     {
+        // Only check every 30 frames for performance
         if (Time.frameCount % 30 == 0)
         {
             RoomManager roomManager = FindObjectOfType<RoomManager>();
-            if (roomManager != null) roomManager.UpdatePlayerRoom(transform.position);
+            if (roomManager != null)
+            {
+                roomManager.UpdatePlayerRoom(transform.position);
+            }
         }
     }
     
     public void TakeDamage(int damage)
     {
+        if (isDead) return;
+        
         CurrentHealth -= damage;
         CurrentHealth = Mathf.Max(0, CurrentHealth);
         
-        if (animator != null) animator.SetTrigger("TakeDamage");
+        if (animator != null)
+        {
+            animator.SetTrigger("TakeDamage");
+        }
         
-        if (CurrentHealth <= 0) Die();
+        Debug.Log($"Player took {damage} damage! Health: {CurrentHealth}/{maxHealth}");
+        
+        if (CurrentHealth <= 0)
+        {
+            Die();
+        }
+    }
+    
+    public void Heal(int amount)
+    {
+        if (isDead) return;
+        
+        CurrentHealth = Mathf.Min(CurrentHealth + amount, maxHealth);
+        Debug.Log($"Player healed {amount}! Health: {CurrentHealth}/{maxHealth}");
     }
     
     private void Die()
     {
-        if (animator != null) animator.SetTrigger("Die");
+        if (isDead) return;
+        
+        isDead = true;
+        
+        if (animator != null)
+        {
+            animator.SetTrigger("Die");
+        }
+        
+        // Stop movement
+        rb.velocity = Vector3.zero;
+        rb.isKinematic = true;
         
         Debug.Log("Player died - Game Over!");
+        
+        // Trigger game over after delay
+        Invoke(nameof(TriggerGameOver), 2f);
+    }
+    
+    private void TriggerGameOver()
+    {
+        // TODO: Show game over UI
+        Debug.Log("GAME OVER - Restarting level...");
+        
+        // For now, just reload the scene
+        // UnityEngine.SceneManagement.SceneManager.LoadScene(
+        //     UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex
+        // );
     }
     
     private void SpawnAtEntrance()
     {
         LayoutManager generator = FindObjectOfType<LayoutManager>();
-        if (generator != null)
+        if (generator != null && generator.CurrentLayout != null)
         {
             Vector3 spawnPosition = generator.GetEntranceRoomPosition();
             transform.position = spawnPosition;
+            
+            // Ensure player is on NavMesh (if exists)
+            NavMeshGenerator navMeshGen = generator.GetComponent<NavMeshGenerator>();
+            if (navMeshGen != null && navMeshGen.IsPositionOnNavMesh(spawnPosition))
+            {
+                transform.position = navMeshGen.GetNearestNavMeshPosition(spawnPosition);
+            }
+            
+            Debug.Log($"Player spawned at: {transform.position}");
+        }
+        else
+        {
+            Debug.LogWarning("Could not find entrance room for spawn");
         }
     }
     
-    // Mobile controls interface
+    // ===== MOBILE CONTROLS INTERFACE ===== //
     public void SetMovementInput(Vector2 input)
     {
-        movement = GetCameraRelativeMovement(new Vector3(input.x, 0, input.y));
-        isMoving = movement.magnitude > 0.1f;
+        Vector3 inputVector = new Vector3(input.x, 0, input.y);
+        moveDirection = GetCameraRelativeMovement(inputVector);
+        
+        if (moveDirection.magnitude > 1f)
+        {
+            moveDirection.Normalize();
+        }
+        
+        isMoving = moveDirection.magnitude > 0.1f;
     }
     
-    public void OnAttackButtonPressed() => PerformAttack();
+    public void OnAttackButtonPressed()
+    {
+        PerformAttack();
+    }
     
+    // ===== DEBUG VISUALIZATION ===== //
     void OnDrawGizmosSelected()
     {
+        // Draw attack range
         Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position + transform.forward * 1f, attackRange);
+        Vector3 attackCenter = transform.position + transform.forward * (attackRange * 0.5f);
+        Gizmos.DrawWireSphere(attackCenter, attackRange);
         
         // Draw movement direction
-        Gizmos.color = Color.blue;
-        Gizmos.DrawRay(transform.position, movement * 2f);
+        if (isMoving)
+        {
+            Gizmos.color = Color.blue;
+            Gizmos.DrawRay(transform.position, movement * 2f);
+        }
+        
+        // Draw forward direction
+        Gizmos.color = Color.green;
+        Gizmos.DrawRay(transform.position + Vector3.up, transform.forward * 2f);
     }
 }
