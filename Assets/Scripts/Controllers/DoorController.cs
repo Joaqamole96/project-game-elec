@@ -1,5 +1,5 @@
 // -------------------------------------------------- //
-// Scripts/Controllers/DoorController.cs
+// Scripts/Controllers/DoorController.cs (ENHANCED)
 // -------------------------------------------------- //
 
 using UnityEngine;
@@ -14,13 +14,30 @@ public class DoorController : MonoBehaviour
     public Collider blockingCollider;
     public Collider triggerCollider;
     
+    [Header("Visual Feedback")]
+    public Color lockedColor = Color.red;
+    public Color unlockedColor = Color.green;
+    private Renderer doorRenderer;
+    private Color originalColor;
+    
     void Start()
     {
         if (blockingCollider == null) blockingCollider = GetComponent<Collider>();
             
         if (doorModel == null && transform.childCount > 0) doorModel = transform.GetChild(0).gameObject;
+        
+        // Get renderer for visual feedback
+        if (doorModel != null)
+        {
+            doorRenderer = doorModel.GetComponent<Renderer>();
+            if (doorRenderer != null)
+            {
+                originalColor = doorRenderer.material.color;
+            }
+        }
             
         SetupTriggerCollider();
+        UpdateVisuals();
     }
     
     private void SetupTriggerCollider()
@@ -48,14 +65,27 @@ public class DoorController : MonoBehaviour
     
     public void TryOpenDoor()
     {
-        if (isLocked && PlayerHasRequiredKey()) OpenDoor();
-        else OpenDoor();
+        if (isLocked)
+        {
+            Debug.Log("Door is locked!");
+            // TODO: Play locked sound
+            return;
+        }
+        
+        if (requiredKey != KeyType.None && !PlayerHasRequiredKey())
+        {
+            Debug.Log($"Door requires {requiredKey}!");
+            // TODO: Play locked sound
+            return;
+        }
+        
+        OpenDoor();
     }
     
     private bool PlayerHasRequiredKey()
     {
-        // Will be implemented with inventory system
-        return true;
+        // TODO: Check player inventory
+        return false;
     }
     
     private void OpenDoor()
@@ -67,6 +97,8 @@ public class DoorController : MonoBehaviour
             if (blockingCollider != null) blockingCollider.enabled = false;
                 
             if (doorModel != null) doorModel.SetActive(false);
+            
+            Debug.Log("Door opened");
         }
     }
     
@@ -79,6 +111,38 @@ public class DoorController : MonoBehaviour
             if (blockingCollider != null) blockingCollider.enabled = true;
                 
             if (doorModel != null) doorModel.SetActive(true);
+            
+            Debug.Log("Door closed");
+        }
+    }
+    
+    public void LockDoor()
+    {
+        isLocked = true;
+        CloseDoor();
+        UpdateVisuals();
+        Debug.Log("Door locked");
+    }
+    
+    public void UnlockDoor()
+    {
+        isLocked = false;
+        UpdateVisuals();
+        Debug.Log("Door unlocked");
+    }
+    
+    private void UpdateVisuals()
+    {
+        if (doorRenderer != null)
+        {
+            if (isLocked)
+            {
+                doorRenderer.material.color = lockedColor;
+            }
+            else
+            {
+                doorRenderer.material.color = originalColor;
+            }
         }
     }
 }

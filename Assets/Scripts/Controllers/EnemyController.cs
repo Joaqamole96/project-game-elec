@@ -163,6 +163,13 @@ public class EnemyController : MonoBehaviour
         Collider[] colliders = GetComponents<Collider>();
         foreach (Collider col in colliders) col.enabled = false;
         
+        // Notify combat manager
+        CombatManager combatManager = FindObjectOfType<CombatManager>();
+        if (combatManager != null)
+        {
+            combatManager.OnEnemyDied(gameObject);
+        }
+        
         Destroy(gameObject, 2f);
     }
     

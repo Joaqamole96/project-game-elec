@@ -1,5 +1,5 @@
 // -------------------------------------------------- //
-// Scripts/Manaers/RoomManager.cs
+// Scripts/Managers/RoomManager.cs (ENHANCED)
 // -------------------------------------------------- //
 
 using UnityEngine;
@@ -9,14 +9,34 @@ public class RoomManager : MonoBehaviour
     public static RoomManager Instance { get; private set; }
     public RoomModel CurrentRoom { get; private set; }
     private LevelModel currentLevel;
+    private CombatManager combatManager;
     
     void Awake()
     {
         if (Instance == null) Instance = this;
+        else Destroy(gameObject);
+    }
+    
+    void Start()
+    {
+        combatManager = FindObjectOfType<CombatManager>();
+        if (combatManager == null)
+        {
+            combatManager = gameObject.AddComponent<CombatManager>();
+        }
     }
     
     public void UpdatePlayerRoom(Vector3 playerPosition)
     {
+        if (currentLevel == null)
+        {
+            LayoutManager layoutManager = GameDirector.Instance?.layoutManager;
+            if (layoutManager != null)
+            {
+                currentLevel = layoutManager.CurrentLayout;
+            }
+        }
+        
         if (currentLevel == null) return;
         
         Vector2Int gridPos = new(
@@ -37,12 +57,10 @@ public class RoomManager : MonoBehaviour
     {
         Debug.Log($"Entered {room.Type} room (ID: {room.ID})");
         
-        if (room.Type == RoomType.Combat && !room.IsCleared) StartCombatInRoom();
-    }
-    
-    private void StartCombatInRoom()
-    {
-        Debug.Log("Combat started!");
-        // Future: Close doors, spawn enemies if not already present
+        // Notify combat manager
+        if (combatManager != null)
+        {
+            combatManager.OnPlayerEnterRoom(room);
+        }
     }
 }

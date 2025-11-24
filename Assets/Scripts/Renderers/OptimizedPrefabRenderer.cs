@@ -21,8 +21,8 @@ public class OptimizedPrefabRenderer
 
     public void SetBiomeForFloor(int floorLevel)
     {
-        _currentBiome = _biomeManager.GetBiomeForFloor(floorLevel);
-        Debug.Log($"Using biome: {_currentBiome?.Name} for floor {floorLevel}");
+        string biomeName = _biomeManager.GetBiomeForFloor(floorLevel);
+        Debug.Log($"OptimizedRenderer: Using biome '{biomeName}' for floor {floorLevel}");
     }
 
     public void RenderWallsOptimized(LevelModel layout, Transform parent)

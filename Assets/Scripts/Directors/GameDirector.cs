@@ -1,5 +1,5 @@
 // -------------------------------------------------- //
-// Scripts/Directors/GameDirector.cs
+// Scripts/Core/GameDirector.cs
 // -------------------------------------------------- //
 
 using UnityEngine;
@@ -14,25 +14,20 @@ public class GameDirector : MonoBehaviour
     [Header("Director Settings")]
     public bool autoInitializeOnStart = true;
     public float initializationDelay = 0.1f;
+    public string currentBiome = "Default";
     
-    [Header("Prefab References")]
-    // Preferably, the Managers should be naturally constructed, not derived from the Inspector.
+    [Header("Resource Paths - Leave Empty to Use ResourceService")]
     public GameObject layoutManagerPrefab;
     public GameObject uiManagerPrefab;
     public GameObject entityManagerPrefab;
     public GameObject audioManagerPrefab;
-    public GameObject playerPrefab;
-    public GameObject mainCameraPrefab;
     
+    [Header("Manager References (Auto-Created)")]
     public LayoutManager layoutManager;
     public UIManager uiManager;
     public EntityManager entityManager;
     public AudioManager audioManager;
-    
-    // Attribute 'Header' is not valid on this declaration type. It is only valid on 'field' declarations.
-    [Header("Singleton Instance")]
-    public static GameDirector Instance;
-    
+    public static GameDirector Instance { get; private set; }
     public bool IsInitialized { get; private set; }
     
     // Container GameObjects
@@ -343,6 +338,7 @@ public class GameDirector : MonoBehaviour
         }
         
         GameObject cameraObj;
+        GameObject mainCameraPrefab = ResourceService.LoadCameraPrefab();
         
         if (mainCameraPrefab != null)
         {
@@ -360,6 +356,8 @@ public class GameDirector : MonoBehaviour
             
             cameraObj.AddComponent<AudioListener>();
             cameraObj.AddComponent<CameraController>();
+            
+            Debug.Log("GameDirector: Created default camera (prefab not found in Resources)");
         }
         
         Debug.Log("GameDirector: Camera system initialized");
@@ -394,13 +392,15 @@ public class GameDirector : MonoBehaviour
         
         if (entityManager != null)
         {
+            GameObject playerPrefab = ResourceService.LoadPlayerPrefab();
+            
             if (playerPrefab != null)
             {
                 entityManager.SpawnPlayer(playerPrefab);
             }
             else
             {
-                Debug.LogError("GameDirector: Cannot spawn player - playerPrefab is null!");
+                Debug.LogError("GameDirector: Cannot spawn player - failed to load from Resources/Default/Entities/Player");
             }
         }
         else

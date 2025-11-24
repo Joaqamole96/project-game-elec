@@ -1,5 +1,5 @@
 // -------------------------------------------------- //
-// Scripts/Renderers/LandmarkRenderer.cs
+// Scripts/Renderers/LandmarkRenderer.cs (UPDATED)
 // -------------------------------------------------- //
 
 using UnityEngine;
@@ -7,20 +7,17 @@ using System.Collections.Generic;
 
 public class LandmarkRenderer
 {
-    private GameObject _defaultEntrancePrefab;
-    private GameObject _defaultExitPrefab;
     private BiomeManager _biomeManager;
 
     public LandmarkRenderer(GameObject entrancePrefab, GameObject exitPrefab, BiomeManager biomeManager)
     {
-        _defaultEntrancePrefab = entrancePrefab;
-        _defaultExitPrefab = exitPrefab;
+        // Legacy constructor - prefabs now loaded from Resources
         _biomeManager = biomeManager;
     }
     
     public void RenderLandmarks(List<RoomModel> rooms, Transform parent)
     {
-        if (rooms == null || parent == null) throw new("Cannot render special objects: rooms or parent is null");
+        if (rooms == null || parent == null) throw new System.Exception("Cannot render special objects: rooms or parent is null");
 
         int landmarksCreated = 0;
         foreach (var room in rooms)
@@ -38,16 +35,15 @@ public class LandmarkRenderer
 
     private bool RenderRoomLandmark(RoomModel room, Transform parent)
     {
-        GameObject prefab = GetSpecialRoomPrefab(room.Type);
+        GameObject prefab = _biomeManager.GetLandmarkPrefab(room.Type);
 
-        if (prefab == null) prefab = GetDefaultSpecialRoomPrefab(room.Type);
         if (prefab != null)
         {
             Bounds prefabBounds = GetPrefabBounds(prefab);
             float floorHeight = 1f;
             float objectHeight = prefabBounds.size.y;
             
-            Vector3 position = new(room.Center.x, floorHeight + (objectHeight * 0.5f), room.Center.y);
+            Vector3 position = new Vector3(room.Center.x, floorHeight + (objectHeight * 0.5f), room.Center.y);
             var landmark = Object.Instantiate(prefab, position, Quaternion.identity, parent);
             landmark.name = $"{room.Type}_{room.ID}";
             return true;
@@ -64,27 +60,5 @@ public class LandmarkRenderer
         Renderer renderer = prefab.GetComponentInChildren<Renderer>();
         if (renderer != null) return renderer.bounds;
         return new Bounds(Vector3.zero, new Vector3(1f, 1f, 1f));
-    }
-
-    private GameObject GetSpecialRoomPrefab(RoomType roomType)
-    {
-        return roomType switch
-        {
-            RoomType.Entrance => _biomeManager.GetPrefab("Landmarks/EntrancePrefab"),
-            RoomType.Exit => _biomeManager.GetPrefab("Landmarks/ExitPrefab"),
-            RoomType.Shop => _biomeManager.GetPrefab("Landmarks/ShopPrefab"),
-            RoomType.Treasure => _biomeManager.GetPrefab("Landmarks/TreasurePrefab"),
-            _ => null
-        };
-    }
-
-    private GameObject GetDefaultSpecialRoomPrefab(RoomType roomType)
-    {
-        return roomType switch
-        {
-            RoomType.Entrance => _defaultEntrancePrefab,
-            RoomType.Exit => _defaultExitPrefab,
-            _ => null
-        };
     }
 }

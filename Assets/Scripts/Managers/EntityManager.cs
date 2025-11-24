@@ -13,7 +13,6 @@ using System.Collections;
 /// </summary>
 public class EntityManager : MonoBehaviour
 {
-    private static WaitForSeconds _waitForSeconds1 = new WaitForSeconds(1f);
     [Header("Entity Containers")]
     public Transform entitiesContainer;
     public Transform playersContainer;
@@ -25,12 +24,14 @@ public class EntityManager : MonoBehaviour
     public CameraController currentCamera;
     
     [Header("Entity Tracking")]
-    public List<GameObject> allEnemies = new();
-    public List<GameObject> allNPCs = new();
+    public List<GameObject> allEnemies = new List<GameObject>();
+    public List<GameObject> allNPCs = new List<GameObject>();
     
     [Header("Spawn Settings")]
     public float spawnHeight = 1f;
-    public GameObject defaultEnemyPrefab;
+    
+    // Enemy prefabs loaded from Resources based on biome
+    private string currentBiome = ResourceService.BIOME_DEFAULT;
     
     // ------------------------- //
     
@@ -48,7 +49,7 @@ public class EntityManager : MonoBehaviour
     private IEnumerator SpawnEnemiesAfterGeneration()
     {
         // Wait for level to be fully generated
-        yield return _waitForSeconds1;
+        yield return new WaitForSeconds(1f);
         
         SpawnEnemiesInAllCombatRooms();
     }
@@ -77,7 +78,7 @@ public class EntityManager : MonoBehaviour
         Transform existing = entitiesContainer.Find(containerName);
         if (existing != null) return existing;
         
-        GameObject container = new(containerName);
+        GameObject container = new GameObject(containerName);
         container.transform.SetParent(entitiesContainer);
         container.transform.localPosition = Vector3.zero;
         return container.transform;
@@ -95,7 +96,11 @@ public class EntityManager : MonoBehaviour
     
     public void SpawnPlayer(GameObject playerPrefab)
     {
-        if (playerPrefab == null) throw new("EntityManager: Cannot spawn player - prefab is null!");
+        if (playerPrefab == null)
+        {
+            Debug.LogError("EntityManager: Cannot spawn player - prefab is null!");
+            return;
+        }
         
         // Destroy existing player if any
         if (currentPlayer != null)
@@ -119,7 +124,7 @@ public class EntityManager : MonoBehaviour
     
     private Vector3 GetPlayerSpawnPosition()
     {
-        LayoutManager layoutManager = GameDirector.Instance != null ? GameDirector.Instance.layoutManager : null;
+        LayoutManager layoutManager = GameDirector.Instance?.layoutManager;
         
         if (layoutManager != null && layoutManager.CurrentLayout != null)
         {
@@ -147,14 +152,20 @@ public class EntityManager : MonoBehaviour
         }
         
         // Find main camera
-        if (currentCamera == null) currentCamera = Camera.main?.GetComponent<CameraController>();
+        if (currentCamera == null)
+        {
+            currentCamera = Camera.main?.GetComponent<CameraController>();
+        }
         
         if (currentCamera != null)
         {
             currentCamera.SetTarget(currentPlayer.transform);
             Debug.Log("EntityManager: Camera target set to player");
         }
-        else Debug.LogWarning("EntityManager: Could not find CameraController");
+        else
+        {
+            Debug.LogWarning("EntityManager: Could not find CameraController");
+        }
     }
     
     public void RespawnPlayerAtEntrance()
@@ -169,8 +180,12 @@ public class EntityManager : MonoBehaviour
         currentPlayer.transform.position = spawnPosition;
         
         // Reset player health if needed
-        // Add reset method to PlayerController if needed
-        if (currentPlayer.TryGetComponent<PlayerController>(out var playerController)) Debug.Log($"EntityManager: Player respawned at {spawnPosition}");
+        PlayerController playerController = currentPlayer.GetComponent<PlayerController>();
+        if (playerController != null)
+        {
+            // Add reset method to PlayerController if needed
+            Debug.Log($"EntityManager: Player respawned at {spawnPosition}");
+        }
     }
     
     // ------------------------- //
@@ -203,7 +218,7 @@ public class EntityManager : MonoBehaviour
         for (int i = 0; i < count; i++)
         {
             Vector2Int spawnTile = room.GetRandomSpawnPosition();
-            Vector3 spawnPosition = new(spawnTile.x + 0.5f, spawnHeight, spawnTile.y + 0.5f);
+            Vector3 spawnPosition = new Vector3(spawnTile.x + 0.5f, spawnHeight, spawnTile.y + 0.5f);
             SpawnEnemy(enemyPrefab, spawnPosition);
         }
         
@@ -226,9 +241,17 @@ public class EntityManager : MonoBehaviour
     
     public void SpawnEnemiesInAllCombatRooms()
     {
-        if (defaultEnemyPrefab == null)
+        BiomeManager biomeManager = GameDirector.Instance?.layoutManager?.GetComponent<BiomeManager>();
+        if (biomeManager != null)
         {
-            Debug.LogWarning("EntityManager: Cannot spawn enemies - defaultEnemyPrefab not set");
+            currentBiome = biomeManager.CurrentBiome;
+        }
+        
+        GameObject enemyPrefab = ResourceService.LoadBasicEnemyPrefab(currentBiome);
+        
+        if (enemyPrefab == null)
+        {
+            Debug.LogWarning($"EntityManager: Cannot spawn enemies - no BasicEnemy prefab in {currentBiome} biome");
             return;
         }
         
@@ -243,15 +266,31 @@ public class EntityManager : MonoBehaviour
         
         foreach (RoomModel room in layoutManager.CurrentLayout.Rooms)
         {
-            if (room.Type == RoomType.Combat || room.Type == RoomType.Boss)
+            if (room.Type == RoomType.Combat)
             {
-                int enemyCount = room.Type == RoomType.Boss ? 1 : Random.Range(2, 5);
-                SpawnEnemiesInRoom(defaultEnemyPrefab, room, enemyCount);
+                int enemyCount = Random.Range(2, 5);
+                SpawnEnemiesInRoom(enemyPrefab, room, enemyCount);
                 totalEnemiesSpawned += enemyCount;
+            }
+            else if (room.Type == RoomType.Boss)
+            {
+                // Load boss prefab
+                GameObject bossPrefab = ResourceService.LoadBossEnemyPrefab(currentBiome);
+                if (bossPrefab != null)
+                {
+                    SpawnEnemiesInRoom(bossPrefab, room, 1);
+                    totalEnemiesSpawned += 1;
+                }
+                else
+                {
+                    // Fallback to basic enemy
+                    SpawnEnemiesInRoom(enemyPrefab, room, 1);
+                    totalEnemiesSpawned += 1;
+                }
             }
         }
         
-        Debug.Log($"EntityManager: Spawned {totalEnemiesSpawned} enemies total");
+        Debug.Log($"EntityManager: Spawned {totalEnemiesSpawned} enemies total in biome '{currentBiome}'");
     }
     
     // ------------------------- //
@@ -300,7 +339,7 @@ public class EntityManager : MonoBehaviour
     
     public List<GameObject> GetEnemiesInRadius(Vector3 center, float radius)
     {
-        List<GameObject> nearbyEnemies = new();
+        List<GameObject> nearbyEnemies = new List<GameObject>();
         
         foreach (GameObject enemy in allEnemies)
         {

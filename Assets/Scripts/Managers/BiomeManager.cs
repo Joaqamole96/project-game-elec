@@ -1,5 +1,5 @@
 // -------------------------------------------------- //
-// Scripts/Managers/BiomeManager.cs
+// Scripts/Managers/BiomeManager.cs (UPDATED)
 // -------------------------------------------------- //
 
 using UnityEngine;
@@ -7,78 +7,144 @@ using System.Collections.Generic;
 
 public class BiomeManager : MonoBehaviour
 {
-    // NOTE: Find a way to make populated Biome list appear in Inspector.
-    // Also use a BiomeConfig class instead of a List<> here.
-    public List<BiomeModel> Biomes = new()
+    [System.Serializable]
+    public class BiomeData
     {
-        new BiomeModel("Default", 1, 100),
+        public string biomeName;
+        public int startLevel;
+        public int endLevel;
+        
+        public BiomeData(string name, int start, int end)
+        {
+            biomeName = name;
+            startLevel = start;
+            endLevel = end;
+        }
+    }
+    
+    // Biome configuration - Define which biomes are available at which floors
+    public List<BiomeData> availableBiomes = new()
+    {
+        new BiomeData(ResourceService.BIOME_DEFAULT, 1, 100),
+        new BiomeData(ResourceService.BIOME_GRASSLANDS, 5, 20),
+        new BiomeData(ResourceService.BIOME_DUNGEON, 15, 40),
+        new BiomeData(ResourceService.BIOME_CAVES, 30, 100)
     };
-
-    public Dictionary<string, GameObject> _prefabCache = new();
-
+    
     private System.Random _random;
+    private string _currentBiome = ResourceService.BIOME_DEFAULT;
+    
+    public string CurrentBiome => _currentBiome;
 
     // ------------------------- //
 
     public void InitializeRandom(int seed) 
     {
-        _random = new(seed);
+        _random = new System.Random(seed);
     }
 
-    public BiomeModel GetBiomeForFloor(int floorLevel)
+    public string GetBiomeForFloor(int floorLevel)
     {
-        var validBiomes = Biomes
-            .FindAll(biome => (floorLevel >= biome.StartLevel) && (floorLevel <= biome.EndLevel));
+        var validBiomes = availableBiomes.FindAll(biome => 
+            floorLevel >= biome.startLevel && floorLevel <= biome.endLevel
+        );
         
-        if (validBiomes.Count == 0) return Biomes[0];
-
-        if (validBiomes.Count == 1) return validBiomes[0];
-
-        return validBiomes[_random.Next(0, validBiomes.Count)];
-    }
-
-    public GameObject GetPrefab(string prefabPath)
-    {
-        if (string.IsNullOrEmpty(prefabPath)) throw new("Empty prefab path provided!");
-
-        if (_prefabCache.TryGetValue(prefabPath, out GameObject cachedPrefab)) return cachedPrefab;
-
-        return LoadAndCachePrefab(prefabPath);
-    }
-
-    private GameObject LoadAndCachePrefab(string prefabPath)
-    {
-        GameObject prefab = Resources.Load<GameObject>(prefabPath);
-        
-        if (prefab != null) _prefabCache[prefabPath] = prefab;
-        else throw new($"Prefab not found at path: {prefabPath}");
-
-        return prefab;
-    }
-
-    public GameObject GetSpecialRoomPrefab(RoomType roomType)
-    {
-        string path = GetSpecialRoomPath(roomType);
-        return GetPrefab(path);
-    }
-
-    private string GetSpecialRoomPath(RoomType roomType)
-    {
-        return roomType switch
+        if (validBiomes.Count == 0)
         {
-            RoomType.Entrance => "Landmarks/EntrancePrefab",
-            RoomType.Exit => "Landmarks/ExitPrefab",
-            RoomType.Shop => "Landmarks/ShopPrefab",
-            RoomType.Treasure => "Landmarks/TreasurePrefab",
-            _ => null
-        };
+            _currentBiome = ResourceService.BIOME_DEFAULT;
+            return _currentBiome;
+        }
+
+        if (validBiomes.Count == 1)
+        {
+            _currentBiome = validBiomes[0].biomeName;
+            return _currentBiome;
+        }
+
+        _currentBiome = validBiomes[_random.Next(0, validBiomes.Count)].biomeName;
+        return _currentBiome;
     }
+    
+    // ------------------------- //
+    // LAYOUT PREFABS
+    // ------------------------- //
 
-    public GameObject GetFloorPrefab(BiomeModel biome) => GetPrefab(biome.FloorPrefabPath);
+    public GameObject GetFloorPrefab(string biome = null)
+        => ResourceService.LoadFloorPrefab(biome ?? _currentBiome);
+    
+    public GameObject GetWallPrefab(string biome = null)
+        => ResourceService.LoadWallPrefab(biome ?? _currentBiome);
+    
+    public GameObject GetDoorPrefab(string biome = null)
+        => ResourceService.LoadDoorPrefab(biome ?? _currentBiome);
+    
+    public GameObject GetDoorTopPrefab(string biome = null)
+        => ResourceService.LoadDoorTopPrefab(biome ?? _currentBiome);
+    
+    public GameObject GetCeilingPrefab(string biome = null)
+        => ResourceService.LoadCeilingPrefab(biome ?? _currentBiome);
+    
+    // ------------------------- //
+    // PROP PREFABS
+    // ------------------------- //
+    
+    public GameObject GetProp(string propName, string biome = null)
+        => ResourceService.LoadProp(biome ?? _currentBiome, propName);
+    
+    public GameObject GetTorchPrefab(string biome = null)
+        => ResourceService.LoadTorchPrefab(biome ?? _currentBiome);
+    
+    public GameObject GetPillarPrefab(string biome = null)
+        => ResourceService.LoadPillarPrefab(biome ?? _currentBiome);
+    
+    public GameObject GetBarrelPrefab(string biome = null)
+        => ResourceService.LoadBarrelPrefab(biome ?? _currentBiome);
+    
+    public GameObject GetCratePrefab(string biome = null)
+        => ResourceService.LoadCratePrefab(biome ?? _currentBiome);
+    
+    // ------------------------- //
+    // ENEMY PREFABS
+    // ------------------------- //
+    
+    public GameObject GetEnemy(string enemyName, string biome = null)
+        => ResourceService.LoadEnemy(biome ?? _currentBiome, enemyName);
+    
+    public GameObject GetBasicEnemyPrefab(string biome = null)
+        => ResourceService.LoadBasicEnemyPrefab(biome ?? _currentBiome);
+    
+    public GameObject GetEliteEnemyPrefab(string biome = null)
+        => ResourceService.LoadEliteEnemyPrefab(biome ?? _currentBiome);
+    
+    public GameObject GetBossEnemyPrefab(string biome = null)
+        => ResourceService.LoadBossEnemyPrefab(biome ?? _currentBiome);
+    
+    // ------------------------- //
+    // LANDMARK PREFABS (Biome-independent)
+    // ------------------------- //
 
-    public GameObject GetWallPrefab(BiomeModel biome) => GetPrefab(biome.WallPrefabPath);
-
-    public GameObject GetDoorPrefab(BiomeModel biome) => GetPrefab(biome.DoorPrefabPath);
-
-    public GameObject GetDoorTopPrefab(BiomeModel biome) => GetPrefab(biome.DoorTopPrefabPath);
+    public GameObject GetLandmarkPrefab(RoomType roomType)
+        => ResourceService.LoadLandmarkPrefab(roomType);
+    
+    // ------------------------- //
+    // DEPRECATED (For backwards compatibility)
+    // ------------------------- //
+    
+    [System.Obsolete("Use GetLandmarkPrefab(RoomType.XXX) instead")]
+    public GameObject GetSpecialRoomPrefab(RoomType roomType)
+        => GetLandmarkPrefab(roomType);
+    
+    // ------------------------- //
+    // UTILITY
+    // ------------------------- //
+    
+    public void PreloadCurrentBiome()
+    {
+        ResourceService.PreloadBiome(_currentBiome);
+    }
+    
+    public void ClearBiomeCache()
+    {
+        ResourceService.ClearBiomeCache(_currentBiome);
+    }
 }
