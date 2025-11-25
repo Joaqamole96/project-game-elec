@@ -1,6 +1,6 @@
-// -------------------------------------------------- //
-// Scripts/Controllers/EnemyController.cs
-// -------------------------------------------------- //
+// ================================================== //
+// Scripts/Controllers/EnemyController.cs (REFACTORED BASE CLASS)
+// ================================================== //
 
 using UnityEngine;
 using UnityEngine.AI;
@@ -8,128 +8,159 @@ using UnityEngine.AI;
 [RequireComponent(typeof(NavMeshAgent))]
 public class EnemyController : MonoBehaviour
 {
+    [Header("Base Stats")]
     public int maxHealth = 30;
     public int damage = 10;
     public float moveSpeed = 2f;
     public float attackRange = 1.5f;
     public float detectionRange = 8f;
     public float attackCooldown = 2f;
+    
+    [Header("Components")]
     public NavMeshAgent agent;
     public Animator animator;
-    public enum EnemyState { Patrolling, Chasing, Attacking, Dead }
-    public int CurrentHealth { get; private set; }
-    public EnemyState CurrentState { get; private set; }
     
-    private Transform player;
-    private Vector3 patrolPoint;
-    private bool isDead = false;
-    private float lastAttackTime = 0f;
+    public EnemyState CurrentState { get; protected set; }
+    public int CurrentHealth { get; protected set; }
     
-    void Start()
+    public enum EnemyState { Patrolling, Chasing, Attacking, Retreating, Dead }
+    
+    protected Transform player;
+    protected Vector3 patrolPoint;
+    protected bool isDead = false;
+    protected float lastAttackTime = 0f;
+    
+    // ------------------------- //
+    // UNITY LIFECYCLE
+    // ------------------------- //
+    
+    protected virtual void Start()
     {
         CurrentHealth = maxHealth;
-        player = GameObject.FindGameObjectWithTag("Player").transform;
+        
+        GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+        if (playerObj != null)
+        {
+            player = playerObj.transform;
+        }
         
         if (agent == null) agent = GetComponent<NavMeshAgent>();
-
+        
         agent.speed = moveSpeed;
         agent.stoppingDistance = attackRange - 0.2f;
         
         SetRandomPatrolPoint();
         SetState(EnemyState.Patrolling);
+        
+        OnStart();
     }
     
-    void Update()
+    protected virtual void Update()
     {
         if (isDead || player == null) return;
         
-        switch (CurrentState)
-        {
-            case EnemyState.Patrolling: UpdatePatrolling(); break;
-            case EnemyState.Chasing: UpdateChasing(); break;
-            case EnemyState.Attacking: UpdateAttacking(); break;
-        }
+        UpdateState();
+        ExecuteStateBehavior();
+        
+        OnUpdate();
     }
     
-    private void UpdatePatrolling()
-    {
-        if (PlayerInRange(detectionRange))
-        {
-            SetState(EnemyState.Chasing);
-            return;
-        }
-        
-        if (agent.remainingDistance <= agent.stoppingDistance) SetRandomPatrolPoint();
-    }
+    // ------------------------- //
+    // VIRTUAL METHODS FOR SUBCLASSES
+    // ------------------------- //
     
-    private void UpdateChasing()
+    protected virtual void OnStart() { }
+    protected virtual void OnUpdate() { }
+    protected virtual void OnStateChanged(EnemyState oldState, EnemyState newState) { }
+    
+    // ------------------------- //
+    // STATE MANAGEMENT
+    // ------------------------- //
+    
+    protected virtual void UpdateState()
     {
-        if (!PlayerInRange(detectionRange))
-        {
-            SetState(EnemyState.Patrolling);
-            return;
-        }
+        float distanceToPlayer = Vector3.Distance(transform.position, player.position);
         
-        if (PlayerInRange(attackRange))
+        if (distanceToPlayer <= attackRange)
         {
             SetState(EnemyState.Attacking);
-            return;
         }
-        
-        if (agent != null && agent.isOnNavMesh) agent.SetDestination(player.position);
+        else if (distanceToPlayer <= detectionRange)
+        {
+            SetState(EnemyState.Chasing);
+        }
+        else
+        {
+            SetState(EnemyState.Patrolling);
+        }
     }
     
-    private void UpdateAttacking()
+    protected virtual void ExecuteStateBehavior()
     {
-        if (agent != null) agent.SetDestination(transform.position);
+        switch (CurrentState)
+        {
+            case EnemyState.Patrolling:
+                UpdatePatrolling();
+                break;
+            case EnemyState.Chasing:
+                UpdateChasing();
+                break;
+            case EnemyState.Attacking:
+                UpdateAttacking();
+                break;
+            case EnemyState.Retreating:
+                UpdateRetreating();
+                break;
+        }
+    }
+    
+    protected virtual void UpdatePatrolling()
+    {
+        if (agent.remainingDistance <= agent.stoppingDistance)
+        {
+            SetRandomPatrolPoint();
+        }
+    }
+    
+    protected virtual void UpdateChasing()
+    {
+        if (agent != null && agent.isOnNavMesh)
+        {
+            agent.SetDestination(player.position);
+        }
+    }
+    
+    protected virtual void UpdateAttacking()
+    {
+        if (agent != null && agent.isOnNavMesh)
+        {
+            agent.SetDestination(transform.position);
+        }
         
         FacePlayer();
         
-        if (!PlayerInRange(attackRange)) SetState(EnemyState.Chasing);
-        else if (Time.time >= lastAttackTime + attackCooldown) PerformAttack();
-    }
-    
-    private void FacePlayer()
-    {
-        Vector3 direction = (player.position - transform.position).normalized;
-        direction.y = 0;
-        if (direction != Vector3.zero) transform.rotation = Quaternion.LookRotation(direction);
-    }
-    
-    private void PerformAttack()
-    {
-        lastAttackTime = Time.time;
-        
-        if (animator != null) animator.SetTrigger("Attack");
-        
-        if (PlayerInRange(attackRange))
+        if (Time.time >= lastAttackTime + attackCooldown)
         {
-            if (player.TryGetComponent<PlayerController>(out var playerController)) playerController.TakeDamage(damage);
+            PerformAttack();
         }
     }
     
-    private bool PlayerInRange(float range)
+    protected virtual void UpdateRetreating()
     {
-        if (player == null) return false;
-        return Vector3.Distance(transform.position, player.position) <= range;
-    }
-    
-    private void SetRandomPatrolPoint()
-    {
-        Vector2 randomCircle = Random.insideUnitCircle * 3f;
-        patrolPoint = transform.position + new Vector3(randomCircle.x, 0, randomCircle.y);
-
-        if (NavMesh.SamplePosition(patrolPoint, out NavMeshHit hit, 3f, NavMesh.AllAreas))
+        Vector3 retreatDirection = (transform.position - player.position).normalized;
+        Vector3 retreatTarget = transform.position + retreatDirection * 3f;
+        
+        if (agent != null && agent.isOnNavMesh)
         {
-            patrolPoint = hit.position;
-            if (agent != null && agent.isOnNavMesh) agent.SetDestination(patrolPoint);
+            agent.SetDestination(retreatTarget);
         }
     }
     
-    private void SetState(EnemyState newState)
+    protected void SetState(EnemyState newState)
     {
         if (CurrentState == newState) return;
         
+        EnemyState oldState = CurrentState;
         CurrentState = newState;
         
         if (animator != null)
@@ -137,28 +168,67 @@ public class EnemyController : MonoBehaviour
             animator.SetBool("IsMoving", CurrentState == EnemyState.Chasing || CurrentState == EnemyState.Patrolling);
             animator.SetBool("IsAttacking", CurrentState == EnemyState.Attacking);
         }
+        
+        OnStateChanged(oldState, newState);
     }
     
-    public void TakeDamage(int damage)
+    // ------------------------- //
+    // COMBAT
+    // ------------------------- //
+    
+    protected virtual void PerformAttack()
+    {
+        lastAttackTime = Time.time;
+        
+        if (animator != null)
+        {
+            animator.SetTrigger("Attack");
+        }
+        
+        if (Vector3.Distance(transform.position, player.position) <= attackRange)
+        {
+            DealDamageToPlayer(damage);
+        }
+    }
+    
+    protected void DealDamageToPlayer(int damageAmount)
+    {
+        if (player.TryGetComponent<PlayerController>(out var playerController))
+        {
+            playerController.TakeDamage(damageAmount);
+        }
+    }
+    
+    public virtual void TakeDamage(int damageAmount)
     {
         if (isDead) return;
         
-        CurrentHealth -= damage;
+        CurrentHealth -= damageAmount;
         CurrentHealth = Mathf.Max(0, CurrentHealth);
         
-        if (CurrentState != EnemyState.Chasing && CurrentState != EnemyState.Attacking) SetState(EnemyState.Chasing);
+        // Force chase state if hit
+        if (CurrentState != EnemyState.Chasing && CurrentState != EnemyState.Attacking)
+        {
+            SetState(EnemyState.Chasing);
+        }
         
-        if (CurrentHealth <= 0) Die();
+        if (CurrentHealth <= 0)
+        {
+            Die();
+        }
     }
     
-    private void Die()
+    protected virtual void Die()
     {
         isDead = true;
         SetState(EnemyState.Dead);
         
         if (agent != null) agent.isStopped = true;
-            
-        if (animator != null) animator.SetTrigger("Die");
+        
+        if (animator != null)
+        {
+            animator.SetTrigger("Die");
+        }
         
         Collider[] colliders = GetComponents<Collider>();
         foreach (Collider col in colliders) col.enabled = false;
@@ -170,8 +240,69 @@ public class EnemyController : MonoBehaviour
             combatManager.OnEnemyDied(gameObject);
         }
         
+        DropLoot();
+        
         Destroy(gameObject, 2f);
     }
+    
+    protected virtual void DropLoot()
+    {
+        int goldAmount = Random.Range(5, 15);
+        
+        GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
+        if (playerObj != null && playerObj.TryGetComponent<PlayerController>(out var pc))
+        {
+            if (pc.inventory != null)
+            {
+                // Apply gold power modifier
+                if (pc.powerManager != null)
+                {
+                    goldAmount = pc.powerManager.ModifyGoldGained(goldAmount);
+                }
+                
+                pc.inventory.AddGold(goldAmount);
+            }
+        }
+    }
+    
+    // ------------------------- //
+    // UTILITY
+    // ------------------------- //
+    
+    protected void FacePlayer()
+    {
+        Vector3 direction = (player.position - transform.position).normalized;
+        direction.y = 0;
+        if (direction != Vector3.zero)
+        {
+            transform.rotation = Quaternion.LookRotation(direction);
+        }
+    }
+    
+    protected void SetRandomPatrolPoint()
+    {
+        Vector2 randomCircle = Random.insideUnitCircle * 3f;
+        patrolPoint = transform.position + new Vector3(randomCircle.x, 0, randomCircle.y);
+
+        if (NavMesh.SamplePosition(patrolPoint, out NavMeshHit hit, 3f, NavMesh.AllAreas))
+        {
+            patrolPoint = hit.position;
+            if (agent != null && agent.isOnNavMesh)
+            {
+                agent.SetDestination(patrolPoint);
+            }
+        }
+    }
+    
+    protected bool PlayerInRange(float range)
+    {
+        if (player == null) return false;
+        return Vector3.Distance(transform.position, player.position) <= range;
+    }
+    
+    // ------------------------- //
+    // DEBUG
+    // ------------------------- //
     
     void OnDrawGizmosSelected()
     {
