@@ -9,7 +9,6 @@ public class PrefabFloorRenderer
 {
     private GameObject _fallbackFloorPrefab;
     private BiomeManager _biomeManager;
-    private BiomeModel _currentBiome;
 
     public PrefabFloorRenderer(GameObject floorPrefab, BiomeManager biomeManager)
     {
@@ -25,12 +24,16 @@ public class PrefabFloorRenderer
 
     public void RenderIndividualFloors(LevelModel layout, List<RoomModel> rooms, Transform parent, bool enableCollision)
     {
-        if (layout?.AllFloorTiles == null) throw new("Cannot render prefab floors: layout or floor tiles is null");
+        if (layout?.AllFloorTiles == null) 
+            throw new System.Exception("Cannot render prefab floors: layout or floor tiles is null");
+
+        // Get current biome as STRING
+        string currentBiome = _biomeManager.CurrentBiome;
 
         int floorsCreated = 0;
         foreach (var floorPos in layout.AllFloorTiles)
         {
-            var floorPrefab = _biomeManager.GetFloorPrefab(_currentBiome);
+            var floorPrefab = _biomeManager.GetFloorPrefab(currentBiome); // FIXED: Pass string
             var floor = CreateFloorAtPosition(floorPos, floorPrefab);
             
             if (floor != null)
@@ -65,6 +68,7 @@ public class PrefabFloorRenderer
     private void AddCollisionToObject(GameObject obj)
     {
         if (obj == null) return;
-        if (obj.GetComponent<Collider>() == null) obj.AddComponent<BoxCollider>();
+        if (obj.GetComponent<Collider>() == null) 
+            obj.AddComponent<BoxCollider>();
     }
 }

@@ -9,7 +9,6 @@ public class PrefabWallRenderer
 {
     private GameObject _fallbackWallPrefab;
     private BiomeManager _biomeManager;
-    private BiomeModel _currentBiome;
 
     public PrefabWallRenderer(GameObject wallPrefab, BiomeManager biomeManager)
     {
@@ -25,14 +24,18 @@ public class PrefabWallRenderer
 
     public void RenderIndividualWalls(LevelModel layout, Transform parent, bool enableCollision)
     {
-        if (layout?.AllWallTiles == null || layout.WallTypes == null) throw new("Cannot render prefab walls: layout data is null");
+        if (layout?.AllWallTiles == null || layout.WallTypes == null) 
+            throw new System.Exception("Cannot render prefab walls: layout data is null");
+
+        // Get current biome as STRING
+        string currentBiome = _biomeManager.CurrentBiome;
 
         int wallsCreated = 0;
         foreach (var wallPos in layout.AllWallTiles)
         {
             if (layout.WallTypes.TryGetValue(wallPos, out var wallType))
             {
-                var wallPrefab = _biomeManager.GetWallPrefab(_currentBiome);
+                var wallPrefab = _biomeManager.GetWallPrefab(currentBiome); // FIXED: Pass string
                 var wall = CreateWallAtPosition(wallPos, wallType, wallPrefab);
                 
                 if (wall != null)
@@ -51,7 +54,7 @@ public class PrefabWallRenderer
     {
         Vector3 worldPos = new(gridPos.x + 0.5f, 1f, gridPos.y + 0.5f);
         
-        GameObject wallPrefabToUse = prefab != null ? prefab : _fallbackWallPrefab;
+        GameObject wallPrefabToUse = prefab ?? _fallbackWallPrefab;
         
         if (wallPrefabToUse == null)
         {
@@ -70,9 +73,7 @@ public class PrefabWallRenderer
     private void ApplyWallRotation(GameObject wall, WallType wallType)
     {
         if (wall == null) return;
-
-        Quaternion rotation = GetWallRotation(wallType);
-        wall.transform.rotation = rotation;
+        wall.transform.rotation = GetWallRotation(wallType);
     }
 
     private Quaternion GetWallRotation(WallType wallType)
@@ -83,7 +84,7 @@ public class PrefabWallRenderer
             WallType.South => Quaternion.Euler(0, 180, 0),
             WallType.East => Quaternion.Euler(0, 90, 0),
             WallType.West => Quaternion.Euler(0, 270, 0),
-            WallType.Corridor => Quaternion.Euler(0, 0, 0), // Corridor walls might need special handling
+            WallType.Corridor => Quaternion.Euler(0, 0, 0),
             _ => Quaternion.identity
         };
     }
@@ -91,6 +92,7 @@ public class PrefabWallRenderer
     private void AddCollisionToObject(GameObject obj)
     {
         if (obj == null) return;
-        if (obj.GetComponent<Collider>() == null) obj.AddComponent<BoxCollider>();
+        if (obj.GetComponent<Collider>() == null) 
+            obj.AddComponent<BoxCollider>();
     }
 }

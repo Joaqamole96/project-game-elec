@@ -8,7 +8,6 @@ public class PrefabDoorRenderer
 {
     private GameObject _fallbackDoorPrefab;
     private BiomeManager _biomeManager;
-    private BiomeModel _currentBiome;
 
     public PrefabDoorRenderer(GameObject doorPrefab, BiomeManager biomeManager)
     {
@@ -18,12 +17,16 @@ public class PrefabDoorRenderer
 
     public void RenderDoors(LevelModel layout, Transform parent, bool enableCollision)
     {
-        if (layout?.AllDoorTiles == null) throw new("Cannot render prefab doors: layout or door tiles is null");
+        if (layout?.AllDoorTiles == null) 
+            throw new System.Exception("Cannot render prefab doors: layout or door tiles is null");
+        
+        // Get current biome as STRING
+        string currentBiome = _biomeManager.CurrentBiome;
         
         int doorsCreated = 0;
         foreach (var doorPos in layout.AllDoorTiles)
         {
-            var doorPrefab = _biomeManager.GetDoorPrefab(_currentBiome);
+            var doorPrefab = _biomeManager.GetDoorPrefab(currentBiome); // FIXED: Pass string
             var door = CreateDoorAtPosition(doorPos, doorPrefab);
             
             if (door != null)
@@ -41,7 +44,7 @@ public class PrefabDoorRenderer
     {
         Vector3 worldPos = new(gridPos.x + 0.5f, 0f, gridPos.y + 0.5f);
         
-        GameObject doorPrefabToUse = prefab != null ? prefab : _fallbackDoorPrefab;
+        GameObject doorPrefabToUse = prefab ?? _fallbackDoorPrefab;
         
         if (doorPrefabToUse == null)
         {
@@ -58,7 +61,9 @@ public class PrefabDoorRenderer
     private void AddCollisionToObject(GameObject obj, string objectType)
     {
         if (obj == null) return;
-        if (obj.GetComponent<Collider>() == null) obj.AddComponent<BoxCollider>();
+        if (obj.GetComponent<Collider>() == null) 
+            obj.AddComponent<BoxCollider>();
+        
         if (objectType == "Door")
         {
             if (!obj.TryGetComponent<Rigidbody>(out var rb))

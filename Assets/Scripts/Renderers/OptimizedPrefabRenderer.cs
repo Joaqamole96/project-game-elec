@@ -1,5 +1,5 @@
 // -------------------------------------------------- //
-// Scripts/Renderers/PrefabRenderer.cs
+// Scripts/Renderers/OptimizedPrefabRenderer.cs (FIXED)
 // -------------------------------------------------- //
 
 using UnityEngine;
@@ -8,7 +8,7 @@ using System.Collections.Generic;
 public class OptimizedPrefabRenderer
 {
     private BiomeManager _biomeManager;
-    private BiomeModel _currentBiome;
+    private string _currentBiome;
     private MeshGenerator _meshCombiner;
     private MeshGenerator _wallCombiner;
 
@@ -21,8 +21,8 @@ public class OptimizedPrefabRenderer
 
     public void SetBiomeForFloor(int floorLevel)
     {
-        string biomeName = _biomeManager.GetBiomeForFloor(floorLevel);
-        Debug.Log($"OptimizedRenderer: Using biome '{biomeName}' for floor {floorLevel}");
+        _currentBiome = _biomeManager.GetBiomeForFloor(floorLevel);
+        Debug.Log($"OptimizedRenderer: Using biome '{_currentBiome}' for floor {floorLevel}");
     }
 
     public void RenderWallsOptimized(LevelModel layout, Transform parent)
@@ -49,7 +49,7 @@ public class OptimizedPrefabRenderer
             {
                 Vector3 worldPos = new(wallPos.x + 0.5f, 4.5f, wallPos.y + 0.5f);
                 Quaternion rotation = GetWallRotation(wallType);
-                _wallCombiner.AddMesh(wallMesh, worldPos, rotation, wallScale, wallMaterial); // Use _wallCombiner
+                _wallCombiner.AddMesh(wallMesh, worldPos, rotation, wallScale, wallMaterial);
             }
     }
 
@@ -60,6 +60,7 @@ public class OptimizedPrefabRenderer
         // Render door frames
         var doorPrefab = _biomeManager.GetDoorPrefab(_currentBiome);
         if (doorPrefab != null)
+        {
             foreach (var doorPos in layout.AllDoorTiles)
             {
                 Vector3 worldPos = new(doorPos.x + 0.5f, 1.5f, doorPos.y + 0.5f);
@@ -69,19 +70,28 @@ public class OptimizedPrefabRenderer
                 door.name = $"Door_{doorPos.x}_{doorPos.y}";
                 
                 // Ensure DoorController is properly configured
-                if (!door.TryGetComponent<DoorController>(out var doorController)) doorController = door.AddComponent<DoorController>();
+                if (!door.TryGetComponent<DoorController>(out var doorController))
+                {
+                    doorController = door.AddComponent<DoorController>();
+                }
             }
+        }
 
-        // NEW: Render door tops
-        var doorTopPrefab = _biomeManager.GetPrefab("Biomes/Default/DoorTopPrefab");
-        if (doorTopPrefab == null)  RenderDoorTopsAsPrimitives(layout, parent);
-        else
+        // Render door tops
+        var doorTopPrefab = _biomeManager.GetDoorTopPrefab(_currentBiome);
+        if (doorTopPrefab != null)
+        {
             foreach (var doorPos in layout.AllDoorTiles)
             {
-                Vector3 topPos = new(doorPos.x + 0.5f, 6f, doorPos.y + 0.5f); // Position above door
+                Vector3 topPos = new(doorPos.x + 0.5f, 6f, doorPos.y + 0.5f);
                 var doorTop = Object.Instantiate(doorTopPrefab, topPos, Quaternion.identity, parent);
                 doorTop.name = $"DoorTop_{doorPos.x}_{doorPos.y}";
             }
+        }
+        else
+        {
+            RenderDoorTopsAsPrimitives(layout, parent);
+        }
     }
 
     private void RenderDoorTopsAsPrimitives(LevelModel layout, Transform parent)
@@ -90,27 +100,16 @@ public class OptimizedPrefabRenderer
         {
             GameObject doorTop = GameObject.CreatePrimitive(PrimitiveType.Cube);
             doorTop.transform.position = new Vector3(doorPos.x + 0.5f, 2.5f, doorPos.y + 0.5f);
-            doorTop.transform.localScale = new Vector3(0.8f, 0.1f, 0.8f); // Thin horizontal piece
+            doorTop.transform.localScale = new Vector3(0.8f, 0.1f, 0.8f);
             doorTop.transform.SetParent(parent);
             doorTop.name = $"DoorTop_{doorPos.x}_{doorPos.y}";
             
-            // Apply material
             Renderer renderer = doorTop.GetComponent<Renderer>();
-            if (Application.isPlaying)
+            Material material = new Material(Shader.Find("Standard"))
             {
-                renderer.material = new Material(Shader.Find("Standard"))
-                {
-                    color = Color.gray
-                };
-            }
-            else
-            {
-                Material sharedMaterial = new(Shader.Find("Standard"))
-                {
-                    color = Color.gray
-                };
-                renderer.sharedMaterial = sharedMaterial;
-            }
+                color = Color.gray
+            };
+            renderer.sharedMaterial = material;
         }
     }
 
@@ -119,7 +118,7 @@ public class OptimizedPrefabRenderer
         var floorObjects = _meshCombiner.BuildAllCombinedMeshes(floorParent);
         var wallObjects = _wallCombiner.BuildAllCombinedMeshes(wallParent);
         
-        Debug.Log($"Finalized rendering with {floorObjects.Count} floor meshes and {wallObjects.Count} wall meshes");
+        Debug.Log($"Finalized rendering: {floorObjects.Count} floor meshes, {wallObjects.Count} wall meshes");
     }
 
     public void RenderCeilingOptimized(LevelModel layout, Transform parent)
@@ -139,7 +138,7 @@ public class OptimizedPrefabRenderer
         ceiling.transform.localScale = new Vector3(scaleX, 1f, scaleZ);
         
         Renderer renderer = ceiling.GetComponent<Renderer>();
-        renderer.sharedMaterial = CreateOneSidedMirrorMaterial();
+        renderer.sharedMaterial = CreateCeilingMaterial();
 
         Object.DestroyImmediate(ceiling.GetComponent<Collider>());
     }
@@ -191,10 +190,7 @@ public class OptimizedPrefabRenderer
 
         Vector2Int[] directions = new Vector2Int[]
         {
-            new(0, 1),  // North
-            new(0, -1), // South  
-            new(1, 0),  // East
-            new(-1, 0)  // West
+            new(0, 1), new(0, -1), new(1, 0), new(-1, 0)
         };
 
         foreach (var dir in directions)
@@ -210,16 +206,16 @@ public class OptimizedPrefabRenderer
 
     private Quaternion GetRotationFromDirection(Vector2Int direction)
     {
-        if (direction == new Vector2Int(0, 1) || direction == new Vector2Int(0, -1)) return Quaternion.Euler(0, 90, 0);
-        else return Quaternion.Euler(0, 0, 0);
+        if (direction == new Vector2Int(0, 1) || direction == new Vector2Int(0, -1))
+            return Quaternion.Euler(0, 90, 0);
+        return Quaternion.Euler(0, 0, 0);
     }
 
     private RoomModel FindAdjacentRoom(LevelModel layout, Vector2Int doorPos)
     {
         Vector2Int[] checkDirections = new Vector2Int[]
         {
-            new(0, 1), new(0, -1),
-            new(1, 0), new(-1, 0)
+            new(0, 1), new(0, -1), new(1, 0), new(-1, 0)
         };
 
         foreach (var dir in checkDirections)
@@ -235,8 +231,9 @@ public class OptimizedPrefabRenderer
     {
         var bounds = room.Bounds;
         
-        if (doorPos.y == bounds.yMax - 1 || doorPos.y == bounds.yMin) return Quaternion.Euler(0, 90, 0);
-        else return Quaternion.Euler(0, 0, 0);
+        if (doorPos.y == bounds.yMax - 1 || doorPos.y == bounds.yMin)
+            return Quaternion.Euler(0, 90, 0);
+        return Quaternion.Euler(0, 0, 0);
     }
 
     private Quaternion GetWallRotation(WallType wallType)
@@ -251,25 +248,12 @@ public class OptimizedPrefabRenderer
         };
     }
 
-    private Material CreateOneSidedMirrorMaterial()
+    private Material CreateCeilingMaterial()
     {
         Material material = new(Shader.Find("Standard"));
-        
-        #if UNITY_EDITOR
-        material.color = new Color(0, 1, 1, 0.3f);
-        material.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
-        material.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
-        material.SetInt("_ZWrite", 0);
-        material.DisableKeyword("_ALPHATEST_ON");
-        material.EnableKeyword("_ALPHABLEND_ON");
-        material.DisableKeyword("_ALPHAPREMULTIPLY_ON");
-        material.renderQueue = 3000;
-        #else
-        material.color = Color.gray;
+        material.color = new Color(0.5f, 0.5f, 0.5f);
         material.SetFloat("_Metallic", 0.1f);
         material.SetFloat("_Glossiness", 0.1f);
-        #endif
-
         return material;
     }
 
@@ -284,22 +268,97 @@ public class OptimizedPrefabRenderer
             wall.name = $"Wall_{wallPos.x}_{wallPos.y}";
             
             Renderer renderer = wall.GetComponent<Renderer>();
-            if (Application.isPlaying)
+            Material material = new(Shader.Find("Standard"))
             {
-                renderer.material = new Material(Shader.Find("Standard"))
+                color = Color.gray
+            };
+            renderer.sharedMaterial = material;
+        }
+    }
+
+    public void RenderFloorsByRoom(LevelModel layout, List<RoomModel> rooms, Transform parent)
+    {
+        if (_currentBiome == null || layout?.AllFloorTiles == null || rooms == null)
+        {
+            Debug.LogError("Cannot render floors: missing data");
+            return;
+        }
+
+        var floorPrefab = _biomeManager.GetFloorPrefab(_currentBiome);
+        if (floorPrefab == null)
+        {
+            Debug.LogWarning("Floor prefab not found, using primitives");
+            RenderFloorsAsPrimitives(layout, parent);
+            return;
+        }
+
+        Mesh floorMesh = GetPrefabMesh(floorPrefab);
+        Material floorMaterial = GetPrefabMaterial(floorPrefab);
+        Vector3 floorScale = floorPrefab.transform.localScale;
+
+        if (floorMesh == null || floorMaterial == null)
+        {
+            Debug.LogWarning("Floor mesh/material not found, using primitives");
+            RenderFloorsAsPrimitives(layout, parent);
+            return;
+        }
+
+        Dictionary<RoomModel, List<Vector2Int>> roomFloorTiles = new();
+        foreach (var room in rooms) roomFloorTiles[room] = new List<Vector2Int>();
+        List<Vector2Int> corridorTiles = new();
+
+        foreach (var floorPos in layout.AllFloorTiles)
+        {
+            RoomModel containingRoom = null;
+            foreach (var room in rooms)
+            {
+                if (room.Bounds.Contains(floorPos))
                 {
-                    color = Color.gray
-                };
+                    containingRoom = room;
+                    break;
+                }
             }
+            
+            if (containingRoom != null)
+                roomFloorTiles[containingRoom].Add(floorPos);
             else
+                corridorTiles.Add(floorPos);
+        }
+
+        foreach (var roomGroup in roomFloorTiles)
+        {
+            if (roomGroup.Value.Count > 0)
             {
-                Material sharedMaterial = new(Shader.Find("Standard"))
+                var roomCombiner = new MeshGenerator();
+                
+                foreach (var floorPos in roomGroup.Value)
                 {
-                    color = Color.gray
-                };
-                renderer.sharedMaterial = sharedMaterial;
+                    Vector3 worldPos = new(floorPos.x + 0.5f, 0.5f, floorPos.y + 0.5f);
+                    roomCombiner.AddMesh(floorMesh, worldPos, Quaternion.identity, floorScale, floorMaterial);
+                }
+                
+                var roomMeshObjects = roomCombiner.BuildAllCombinedMeshes(parent);
+                foreach (var meshObj in roomMeshObjects)
+                    meshObj.name = $"Room_{roomGroup.Key.ID}_{roomGroup.Key.Type}_Floors";
             }
         }
+
+        if (corridorTiles.Count > 0)
+        {
+            var corridorCombiner = new MeshGenerator();
+            
+            foreach (var floorPos in corridorTiles)
+            {
+                Vector3 worldPos = new(floorPos.x + 0.5f, 0.5f, floorPos.y + 0.5f);
+                corridorCombiner.AddMesh(floorMesh, worldPos, Quaternion.identity, floorScale, floorMaterial);
+            }
+            
+            var corridorMeshObjects = corridorCombiner.BuildAllCombinedMeshes(parent);
+            foreach (var meshObj in corridorMeshObjects)
+                meshObj.name = "Corridor_Floors";
+        }
+
+        Debug.Log($"Rendered floors: {roomFloorTiles.Count} rooms, {corridorTiles.Count} corridor tiles");
     }
 
     private void RenderFloorsAsPrimitives(LevelModel layout, Transform parent)
@@ -315,90 +374,15 @@ public class OptimizedPrefabRenderer
             floor.name = $"Floor_{floorPos.x}_{floorPos.y}";
             
             Renderer renderer = floor.GetComponent<Renderer>();
-            if (Application.isPlaying)
+            Material material = new(Shader.Find("Standard"))
             {
-                renderer.material = new Material(Shader.Find("Standard"))
-                {
-                    color = Color.white
-                };
-            }
-            else
-            {
-                Material sharedMaterial = new(Shader.Find("Standard"))
-                {
-                    color = Color.white
-                };
-                renderer.sharedMaterial = sharedMaterial;
-            }
+                color = Color.white
+            };
+            renderer.sharedMaterial = material;
             
             floor.AddComponent<BoxCollider>();
         }
         
-        Debug.Log($"Created {layout.AllFloorTiles.Count} primitive floors as fallback");
-    }
-
-    public void RenderFloorsByRoom(LevelModel layout, List<RoomModel> rooms, Transform parent)
-    {
-        if (_currentBiome == null || layout?.AllFloorTiles == null || rooms == null) throw new("Cannot render floors by room: missing data");
-
-        var floorPrefab = _biomeManager.GetFloorPrefab(_currentBiome);
-        if (floorPrefab == null) throw new("Floor prefab is null!");
-
-        Mesh floorMesh = GetPrefabMesh(floorPrefab);
-        Material floorMaterial = GetPrefabMaterial(floorPrefab);
-        Vector3 floorScale = floorPrefab.transform.localScale;
-
-        if (floorMesh == null || floorMaterial == null) throw new("Could not get floor mesh or material");
-
-        Dictionary<RoomModel, List<Vector2Int>> roomFloorTiles = new();
-        
-        foreach (var room in rooms) roomFloorTiles[room] = new List<Vector2Int>();
-        
-        List<Vector2Int> corridorTiles = new();
-
-        foreach (var floorPos in layout.AllFloorTiles)
-        {
-            RoomModel containingRoom = null;
-            foreach (var room in rooms)
-                if (room.Bounds.Contains(floorPos))
-                {
-                    containingRoom = room;
-                    break;
-                }
-            
-            if (containingRoom != null) roomFloorTiles[containingRoom].Add(floorPos);
-            else corridorTiles.Add(floorPos);
-        }
-
-        foreach (var roomGroup in roomFloorTiles)
-            if (roomGroup.Value.Count > 0)
-            {
-                var roomCombiner = new MeshGenerator();
-                
-                foreach (var floorPos in roomGroup.Value)
-                {
-                    Vector3 worldPos = new(floorPos.x + 0.5f, 0.5f, floorPos.y + 0.5f);
-                    roomCombiner.AddMesh(floorMesh, worldPos, Quaternion.identity, floorScale, floorMaterial);
-                }
-                
-                var roomMeshObjects = roomCombiner.BuildAllCombinedMeshes(parent);
-                foreach (var meshObj in roomMeshObjects) meshObj.name = $"Room_{roomGroup.Key.ID}_{roomGroup.Key.Type}_Floors";
-            }
-
-        if (corridorTiles.Count > 0)
-        {
-            var corridorCombiner = new MeshGenerator();
-            
-            foreach (var floorPos in corridorTiles)
-            {
-                Vector3 worldPos = new(floorPos.x + 0.5f, 0.5f, floorPos.y + 0.5f);
-                corridorCombiner.AddMesh(floorMesh, worldPos, Quaternion.identity, floorScale, floorMaterial);
-            }
-            
-            var corridorMeshObjects = corridorCombiner.BuildAllCombinedMeshes(parent);
-            foreach (var meshObj in corridorMeshObjects) meshObj.name = "Corridor_Floors";
-        }
-
-        Debug.Log($"Rendered floors by room: {roomFloorTiles.Count} rooms, {corridorTiles.Count} corridor tiles");
+        Debug.Log($"Created {layout.AllFloorTiles.Count} primitive floors");
     }
 }
