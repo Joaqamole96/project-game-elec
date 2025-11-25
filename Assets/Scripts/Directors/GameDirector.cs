@@ -24,6 +24,7 @@ public class GameDirector : MonoBehaviour
     public EntityManager entityManager;
     public AudioManager audioManager;
     public WeaponConfig weaponConfig; // NEW
+    public SaveManager saveManager; // ADD THIS
     
     public static GameDirector Instance { get; private set; }
     public bool IsInitialized { get; private set; }
@@ -103,6 +104,9 @@ public class GameDirector : MonoBehaviour
         
         // NEW: Initialize game systems
         InitializeWeaponConfig();
+        yield return new WaitForSeconds(initializationDelay);
+
+        InitializeSaveManager();
         yield return new WaitForSeconds(initializationDelay);
         
         // Phase 4: Create camera system
@@ -347,6 +351,41 @@ public class GameDirector : MonoBehaviour
         else
         {
             Debug.LogError("GameDirector: Failed to initialize WeaponConfig!");
+        }
+    }
+
+    // ------------------------- //
+    // SAVE MANAGER
+    // ------------------------- //
+
+    private void InitializeSaveManager()
+    {
+        Debug.Log("GameDirector: Initializing SaveManager...");
+        
+        if (saveManager != null)
+        {
+            Debug.Log("GameDirector: SaveManager already exists");
+            return;
+        }
+        
+        GameObject saveObj = new("SaveManager");
+        saveObj.transform.SetParent(systemsContainer.transform);
+        saveManager = saveObj.AddComponent<SaveManager>();
+        
+        if (saveManager != null)
+        {
+            Debug.Log("GameDirector: SaveManager initialized");
+            
+            // Load game if save exists
+            if (saveManager.HasSaveData())
+            {
+                Debug.Log("GameDirector: Save data found, loading...");
+                // Don't load immediately, let player choose in main menu
+            }
+        }
+        else
+        {
+            Debug.LogError("GameDirector: Failed to initialize SaveManager!");
         }
     }
     
