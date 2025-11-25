@@ -290,25 +290,26 @@ public class PlayerController : MonoBehaviour
             animator.SetTrigger("Die");
         }
         
-        // Stop movement
         rb.velocity = Vector3.zero;
         rb.isKinematic = true;
         
         Debug.Log("Player died - Game Over!");
         
-        // Trigger game over after delay
+        // NEW: Show game over UI
         Invoke(nameof(TriggerGameOver), 2f);
     }
-    
+
     private void TriggerGameOver()
     {
-        // TODO: Show game over UI
-        Debug.Log("GAME OVER - Restarting level...");
-        
-        // For now, just reload the scene
-        // UnityEngine.SceneManagement.SceneManager.LoadScene(
-        //     UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex
-        // );
+        GameOverUI gameOverUI = FindObjectOfType<GameOverUI>();
+        if (gameOverUI != null)
+        {
+            LayoutManager layoutManager = GameDirector.Instance?.layoutManager;
+            int floorReached = layoutManager?.LevelConfig?.FloorLevel ?? 1;
+            int goldCollected = inventory?.gold ?? 0;
+            
+            gameOverUI.ShowGameOver(false, floorReached, goldCollected, 0);
+        }
     }
     
     private void SpawnAtEntrance()
