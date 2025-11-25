@@ -119,7 +119,7 @@ public class SaveManager : MonoBehaviour
         if (powerManager == null || powerManager.activePowers == null) return;
         
         // Save powers as comma-separated list of enum values
-        List<string> powerStrings = new List<string>();
+        List<string> powerStrings = new();
         foreach (var power in powerManager.activePowers)
         {
             powerStrings.Add(((int)power.type).ToString());

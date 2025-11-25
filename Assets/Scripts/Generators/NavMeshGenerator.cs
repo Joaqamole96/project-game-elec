@@ -174,11 +174,13 @@ public class NavMeshGenerator : MonoBehaviour
     private void CreateTemporaryFloorColliders(LevelModel layout)
     {
         Debug.Log("Creating temporary floor colliders for NavMesh baking");
-        
+
         // Create one large box collider for the entire floor
-        GameObject tempFloor = new("TempNavMeshFloor");
-        tempFloor.layer = LayerMask.NameToLayer("Default");
-        
+        GameObject tempFloor = new("TempNavMeshFloor")
+        {
+            layer = LayerMask.NameToLayer("Default")
+        };
+
         var bounds = layout.OverallBounds;
         tempFloor.transform.position = new Vector3(bounds.center.x, 0f, bounds.center.y);
         

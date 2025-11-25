@@ -4,6 +4,7 @@
 
 using UnityEngine;
 
+[CreateAssetMenu(fileName = "LevelConfig", menuName = "Configs/LevelConfig")]
 [System.Serializable]
 public class LevelConfig : ScriptableObject
 {
@@ -11,23 +12,17 @@ public class LevelConfig : ScriptableObject
 
     [Range(1, 100)] public int FloorLevel = 1;
 
-    [Range(50, 1000)] public int Width = 150;
+    [Range(50, 1000)] public int Width = 100;
 
-    [Range(50, 1000)] public int Height = 150;
+    [Range(50, 1000)] public int Height = 100;
 
-    [Range(5, 50)] public int FloorGrowth = 20;
+    [Range(5, 50)] public int FloorGrowth = 10;
 
     [Range(50, 200)] public int MinFloorSize = 100;
 
     [Range(200, 2000)] public int MaxFloorSize = 1000;
 
-    // public int Area => Width * Height;
-
-    // public float AspectRatio => (float)Width / Height;
-
     // ------------------------- //
-
-    // public LevelConfig Clone() => this;
 
     public void Validate()
     {
@@ -47,6 +42,4 @@ public class LevelConfig : ScriptableObject
         if (growWidth) Width = Mathf.Min(Width + FloorGrowth, MaxFloorSize);
         else Height = Mathf.Min(Height + FloorGrowth, MaxFloorSize);
     }
-
-    // public bool IsAtMaxSize => Width >= MaxFloorSize && Height >= MaxFloorSize;
 }

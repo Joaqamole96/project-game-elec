@@ -1,0 +1,360 @@
+// -------------------------------------------------- //
+// Scripts/Configs/GameConfig.cs
+// -------------------------------------------------- //
+
+using UnityEngine;
+
+[CreateAssetMenu(fileName = "GameConfig", menuName = "Configs/GameConfig")]
+[System.Serializable]
+public class GameConfig : ScriptableObject
+{
+    public bool SimplifyGeometry = true;
+
+    [Range(1, 10)] public int EnemiesPerCombatRoom = 3;
+
+    [Range(0, 5)] public int TreasureRoomsPerFloor = 1;
+
+    [Range(0, 3)] public int ShopRoomsPerFloor = 1;
+
+    // ------------------------- //
+
+    public void Validate()
+    {
+        EnemiesPerCombatRoom = Mathf.Clamp(EnemiesPerCombatRoom, 1, 10);
+        TreasureRoomsPerFloor = Mathf.Clamp(TreasureRoomsPerFloor, 0, 5);
+        ShopRoomsPerFloor = Mathf.Clamp(ShopRoomsPerFloor, 0, 3);
+    }
+}
+
+// -------------------------------------------------- //
+// Scripts/Configs/LevelConfig.cs
+// -------------------------------------------------- //
+
+using UnityEngine;
+
+[CreateAssetMenu(fileName = "LevelConfig", menuName = "Configs/LevelConfig")]
+[System.Serializable]
+public class LevelConfig : ScriptableObject
+{
+    public int Seed = 0;
+
+    [Range(1, 100)] public int FloorLevel = 1;
+
+    [Range(50, 1000)] public int Width = 100;
+
+    [Range(50, 1000)] public int Height = 100;
+
+    [Range(5, 50)] public int FloorGrowth = 10;
+
+    [Range(50, 200)] public int MinFloorSize = 100;
+
+    [Range(200, 2000)] public int MaxFloorSize = 1000;
+
+    // ------------------------- //
+
+    public void Validate()
+    {
+        Seed = Mathf.Max(0, Seed);
+        FloorLevel = Mathf.Clamp(FloorLevel, 1, 100);
+        Width = Mathf.Clamp(Width, 50, 1000);
+        Height = Mathf.Clamp(Height, 50, 1000);
+        FloorGrowth = Mathf.Clamp(FloorGrowth, 5, 50);
+        MinFloorSize = Mathf.Clamp(MinFloorSize, 50, 200);
+        MaxFloorSize = Mathf.Clamp(MaxFloorSize, 200, 2000);
+
+        if (MinFloorSize >= MaxFloorSize) MinFloorSize = MaxFloorSize - 50;
+    }
+
+    public void GrowFloor(bool growWidth)
+    {
+        if (growWidth) Width = Mathf.Min(Width + FloorGrowth, MaxFloorSize);
+        else Height = Mathf.Min(Height + FloorGrowth, MaxFloorSize);
+    }
+}
+
+// -------------------------------------------------- //
+// Scripts/Configs/PartitionConfig.cs
+// -------------------------------------------------- //
+
+using UnityEngine;
+
+[CreateAssetMenu(fileName = "PartitionConfig", menuName = "Configs/PartitionConfig")]
+[System.Serializable]
+public class PartitionConfig : ScriptableObject
+{
+    [Range(10, 50)] public int MinPartitionSize = 25;
+
+    [Range(20, 100)] public int MaxPartitionSize = 35;
+
+    [Range(0, 10)] public int ExtraConnections = 3;
+
+    [Range(0.3f, 0.7f)] public float MinSplitRatio = 0.35f;
+
+    [Range(0.3f, 0.7f)] public float MaxSplitRatio = 0.65f;
+
+    // ------------------------- //
+
+    public void Validate()
+    {
+        MinPartitionSize = Mathf.Clamp(MinPartitionSize, 10, 50);
+        MaxPartitionSize = Mathf.Clamp(MaxPartitionSize, 20, 100);
+        ExtraConnections = Mathf.Clamp(ExtraConnections, 0, 10);
+        MinSplitRatio = Mathf.Clamp(MinSplitRatio, 0.3f, 0.7f);
+        MaxSplitRatio = Mathf.Clamp(MaxSplitRatio, 0.3f, 0.7f);
+
+        if (MinPartitionSize >= MaxPartitionSize) MinPartitionSize = MaxPartitionSize - 5;
+        if (MinSplitRatio >= MaxSplitRatio) MinSplitRatio = MaxSplitRatio - 0.1f;
+    }
+}
+
+// -------------------------------------------------- //
+// Scripts/Configs/PlayerConfig.cs
+// -------------------------------------------------- //
+
+using UnityEngine;
+
+[CreateAssetMenu(fileName = "PlayerConfig", menuName = "Configs/PlayerConfig")]
+[System.Serializable]
+public class PlayerConfig : ScriptableObject
+{
+    [Range(1, 100)] public int PlayerBaseHealth = 100;
+
+    [Range(1f, 10f)] public float PlayerMovementSpeed = 5f;
+
+    // ------------------------- //
+
+    public void Validate()
+    {
+        PlayerBaseHealth = Mathf.Clamp(PlayerBaseHealth, 1, 100);
+        PlayerMovementSpeed = Mathf.Clamp(PlayerMovementSpeed, 1f, 10f);
+    }
+}
+
+// -------------------------------------------------- //
+// Scripts/Configs/RoomConfig.cs
+// -------------------------------------------------- //
+
+using UnityEngine;
+
+[CreateAssetMenu(fileName = "RoomConfig", menuName = "Configs/RoomConfig")]
+[System.Serializable]
+public class RoomConfig : ScriptableObject
+{
+    [Range(1, 10)] public int MinInset = 4;
+
+    [Range(5, 15)] public int MaxInset = 8;
+
+    [Range(5, 30)] public int MinRoomSize = 20;
+
+    [Range(15, 50)] public int MaxRoomSize = 30;
+
+    [Range(5, 50)] public int MaxRooms = 20;
+
+    [Range(1, 5)] public int SpawnPadding = 2;
+
+    // ------------------------- //
+
+    public void Validate()
+    {
+        MinInset = Mathf.Clamp(MinInset, 1, 10);
+        MaxInset = Mathf.Clamp(MaxInset, 5, 15);
+        MinRoomSize = Mathf.Max(3, MinRoomSize);
+        MinRoomSize = Mathf.Clamp(MinRoomSize, 5, 30);
+        MaxRoomSize = Mathf.Clamp(MaxRoomSize, 15, 50);
+        MaxRooms = Mathf.Clamp(MaxRooms, 5, 50);
+        SpawnPadding = Mathf.Clamp(SpawnPadding, 1, 5);
+
+        if (MinInset >= MaxInset) MinInset = MaxInset - 2;
+        if (MinRoomSize >= MaxRoomSize) MinRoomSize = MaxRoomSize - 5;
+        if (MinRoomSize < 5) MinRoomSize = 5;
+    }
+}
+
+// ================================================== //
+// Scripts/Configs/WeaponConfig.cs
+// ================================================== //
+ 
+using UnityEngine;
+using System.Collections.Generic;
+
+public class WeaponConfig : MonoBehaviour
+{
+    public static WeaponConfig Instance { get; private set; }
+    public GameObject swordPrefab;
+    public GameObject axePrefab;
+    public GameObject daggerPrefab;
+    public GameObject bowPrefab;
+    public GameObject crossbowPrefab;
+    public GameObject staffPrefab;
+    public GameObject wandPrefab;
+    
+    private Dictionary<string, WeaponData> weaponRegistry;
+    
+    void Awake()
+    {
+        if (Instance == null)
+        {
+            Instance = this;
+            DontDestroyOnLoad(gameObject);
+            InitializeWeaponRegistry();
+        }
+        else Destroy(gameObject);
+    }
+    
+    private void InitializeWeaponRegistry()
+    {
+        weaponRegistry = new Dictionary<string, WeaponData>
+        {
+            { "Sword", new WeaponData
+            {
+                weaponName = "Iron Sword",
+                weaponType = WeaponType.Melee,
+                damage = 15,
+                attackSpeed = 1.0f,
+                range = 2f,
+                description = "A reliable balanced blade",
+                prefab = swordPrefab
+            }},
+            
+            { "Axe", new WeaponData
+            {
+                weaponName = "Battle Axe",
+                weaponType = WeaponType.Melee,
+                damage = 25,
+                attackSpeed = 1.5f,
+                range = 2.5f,
+                description = "Heavy weapon with devastating power",
+                prefab = axePrefab
+            }},
+            
+            { "Dagger", new WeaponData
+            {
+                weaponName = "Swift Dagger",
+                weaponType = WeaponType.Melee,
+                damage = 10,
+                attackSpeed = 0.5f,
+                range = 1.5f,
+                description = "Fast strikes with lower damage",
+                prefab = daggerPrefab
+            }},
+
+            { "Bow", new WeaponData
+            {
+                weaponName = "Hunter's Bow",
+                weaponType = WeaponType.Ranged,
+                damage = 20,
+                attackSpeed = 1.2f,
+                range = 15f,
+                projectileSpeed = 20f,
+                description = "Long range with precision",
+                prefab = bowPrefab
+            }},
+            
+            { "Crossbow", new WeaponData
+            {
+                weaponName = "Heavy Crossbow",
+                weaponType = WeaponType.Ranged,
+                damage = 30,
+                attackSpeed = 2.0f,
+                range = 20f,
+                projectileSpeed = 30f,
+                description = "Powerful but slow",
+                prefab = crossbowPrefab
+            }},
+            
+            { "Staff", new WeaponData
+            {
+                weaponName = "Fireball Staff",
+                weaponType = WeaponType.Magic,
+                damage = 18,
+                attackSpeed = 1.5f,
+                range = 12f,
+                projectileSpeed = 15f,
+                manaCost = 5,
+                description = "Launches explosive fireballs",
+                prefab = staffPrefab
+            }},
+            
+            { "Wand", new WeaponData
+            {
+                weaponName = "Lightning Wand",
+                weaponType = WeaponType.Magic,
+                damage = 12,
+                attackSpeed = 0.8f,
+                range = 10f,
+                projectileSpeed = 25f,
+                manaCost = 3,
+                description = "Rapid magical bolts",
+                prefab = wandPrefab
+            }}
+        };
+        
+        Debug.Log($"WeaponConfig: Initialized {weaponRegistry.Count} weapons");
+    }
+    
+    public WeaponData GetWeaponData(string weaponKey)
+    {
+        if (weaponRegistry.TryGetValue(weaponKey, out WeaponData data)) return data;
+        
+        Debug.LogWarning($"Weapon '{weaponKey}' not found in database");
+        return null;
+    }
+    
+    public WeaponData GetRandomWeapon()
+    {
+        var keys = new List<string>(weaponRegistry.Keys);
+        string randomKey = keys[Random.Range(0, keys.Count)];
+        return GetWeaponData(randomKey);
+    }
+    
+    public WeaponData GetRandomWeaponByType(WeaponType type)
+    {
+        var matching = new List<WeaponData>();
+        
+        foreach (var weapon in weaponRegistry.Values)
+            if (weapon.weaponType == type) matching.Add(weapon);
+        
+        if (matching.Count == 0) return null;
+        return matching[Random.Range(0, matching.Count)];
+    }
+    
+    public GameObject SpawnWeaponPickup(string weaponKey, Vector3 position)
+    {
+        WeaponData data = GetWeaponData(weaponKey);
+        if (data == null) return null;
+        
+        GameObject pickup = new($"WeaponPickup_{data.weaponName}");
+        pickup.transform.position = position;
+        
+        GameObject visual = GameObject.CreatePrimitive(PrimitiveType.Capsule);
+        visual.transform.SetParent(pickup.transform);
+        visual.transform.localPosition = Vector3.zero;
+        visual.transform.localScale = new Vector3(0.3f, 0.5f, 0.3f);
+        
+        Renderer renderer = visual.GetComponent<Renderer>();
+        Material mat = new(Shader.Find("Standard"))
+        {
+            color = GetWeaponTypeColor(data.weaponType)
+        };
+        mat.EnableKeyword("_EMISSION");
+        mat.SetColor("_EmissionColor", mat.color);
+        renderer.material = mat;
+        
+        SphereCollider collider = pickup.AddComponent<SphereCollider>();
+        collider.isTrigger = true;
+        collider.radius = 0.5f;
+        
+        WeaponController pickupComponent = pickup.AddComponent<WeaponController>();
+        pickupComponent.weaponKey = weaponKey;
+        
+        return pickup;
+    }
+    
+    private Color GetWeaponTypeColor(WeaponType type) => type switch
+    {
+        WeaponType.Melee => new Color(0.8f, 0.2f, 0.2f),
+        WeaponType.Ranged => new Color(0.2f, 0.8f, 0.2f),
+        WeaponType.Magic => new Color(0.5f, 0.2f, 1f),
+        _ => Color.white
+    };
+}

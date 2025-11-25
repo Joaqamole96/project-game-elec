@@ -1,18 +1,13 @@
 // ================================================== //
-// Scripts/Weapons/WeaponConfig.cs - Weapon Definitions
+// Scripts/Configs/WeaponConfig.cs
 // ================================================== //
- 
+
 using UnityEngine;
 using System.Collections.Generic;
 
-/// <summary>
-/// Centralized weapon definitions and spawning
-/// </summary>
 public class WeaponConfig : MonoBehaviour
 {
     public static WeaponConfig Instance { get; private set; }
-    
-    [Header("Weapon Prefabs")]
     public GameObject swordPrefab;
     public GameObject axePrefab;
     public GameObject daggerPrefab;
@@ -31,17 +26,13 @@ public class WeaponConfig : MonoBehaviour
             DontDestroyOnLoad(gameObject);
             InitializeWeaponRegistry();
         }
-        else
-        {
-            Destroy(gameObject);
-        }
+        else Destroy(gameObject);
     }
     
     private void InitializeWeaponRegistry()
     {
         weaponRegistry = new Dictionary<string, WeaponData>
         {
-            // MELEE WEAPONS
             { "Sword", new WeaponData
             {
                 weaponName = "Iron Sword",
@@ -74,8 +65,7 @@ public class WeaponConfig : MonoBehaviour
                 description = "Fast strikes with lower damage",
                 prefab = daggerPrefab
             }},
-            
-            // RANGED WEAPONS
+
             { "Bow", new WeaponData
             {
                 weaponName = "Hunter's Bow",
@@ -100,7 +90,6 @@ public class WeaponConfig : MonoBehaviour
                 prefab = crossbowPrefab
             }},
             
-            // MAGIC WEAPONS
             { "Staff", new WeaponData
             {
                 weaponName = "Fireball Staff",
@@ -133,10 +122,7 @@ public class WeaponConfig : MonoBehaviour
     
     public WeaponData GetWeaponData(string weaponKey)
     {
-        if (weaponRegistry.TryGetValue(weaponKey, out WeaponData data))
-        {
-            return data;
-        }
+        if (weaponRegistry.TryGetValue(weaponKey, out WeaponData data)) return data;
         
         Debug.LogWarning($"Weapon '{weaponKey}' not found in database");
         return null;
@@ -154,12 +140,7 @@ public class WeaponConfig : MonoBehaviour
         var matching = new List<WeaponData>();
         
         foreach (var weapon in weaponRegistry.Values)
-        {
-            if (weapon.weaponType == type)
-            {
-                matching.Add(weapon);
-            }
-        }
+            if (weapon.weaponType == type) matching.Add(weapon);
         
         if (matching.Count == 0) return null;
         return matching[Random.Range(0, matching.Count)];
@@ -170,42 +151,38 @@ public class WeaponConfig : MonoBehaviour
         WeaponData data = GetWeaponData(weaponKey);
         if (data == null) return null;
         
-        GameObject pickup = new GameObject($"WeaponPickup_{data.weaponName}");
+        GameObject pickup = new($"WeaponPickup_{data.weaponName}");
         pickup.transform.position = position;
         
-        // Visual representation
         GameObject visual = GameObject.CreatePrimitive(PrimitiveType.Capsule);
         visual.transform.SetParent(pickup.transform);
         visual.transform.localPosition = Vector3.zero;
         visual.transform.localScale = new Vector3(0.3f, 0.5f, 0.3f);
         
         Renderer renderer = visual.GetComponent<Renderer>();
-        Material mat = new Material(Shader.Find("Standard"));
-        mat.color = GetWeaponTypeColor(data.weaponType);
+        Material mat = new(Shader.Find("Standard"))
+        {
+            color = GetWeaponTypeColor(data.weaponType)
+        };
         mat.EnableKeyword("_EMISSION");
         mat.SetColor("_EmissionColor", mat.color);
         renderer.material = mat;
         
-        // Add collider
         SphereCollider collider = pickup.AddComponent<SphereCollider>();
         collider.isTrigger = true;
         collider.radius = 0.5f;
         
-        // Add pickup component
         WeaponController pickupComponent = pickup.AddComponent<WeaponController>();
         pickupComponent.weaponKey = weaponKey;
         
         return pickup;
     }
     
-    private Color GetWeaponTypeColor(WeaponType type)
+    private Color GetWeaponTypeColor(WeaponType type) => type switch
     {
-        return type switch
-        {
-            WeaponType.Melee => new Color(0.8f, 0.2f, 0.2f),   // Red
-            WeaponType.Ranged => new Color(0.2f, 0.8f, 0.2f),  // Green
-            WeaponType.Magic => new Color(0.5f, 0.2f, 1f),     // Purple
-            _ => Color.white
-        };
-    }
+        WeaponType.Melee => new Color(0.8f, 0.2f, 0.2f),
+        WeaponType.Ranged => new Color(0.2f, 0.8f, 0.2f),
+        WeaponType.Magic => new Color(0.5f, 0.2f, 1f),
+        _ => Color.white
+    };
 }

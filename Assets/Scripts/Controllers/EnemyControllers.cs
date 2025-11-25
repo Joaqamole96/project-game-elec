@@ -135,8 +135,10 @@ public class RangedEnemyController : EnemyController
         
         // Visual
         Renderer renderer = projectile.GetComponent<Renderer>();
-        Material mat = new Material(Shader.Find("Standard"));
-        mat.color = Color.red;
+        Material mat = new(Shader.Find("Standard"))
+        {
+            color = Color.red
+        };
         mat.EnableKeyword("_EMISSION");
         mat.SetColor("_EmissionColor", Color.red * 2f);
         renderer.material = mat;

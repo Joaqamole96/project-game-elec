@@ -53,9 +53,11 @@ public class PowerManager : MonoBehaviour
             Debug.Log($"PowerManager: Already have {powerType}");
             return false;
         }
-        
-        PowerModel newPower = new(powerType);
-        newPower.isActive = true;
+
+        PowerModel newPower = new(powerType)
+        {
+            isActive = true
+        };
         activePowers.Add(newPower);
         
         ApplyPowerEffect(newPower);

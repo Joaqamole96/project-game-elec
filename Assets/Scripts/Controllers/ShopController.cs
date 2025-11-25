@@ -9,7 +9,7 @@ using System.Collections;
 public class ShopController : MonoBehaviour
 {
     [Header("Shop Inventory")]
-    public List<ShopItem> availableItems = new List<ShopItem>();
+    public List<ShopItem> availableItems = new();
     
     [Header("UI")]
     public bool isPlayerNearby = false;
@@ -71,7 +71,7 @@ public class ShopController : MonoBehaviour
         
         // Random power
         PowerType randomPower = (PowerType)Random.Range(0, System.Enum.GetValues(typeof(PowerType)).Length);
-        PowerModel powerPreview = new PowerModel(randomPower);
+        PowerModel powerPreview = new(randomPower);
         availableItems.Add(new ShopItem
         {
             itemName = powerPreview.powerName,
@@ -280,8 +280,10 @@ public class BossSpawner : MonoBehaviour
         
         // Make it glow
         Renderer renderer = powerPickup.GetComponent<Renderer>();
-        Material glowMat = new Material(Shader.Find("Standard"));
-        glowMat.color = Color.yellow;
+        Material glowMat = new(Shader.Find("Standard"))
+        {
+            color = Color.yellow
+        };
         glowMat.EnableKeyword("_EMISSION");
         glowMat.SetColor("_EmissionColor", Color.yellow * 2f);
         renderer.material = glowMat;

@@ -4,6 +4,7 @@
 
 using UnityEngine;
 
+[CreateAssetMenu(fileName = "PartitionConfig", menuName = "Configs/PartitionConfig")]
 [System.Serializable]
 public class PartitionConfig : ScriptableObject
 {
@@ -16,12 +17,8 @@ public class PartitionConfig : ScriptableObject
     [Range(0.3f, 0.7f)] public float MinSplitRatio = 0.35f;
 
     [Range(0.3f, 0.7f)] public float MaxSplitRatio = 0.65f;
-    
-    // public float GetRandomSplitRatio(System.Random random) => (float)(random.NextDouble() * (MaxSplitRatio - MinSplitRatio) + MinSplitRatio);
 
     // ------------------------- //
-    
-    // public PartitionConfig Clone() => this;
 
     public void Validate()
     {
@@ -31,17 +28,7 @@ public class PartitionConfig : ScriptableObject
         MinSplitRatio = Mathf.Clamp(MinSplitRatio, 0.3f, 0.7f);
         MaxSplitRatio = Mathf.Clamp(MaxSplitRatio, 0.3f, 0.7f);
 
-        // Ensure min is less than max
         if (MinPartitionSize >= MaxPartitionSize) MinPartitionSize = MaxPartitionSize - 5;
-
         if (MinSplitRatio >= MaxSplitRatio) MinSplitRatio = MaxSplitRatio - 0.1f;
     }
-
-    // public bool ShouldSplitPartition(int partitionSize, bool isVertical)
-    // {
-    //     int threshold = isVertical ? MaxPartitionSize : MaxPartitionSize;
-    //     return partitionSize > threshold;
-    // }
-
-    // public bool IsPartitionTooSmall(int size) => size <= MinPartitionSize;
 }

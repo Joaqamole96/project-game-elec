@@ -23,7 +23,7 @@ public class WeaponManager : MonoBehaviour
         // Create weapon holder if doesn't exist
         if (weaponHolder == null)
         {
-            GameObject holder = new GameObject("WeaponHolder");
+            GameObject holder = new("WeaponHolder");
             holder.transform.SetParent(transform);
             holder.transform.localPosition = new Vector3(0.5f, 1f, 0.5f);
             weaponHolder = holder.transform;
@@ -163,8 +163,10 @@ public class WeaponManager : MonoBehaviour
         
         // Visual
         Renderer renderer = projectile.GetComponent<Renderer>();
-        Material mat = new Material(Shader.Find("Standard"));
-        mat.color = type == ProjectileType.Magic ? Color.magenta : Color.yellow;
+        Material mat = new(Shader.Find("Standard"))
+        {
+            color = type == ProjectileType.Magic ? Color.magenta : Color.yellow
+        };
         mat.EnableKeyword("_EMISSION");
         mat.SetColor("_EmissionColor", mat.color * 2f);
         renderer.material = mat;
@@ -188,8 +190,10 @@ public class WeaponManager : MonoBehaviour
         effect.transform.localScale = Vector3.one * 0.5f;
         
         Renderer renderer = effect.GetComponent<Renderer>();
-        Material mat = new Material(Shader.Find("Standard"));
-        mat.color = new Color(1f, 1f, 1f, 0.5f);
+        Material mat = new(Shader.Find("Standard"))
+        {
+            color = new Color(1f, 1f, 1f, 0.5f)
+        };
         renderer.material = mat;
         
         Destroy(effect.GetComponent<Collider>());

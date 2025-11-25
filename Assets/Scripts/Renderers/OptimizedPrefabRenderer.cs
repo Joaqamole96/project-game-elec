@@ -250,8 +250,10 @@ public class OptimizedPrefabRenderer
 
     private Material CreateCeilingMaterial()
     {
-        Material material = new(Shader.Find("Standard"));
-        material.color = new Color(0.5f, 0.5f, 0.5f);
+        Material material = new(Shader.Find("Standard"))
+        {
+            color = new Color(0.5f, 0.5f, 0.5f)
+        };
         material.SetFloat("_Metallic", 0.1f);
         material.SetFloat("_Glossiness", 0.1f);
         return material;

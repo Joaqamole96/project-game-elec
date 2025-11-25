@@ -15,8 +15,10 @@ public static class EnemyGenerator
         
         // Visual
         Renderer renderer = enemy.GetComponent<Renderer>();
-        Material mat = new Material(Shader.Find("Standard"));
-        mat.color = Color.red;
+        Material mat = new(Shader.Find("Standard"))
+        {
+            color = Color.red
+        };
         renderer.material = mat;
         
         // Components
@@ -37,8 +39,10 @@ public static class EnemyGenerator
         
         // Visual
         Renderer renderer = enemy.GetComponent<Renderer>();
-        Material mat = new Material(Shader.Find("Standard"));
-        mat.color = Color.yellow;
+        Material mat = new(Shader.Find("Standard"))
+        {
+            color = Color.yellow
+        };
         renderer.material = mat;
         
         // Components
@@ -59,8 +63,10 @@ public static class EnemyGenerator
         
         // Visual
         Renderer renderer = enemy.GetComponent<Renderer>();
-        Material mat = new Material(Shader.Find("Standard"));
-        mat.color = new Color(0.3f, 0.3f, 0.3f);
+        Material mat = new(Shader.Find("Standard"))
+        {
+            color = new Color(0.3f, 0.3f, 0.3f)
+        };
         renderer.material = mat;
         
         // Components

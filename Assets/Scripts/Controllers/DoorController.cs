@@ -135,14 +135,8 @@ public class DoorController : MonoBehaviour
     {
         if (doorRenderer != null)
         {
-            if (isLocked)
-            {
-                doorRenderer.material.color = lockedColor;
-            }
-            else
-            {
-                doorRenderer.material.color = originalColor;
-            }
+            if (isLocked) doorRenderer.material.color = lockedColor;
+            else doorRenderer.material.color = originalColor;
         }
     }
 }

@@ -19,8 +19,8 @@ public class EntityManager : MonoBehaviour
     public CameraController currentCamera;
     
     [Header("Entity Tracking")]
-    public List<GameObject> allEnemies = new List<GameObject>();
-    public List<GameObject> allNPCs = new List<GameObject>();
+    public List<GameObject> allEnemies = new();
+    public List<GameObject> allNPCs = new();
     
     [Header("Spawn Settings")]
     public float spawnHeight = 1f;
@@ -77,7 +77,7 @@ public class EntityManager : MonoBehaviour
         Transform existing = entitiesContainer.Find(containerName);
         if (existing != null) return existing;
         
-        GameObject container = new GameObject(containerName);
+        GameObject container = new(containerName);
         container.transform.SetParent(entitiesContainer);
         container.transform.localPosition = Vector3.zero;
         return container.transform;
@@ -250,7 +250,7 @@ public class EntityManager : MonoBehaviour
             GameObject enemyPrefab = enemyPrefabs[spawnRandom.Next(0, enemyPrefabs.Count)];
             
             Vector2Int spawnTile = room.GetRandomSpawnPosition();
-            Vector3 spawnPosition = new Vector3(spawnTile.x + 0.5f, spawnHeight, spawnTile.y + 0.5f);
+            Vector3 spawnPosition = new(spawnTile.x + 0.5f, spawnHeight, spawnTile.y + 0.5f);
             
             SpawnEnemy(enemyPrefab, spawnPosition);
         }
@@ -262,9 +262,9 @@ public class EntityManager : MonoBehaviour
     {
         // Spawn boss spawner landmark
         Vector2Int centerTile = room.Center;
-        Vector3 spawnerPosition = new Vector3(centerTile.x + 0.5f, 0f, centerTile.y + 0.5f);
+        Vector3 spawnerPosition = new(centerTile.x + 0.5f, 0f, centerTile.y + 0.5f);
         
-        GameObject bossSpawner = new GameObject("BossSpawner");
+        GameObject bossSpawner = new("BossSpawner");
         bossSpawner.transform.position = spawnerPosition;
         
         BossSpawner spawnerComponent = bossSpawner.AddComponent<BossSpawner>();
@@ -288,10 +288,10 @@ public class EntityManager : MonoBehaviour
     private int SpawnShopKeeper(RoomModel room)
     {
         Vector2Int centerTile = room.Center;
-        Vector3 shopPosition = new Vector3(centerTile.x + 0.5f, spawnHeight, centerTile.y + 0.5f);
+        Vector3 shopPosition = new(centerTile.x + 0.5f, spawnHeight, centerTile.y + 0.5f);
         
         // Create shop object
-        GameObject shop = new GameObject("Shop");
+        GameObject shop = new("Shop");
         shop.transform.position = shopPosition;
         
         // Visual (placeholder)
@@ -301,8 +301,10 @@ public class EntityManager : MonoBehaviour
         visual.transform.localScale = new Vector3(2f, 1f, 2f);
         
         Renderer renderer = visual.GetComponent<Renderer>();
-        Material mat = new Material(Shader.Find("Standard"));
-        mat.color = Color.blue;
+        Material mat = new(Shader.Find("Standard"))
+        {
+            color = Color.blue
+        };
         renderer.material = mat;
         
         // Add trigger collider
@@ -321,7 +323,7 @@ public class EntityManager : MonoBehaviour
     private int SpawnTreasureChest(RoomModel room)
     {
         Vector2Int centerTile = room.Center;
-        Vector3 chestPosition = new Vector3(centerTile.x + 0.5f, spawnHeight, centerTile.y + 0.5f);
+        Vector3 chestPosition = new(centerTile.x + 0.5f, spawnHeight, centerTile.y + 0.5f);
         
         // Create chest object
         GameObject chest = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -330,8 +332,10 @@ public class EntityManager : MonoBehaviour
         chest.name = "TreasureChest";
         
         Renderer renderer = chest.GetComponent<Renderer>();
-        Material mat = new Material(Shader.Find("Standard"));
-        mat.color = new Color(0.8f, 0.6f, 0.2f); // Gold color
+        Material mat = new(Shader.Find("Standard"))
+        {
+            color = new Color(0.8f, 0.6f, 0.2f) // Gold color
+        };
         renderer.material = mat;
         
         // Make trigger
@@ -349,7 +353,7 @@ public class EntityManager : MonoBehaviour
     
     private List<GameObject> GetBiomeEnemyPrefabs(string biome)
     {
-        List<GameObject> prefabs = new List<GameObject>();
+        List<GameObject> prefabs = new();
         
         // Try to load 3 enemy types per biome
         GameObject basic = ResourceService.LoadBasicEnemyPrefab(biome);
@@ -392,8 +396,10 @@ public class EntityManager : MonoBehaviour
         
         // Visual
         Renderer renderer = enemy.GetComponent<Renderer>();
-        Material mat = new Material(Shader.Find("Standard"));
-        mat.color = Color.red;
+        Material mat = new(Shader.Find("Standard"))
+        {
+            color = Color.red
+        };
         renderer.material = mat;
         
         return enemy;
@@ -424,7 +430,7 @@ public class EntityManager : MonoBehaviour
         for (int i = 0; i < count; i++)
         {
             Vector2Int spawnTile = room.GetRandomSpawnPosition();
-            Vector3 spawnPosition = new Vector3(spawnTile.x + 0.5f, spawnHeight, spawnTile.y + 0.5f);
+            Vector3 spawnPosition = new(spawnTile.x + 0.5f, spawnHeight, spawnTile.y + 0.5f);
             SpawnEnemy(enemyPrefab, spawnPosition);
         }
         
@@ -490,7 +496,7 @@ public class EntityManager : MonoBehaviour
     
     public List<GameObject> GetEnemiesInRadius(Vector3 center, float radius)
     {
-        List<GameObject> nearbyEnemies = new List<GameObject>();
+        List<GameObject> nearbyEnemies = new();
         
         foreach (GameObject enemy in allEnemies)
         {

@@ -4,6 +4,7 @@
 
 using UnityEngine;
 
+[CreateAssetMenu(fileName = "PlayerConfig", menuName = "Configs/PlayerConfig")]
 [System.Serializable]
 public class PlayerConfig : ScriptableObject
 {
@@ -12,8 +13,6 @@ public class PlayerConfig : ScriptableObject
     [Range(1f, 10f)] public float PlayerMovementSpeed = 5f;
 
     // ------------------------- //
-
-    public PlayerConfig Clone() => this;
 
     public void Validate()
     {
