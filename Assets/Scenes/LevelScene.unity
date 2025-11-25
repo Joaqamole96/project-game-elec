@@ -153,16 +153,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   autoInitializeOnStart: 1
   initializationDelay: 0.1
+  currentBiome: Default
   layoutManagerPrefab: {fileID: 0}
   uiManagerPrefab: {fileID: 0}
   entityManagerPrefab: {fileID: 0}
   audioManagerPrefab: {fileID: 0}
-  playerPrefab: {fileID: 0}
-  mainCameraPrefab: {fileID: 0}
   layoutManager: {fileID: 0}
   uiManager: {fileID: 0}
   entityManager: {fileID: 0}
   audioManager: {fileID: 0}
+  weaponConfig: {fileID: 0}
 --- !u!4 &784456209
 Transform:
   m_ObjectHideFlags: 0

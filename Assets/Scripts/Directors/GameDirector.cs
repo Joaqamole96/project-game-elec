@@ -1,14 +1,10 @@
 // -------------------------------------------------- //
-// Scripts/Core/GameDirector.cs
+// Scripts/Directors/GameDirector.cs (ENHANCED)
 // -------------------------------------------------- //
 
 using UnityEngine;
 using System.Collections;
 
-/// <summary>
-/// The God Object. Manages all major systems in the game.
-/// Only one should exist per scene - creates and orchestrates all managers.
-/// </summary>
 public class GameDirector : MonoBehaviour
 {
     [Header("Director Settings")]
@@ -27,6 +23,8 @@ public class GameDirector : MonoBehaviour
     public UIManager uiManager;
     public EntityManager entityManager;
     public AudioManager audioManager;
+    public WeaponConfig weaponConfig; // NEW
+    
     public static GameDirector Instance { get; private set; }
     public bool IsInitialized { get; private set; }
     
@@ -34,12 +32,12 @@ public class GameDirector : MonoBehaviour
     private GameObject managersContainer;
     private GameObject entitiesContainer;
     private GameObject cameraContainer;
+    private GameObject systemsContainer; // NEW
     
     // ------------------------- //
     
     void Awake()
     {
-        // Singleton pattern
         if (Instance == null)
         {
             Instance = this;
@@ -66,9 +64,6 @@ public class GameDirector : MonoBehaviour
     // INITIALIZATION PIPELINE
     // ------------------------- //
     
-    /// <summary>
-    /// Master initialization sequence - creates all game systems in proper order.
-    /// </summary>
     [ContextMenu("Initialize Game Systems")]
     public void Initialize()
     {
@@ -106,6 +101,10 @@ public class GameDirector : MonoBehaviour
         InitializeAudioManager();
         yield return new WaitForSeconds(initializationDelay);
         
+        // NEW: Initialize game systems
+        InitializeWeaponConfig();
+        yield return new WaitForSeconds(initializationDelay);
+        
         // Phase 4: Create camera system
         InitializeCameraSystem();
         yield return new WaitForSeconds(initializationDelay);
@@ -129,17 +128,16 @@ public class GameDirector : MonoBehaviour
     {
         Debug.Log("GameDirector: Creating container hierarchy...");
         
-        // Create main containers as children of GameDirector
         managersContainer = CreateOrGetContainer("Managers");
         entitiesContainer = CreateOrGetContainer("Entities");
         cameraContainer = CreateOrGetContainer("Camera");
+        systemsContainer = CreateOrGetContainer("Systems"); // NEW
         
         Debug.Log("GameDirector: Container hierarchy created");
     }
     
     private GameObject CreateOrGetContainer(string containerName)
     {
-        // Check if container already exists as child
         Transform existingContainer = transform.Find(containerName);
         if (existingContainer != null)
         {
@@ -147,7 +145,6 @@ public class GameDirector : MonoBehaviour
             return existingContainer.gameObject;
         }
         
-        // Create new container
         GameObject container = new(containerName);
         container.transform.SetParent(transform);
         container.transform.localPosition = Vector3.zero;
@@ -206,7 +203,6 @@ public class GameDirector : MonoBehaviour
         }
         else
         {
-            // Create from scratch if no prefab
             GameObject layoutObj = new("LayoutManager");
             layoutObj.transform.SetParent(managersContainer.transform);
             layoutManager = layoutObj.AddComponent<LayoutManager>();
@@ -245,7 +241,6 @@ public class GameDirector : MonoBehaviour
             entityManager = entityObj.AddComponent<EntityManager>();
         }
         
-        // Set the entities container for EntityManager to use
         if (entityManager != null)
         {
             entityManager.SetEntitiesContainer(entitiesContainer.transform);
@@ -324,6 +319,38 @@ public class GameDirector : MonoBehaviour
     }
     
     // ------------------------- //
+    // GAME SYSTEMS INITIALIZATION (NEW)
+    // ------------------------- //
+    
+    private void InitializeWeaponConfig()
+    {
+        Debug.Log("GameDirector: Initializing WeaponConfig...");
+        
+        if (weaponConfig != null)
+        {
+            Debug.Log("GameDirector: WeaponConfig already exists");
+            return;
+        }
+        
+        // Create WeaponConfig GameObject
+        GameObject weaponDbObj = new("WeaponConfig");
+        weaponDbObj.transform.SetParent(systemsContainer.transform);
+        weaponDbObj.transform.localPosition = Vector3.zero;
+        
+        // Add WeaponConfig component
+        weaponConfig = weaponDbObj.AddComponent<WeaponConfig>();
+        
+        if (weaponConfig != null)
+        {
+            Debug.Log("GameDirector: WeaponConfig initialized");
+        }
+        else
+        {
+            Debug.LogError("GameDirector: Failed to initialize WeaponConfig!");
+        }
+    }
+    
+    // ------------------------- //
     // CAMERA SYSTEM
     // ------------------------- //
     
@@ -331,7 +358,6 @@ public class GameDirector : MonoBehaviour
     {
         Debug.Log("GameDirector: Initializing camera system...");
         
-        // Destroy any existing cameras
         foreach (Transform child in cameraContainer.transform)
         {
             Destroy(child.gameObject);
@@ -347,7 +373,6 @@ public class GameDirector : MonoBehaviour
         }
         else
         {
-            // Create default camera
             cameraObj = new GameObject("MainCamera");
             cameraObj.transform.SetParent(cameraContainer.transform);
             
@@ -429,7 +454,6 @@ public class GameDirector : MonoBehaviour
             Debug.Log("GameDirector: Advancing to next floor...");
             layoutManager.GenerateNextFloor();
             
-            // Respawn player at new entrance
             if (entityManager != null)
             {
                 entityManager.RespawnPlayerAtEntrance();
@@ -443,19 +467,16 @@ public class GameDirector : MonoBehaviour
         
         IsInitialized = false;
         
-        // Clear all entities
         if (entityManager != null)
         {
             entityManager.ClearAllEntities();
         }
         
-        // Clear layout
         if (layoutManager != null)
         {
             layoutManager.ClearRendering();
         }
         
-        // Restart initialization
         StartCoroutine(InitializeGameSystems());
     }
     

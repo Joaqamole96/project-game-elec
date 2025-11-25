@@ -16,7 +16,7 @@ GameObject:
   - component: {fileID: 6405292568575293889}
   - component: {fileID: 4444941904237272503}
   m_Layer: 9
-  m_Name: BasicEnemyPrefab
+  m_Name: EliteEnemyPrefab
   m_TagString: Enemy
   m_Icon: {fileID: 5132851093641282708, guid: 0000000000000000d000000000000000, type: 0}
   m_NavMeshLayer: 0
@@ -30,8 +30,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7301718654740504077}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.5, z: 0}
-  m_LocalScale: {x: 0.5, y: 0.5, z: 0.5}
+  m_LocalPosition: {x: 0, y: 0.75, z: 0}
+  m_LocalScale: {x: 0.75, y: 0.75, z: 0.75}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -65,7 +65,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: c0cf30f1cf218ae4fb7449f6a1fcb526, type: 2}
+  - {fileID: 2100000, guid: 09f3c8b64c03c604cb52d8efb53ede35, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -151,11 +151,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 220ec5689825d8148ae7a66e099f657c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxHealth: 30
-  damage: 10
-  moveSpeed: 2
-  attackRange: 1.5
-  detectionRange: 8
-  attackCooldown: 2
+  maxHealth: 60
+  damage: 12
+  moveSpeed: 1.3333334
+  attackRange: 1.8
+  detectionRange: 12
+  attackCooldown: 3
   agent: {fileID: 0}
   animator: {fileID: 0}
