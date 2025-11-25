@@ -43,7 +43,7 @@ public class LandmarkRenderer
             float floorHeight = 1f;
             float objectHeight = prefabBounds.size.y;
             
-            Vector3 position = new Vector3(room.Center.x, floorHeight + (objectHeight * 0.5f), room.Center.y);
+            Vector3 position = new(room.Center.x, floorHeight + (objectHeight * 0.5f), room.Center.y);
             var landmark = Object.Instantiate(prefab, position, Quaternion.identity, parent);
             landmark.name = $"{room.Type}_{room.ID}";
             return true;

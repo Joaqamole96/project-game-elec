@@ -34,7 +34,7 @@ using System.Collections.Generic;
 public static class ResourceService
 {
     // Cache to avoid repeated Resources.Load calls
-    private static Dictionary<string, GameObject> _prefabCache = new Dictionary<string, GameObject>();
+    private static Dictionary<string, GameObject> _prefabCache = new();
     
     // Biome names
     public const string BIOME_DEFAULT = "_Default";
@@ -376,7 +376,7 @@ public static class ResourceService
     
     public static void ClearBiomeCache(string biome)
     {
-        List<string> keysToRemove = new List<string>();
+        List<string> keysToRemove = new();
         
         foreach (var key in _prefabCache.Keys)
         {
@@ -433,7 +433,7 @@ public static class ResourceService
     /// </summary>
     public static List<string> GetAvailableBiomes()
     {
-        List<string> biomes = new List<string>
+        List<string> biomes = new()
         {
             BIOME_DEFAULT,
             BIOME_GRASSLANDS,
@@ -442,7 +442,7 @@ public static class ResourceService
         };
         
         // Filter to only existing biomes
-        List<string> existingBiomes = new List<string>();
+        List<string> existingBiomes = new();
         
         foreach (string biome in biomes)
         {

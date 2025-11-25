@@ -74,7 +74,7 @@ public class FloorProgressionManager : MonoBehaviour
         
         // Spawn portal at exit room center
         Vector2Int centerTile = exitRoom.Center;
-        Vector3 portalPosition = new Vector3(centerTile.x + 0.5f, 1f, centerTile.y + 0.5f);
+        Vector3 portalPosition = new(centerTile.x + 0.5f, 1f, centerTile.y + 0.5f);
         
         // Load or create portal
         GameObject portalPrefab = exitPortalPrefab;

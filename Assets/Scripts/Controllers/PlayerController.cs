@@ -22,6 +22,7 @@ public class PlayerController : MonoBehaviour
     public Rigidbody rb;
     public Animator animator;
     public WeaponManager weaponManager;
+    public PowerManager powerManager;
     public InventoryManager inventory;
     
     public static PlayerController Instance { get; private set; }
@@ -57,6 +58,12 @@ public class PlayerController : MonoBehaviour
         if (weaponManager == null)
         {
             weaponManager = gameObject.AddComponent<WeaponManager>();
+        }
+
+        powerManager = GetComponent<PowerManager>();
+        if (powerManager == null)
+        {
+            powerManager = gameObject.AddComponent<PowerManager>();
         }
         
         // Get or add inventory
@@ -103,7 +110,7 @@ public class PlayerController : MonoBehaviour
         float vertical = Input.GetAxisRaw("Vertical");
         
         // Get RAW input vector (not normalized yet)
-        Vector3 inputVector = new Vector3(horizontal, 0, vertical);
+        Vector3 inputVector = new(horizontal, 0, vertical);
         
         // Get camera-relative movement direction
         moveDirection = GetCameraRelativeMovement(inputVector);
@@ -329,7 +336,7 @@ public class PlayerController : MonoBehaviour
     // ===== MOBILE CONTROLS INTERFACE ===== //
     public void SetMovementInput(Vector2 input)
     {
-        Vector3 inputVector = new Vector3(input.x, 0, input.y);
+        Vector3 inputVector = new(input.x, 0, input.y);
         moveDirection = GetCameraRelativeMovement(inputVector);
         
         if (moveDirection.magnitude > 1f)

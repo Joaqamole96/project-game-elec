@@ -24,8 +24,8 @@ public class EntityManager : MonoBehaviour
     public CameraController currentCamera;
     
     [Header("Entity Tracking")]
-    public List<GameObject> allEnemies = new List<GameObject>();
-    public List<GameObject> allNPCs = new List<GameObject>();
+    public List<GameObject> allEnemies = new();
+    public List<GameObject> allNPCs = new();
     
     [Header("Spawn Settings")]
     public float spawnHeight = 1f;
@@ -78,7 +78,7 @@ public class EntityManager : MonoBehaviour
         Transform existing = entitiesContainer.Find(containerName);
         if (existing != null) return existing;
         
-        GameObject container = new GameObject(containerName);
+        GameObject container = new(containerName);
         container.transform.SetParent(entitiesContainer);
         container.transform.localPosition = Vector3.zero;
         return container.transform;
@@ -218,7 +218,7 @@ public class EntityManager : MonoBehaviour
         for (int i = 0; i < count; i++)
         {
             Vector2Int spawnTile = room.GetRandomSpawnPosition();
-            Vector3 spawnPosition = new Vector3(spawnTile.x + 0.5f, spawnHeight, spawnTile.y + 0.5f);
+            Vector3 spawnPosition = new(spawnTile.x + 0.5f, spawnHeight, spawnTile.y + 0.5f);
             SpawnEnemy(enemyPrefab, spawnPosition);
         }
         
@@ -339,7 +339,7 @@ public class EntityManager : MonoBehaviour
     
     public List<GameObject> GetEnemiesInRadius(Vector3 center, float radius)
     {
-        List<GameObject> nearbyEnemies = new List<GameObject>();
+        List<GameObject> nearbyEnemies = new();
         
         foreach (GameObject enemy in allEnemies)
         {

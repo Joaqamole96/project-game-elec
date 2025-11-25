@@ -105,7 +105,7 @@ public class OptimizedPrefabRenderer
             doorTop.name = $"DoorTop_{doorPos.x}_{doorPos.y}";
             
             Renderer renderer = doorTop.GetComponent<Renderer>();
-            Material material = new Material(Shader.Find("Standard"))
+            Material material = new(Shader.Find("Standard"))
             {
                 color = Color.gray
             };

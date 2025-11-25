@@ -1,10 +1,13 @@
+using UnityEngine;
+using System.Collections.Generic;
+
 /// <summary>
 /// Manages player's collected powers and applies their effects
 /// </summary>
 public class PowerManager : MonoBehaviour
 {
     [Header("Active Powers")]
-    public List<Power> activePowers = new List<Power>();
+    public List<PowerModel> activePowers = new();
     public int maxPowers = 10;
     
     [Header("Dash Settings (if Dash power active)")]
@@ -51,7 +54,7 @@ public class PowerManager : MonoBehaviour
             return false;
         }
         
-        Power newPower = new Power(powerType);
+        PowerModel newPower = new(powerType);
         newPower.isActive = true;
         activePowers.Add(newPower);
         
@@ -66,7 +69,7 @@ public class PowerManager : MonoBehaviour
         return activePowers.Exists(p => p.type == powerType);
     }
     
-    private void ApplyPowerEffect(Power power)
+    private void ApplyPowerEffect(PowerModel power)
     {
         if (player == null) return;
         
@@ -115,7 +118,7 @@ public class PowerManager : MonoBehaviour
     {
         lastDashTime = Time.time;
         
-        Power dashPower = activePowers.Find(p => p.type == PowerType.Dash);
+        PowerModel dashPower = activePowers.Find(p => p.type == PowerType.Dash);
         if (dashPower == null) return;
         
         // Dash in movement direction (or forward if not moving)
@@ -138,7 +141,7 @@ public class PowerManager : MonoBehaviour
         if (regenTimer >= REGEN_INTERVAL)
         {
             regenTimer = 0f;
-            Power regenPower = activePowers.Find(p => p.type == PowerType.HealthRegen);
+            PowerModel regenPower = activePowers.Find(p => p.type == PowerType.HealthRegen);
             if (regenPower != null && player != null)
             {
                 player.Heal((int)regenPower.value);
@@ -157,7 +160,7 @@ public class PowerManager : MonoBehaviour
         // Check for critical hit
         if (HasPower(PowerType.CriticalHit))
         {
-            Power critPower = activePowers.Find(p => p.type == PowerType.CriticalHit);
+            PowerModel critPower = activePowers.Find(p => p.type == PowerType.CriticalHit);
             if (Random.value < critPower.value)
             {
                 finalDamage *= 2f;
@@ -175,7 +178,7 @@ public class PowerManager : MonoBehaviour
         // Damage reduction
         if (HasPower(PowerType.DamageReduction))
         {
-            Power defensePower = activePowers.Find(p => p.type == PowerType.DamageReduction);
+            PowerModel defensePower = activePowers.Find(p => p.type == PowerType.DamageReduction);
             finalDamage *= (1f - defensePower.value);
         }
         
@@ -187,7 +190,7 @@ public class PowerManager : MonoBehaviour
         // Vampire healing
         if (HasPower(PowerType.Vampire) && player != null)
         {
-            Power vampirePower = activePowers.Find(p => p.type == PowerType.Vampire);
+            PowerModel vampirePower = activePowers.Find(p => p.type == PowerType.Vampire);
             int healAmount = Mathf.RoundToInt(damageDealt * vampirePower.value);
             if (healAmount > 0)
             {
@@ -201,7 +204,7 @@ public class PowerManager : MonoBehaviour
     {
         if (HasPower(PowerType.ExtraGold))
         {
-            Power goldPower = activePowers.Find(p => p.type == PowerType.ExtraGold);
+            PowerModel goldPower = activePowers.Find(p => p.type == PowerType.ExtraGold);
             return Mathf.RoundToInt(baseGold * (1f + goldPower.value));
         }
         return baseGold;
