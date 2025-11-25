@@ -159,16 +159,16 @@ public static class ResourceService
         => LoadWithFallback(CATEGORY_PROPS, biome, propName);
     
     public static GameObject LoadTorchPrefab(string biome)
-        => LoadWithFallback(CATEGORY_PROPS, biome, "Torch");
+        => LoadWithFallback(CATEGORY_PROPS, biome, "TorchPrefab");
     
     public static GameObject LoadPillarPrefab(string biome)
-        => LoadWithFallback(CATEGORY_PROPS, biome, "Pillar");
+        => LoadWithFallback(CATEGORY_PROPS, biome, "PillarPrefab");
     
     public static GameObject LoadBarrelPrefab(string biome)
-        => LoadWithFallback(CATEGORY_PROPS, biome, "Barrel");
+        => LoadWithFallback(CATEGORY_PROPS, biome, "BarrelPrefab");
     
     public static GameObject LoadCratePrefab(string biome)
-        => LoadWithFallback(CATEGORY_PROPS, biome, "Crate");
+        => LoadWithFallback(CATEGORY_PROPS, biome, "CratePrefab");
     
     // ------------------------- //
     // ENEMY PREFABS (Biome-Specific)
@@ -178,13 +178,13 @@ public static class ResourceService
         => LoadWithFallback(CATEGORY_ENEMIES, biome, enemyName);
     
     public static GameObject LoadBasicEnemyPrefab(string biome)
-        => LoadWithFallback(CATEGORY_ENEMIES, biome, "BasicEnemy");
+        => LoadWithFallback(CATEGORY_ENEMIES, biome, "BasicEnemyPrefab");
     
     public static GameObject LoadEliteEnemyPrefab(string biome)
-        => LoadWithFallback(CATEGORY_ENEMIES, biome, "EliteEnemy");
+        => LoadWithFallback(CATEGORY_ENEMIES, biome, "EliteEnemyPrefab");
     
     public static GameObject LoadBossEnemyPrefab(string biome)
-        => LoadWithFallback(CATEGORY_ENEMIES, biome, "Boss");
+        => LoadWithFallback(CATEGORY_ENEMIES, biome, "BossPrefab");
     
     // ------------------------- //
     // LANDMARK PREFABS (Biome-Independent)
@@ -230,10 +230,10 @@ public static class ResourceService
     // ------------------------- //
     
     public static GameObject LoadPlayerPrefab()
-        => LoadCategoryPrefab(CATEGORY_PLAYERS, "Player");
+        => LoadCategoryPrefab(CATEGORY_PLAYERS, "PlayerPrefab");
     
     public static GameObject LoadCameraPrefab()
-        => LoadCategoryPrefab(CATEGORY_PLAYERS, "MainCamera");
+        => LoadCategoryPrefab(CATEGORY_PLAYERS, "CameraPrefab");
     
     // ------------------------- //
     // ITEM PREFABS (Biome-Independent)
@@ -243,13 +243,13 @@ public static class ResourceService
         => LoadCategoryPrefab(CATEGORY_ITEMS, itemName);
     
     public static GameObject LoadHealthPotionPrefab()
-        => LoadCategoryPrefab(CATEGORY_ITEMS, "HealthPotion");
+        => LoadCategoryPrefab(CATEGORY_ITEMS, "HealthPotionPrefab");
     
     public static GameObject LoadCoinPrefab()
-        => LoadCategoryPrefab(CATEGORY_ITEMS, "Coin");
+        => LoadCategoryPrefab(CATEGORY_ITEMS, "CoinPrefab");
     
     public static GameObject LoadChestPrefab()
-        => LoadCategoryPrefab(CATEGORY_ITEMS, "Chest");
+        => LoadCategoryPrefab(CATEGORY_ITEMS, "ChestPrefab");
     
     public static GameObject LoadKeyPrefab(KeyType keyType)
     {
@@ -269,16 +269,16 @@ public static class ResourceService
         => LoadCategoryPrefab(CATEGORY_WEAPONS, weaponName);
     
     public static GameObject LoadSwordPrefab()
-        => LoadCategoryPrefab(CATEGORY_WEAPONS, "Sword");
+        => LoadCategoryPrefab(CATEGORY_WEAPONS, "SwordPrefab");
     
     public static GameObject LoadBowPrefab()
-        => LoadCategoryPrefab(CATEGORY_WEAPONS, "Bow");
+        => LoadCategoryPrefab(CATEGORY_WEAPONS, "BowPrefab");
     
     public static GameObject LoadStaffPrefab()
-        => LoadCategoryPrefab(CATEGORY_WEAPONS, "Staff");
+        => LoadCategoryPrefab(CATEGORY_WEAPONS, "StaffPrefab");
     
     public static GameObject LoadAxePrefab()
-        => LoadCategoryPrefab(CATEGORY_WEAPONS, "Axe");
+        => LoadCategoryPrefab(CATEGORY_WEAPONS, "AxePrefab");
     
     // ------------------------- //
     // UI PREFABS (Biome-Independent)
@@ -288,19 +288,19 @@ public static class ResourceService
         => LoadCategoryPrefab(CATEGORY_UI, uiName);
     
     public static GameObject LoadHealthBarPrefab()
-        => LoadCategoryPrefab(CATEGORY_UI, "HealthBar");
+        => LoadCategoryPrefab(CATEGORY_UI, "HealthBarPrefab");
     
     public static GameObject LoadMinimapPrefab()
-        => LoadCategoryPrefab(CATEGORY_UI, "Minimap");
+        => LoadCategoryPrefab(CATEGORY_UI, "MinimapPrefab");
     
     public static GameObject LoadMainMenuPrefab()
-        => LoadCategoryPrefab(CATEGORY_UI, "MainMenu");
+        => LoadCategoryPrefab(CATEGORY_UI, "MainMenuPrefab");
     
     public static GameObject LoadPauseMenuPrefab()
-        => LoadCategoryPrefab(CATEGORY_UI, "PauseMenu");
+        => LoadCategoryPrefab(CATEGORY_UI, "PauseMenuPrefab");
     
     public static GameObject LoadGameOverScreenPrefab()
-        => LoadCategoryPrefab(CATEGORY_UI, "GameOverScreen");
+        => LoadCategoryPrefab(CATEGORY_UI, "GameOverScreenPrefab");
     
     // ------------------------- //
     // BATCH LOADING

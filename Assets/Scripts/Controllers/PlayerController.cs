@@ -192,7 +192,7 @@ public class PlayerController : MonoBehaviour
         }
         
         // Use weapon manager if available
-        if (weaponManager != null && weaponManager.currentWeapon != null)
+        if (weaponManager != null && weaponManager.currentWeaponData != null)
         {
             weaponManager.Attack(transform.position + Vector3.up, transform.forward);
         }
@@ -206,6 +206,7 @@ public class PlayerController : MonoBehaviour
     private void PerformBasicMeleeAttack()
     {
         // Attack in a cone in front of player
+        // NOTE: Use camera direction instead of player
         Vector3 attackDirection = transform.forward;
         Vector3 attackCenter = transform.position + attackDirection * (attackRange * 0.5f);
         

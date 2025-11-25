@@ -128,7 +128,7 @@ public class RangedWeapon : WeaponModel
                 rb.velocity = attackDirection * projectileSpeed;
             }
             
-            if (projectile.TryGetComponent<Projectile>(out var proj))
+            if (projectile.TryGetComponent<ProjectileModel>(out var proj))
             {
                 proj.damage = baseDamage;
                 proj.targetLayer = targetLayer;
@@ -139,51 +139,31 @@ public class RangedWeapon : WeaponModel
     }
 }
 
-// -------------------------------------------------- //
-// Scripts/Models/Projectile.cs
-// -------------------------------------------------- //
+// ================================================== //
+// Scripts/Models/WeaponModel.cs
+// ================================================== //
 
-/// <summary>
-/// Projectile fired by ranged weapons
-/// </summary>
-public class Projectile : MonoBehaviour
+[System.Serializable]
+public class WeaponData
 {
-    public int damage = 10;
-    public LayerMask targetLayer;
-    public GameObject hitEffectPrefab;
+    public string weaponName;
+    public WeaponType weaponType;
+    public string description;
     
-    private bool hasHit = false;
+    [Header("Stats")]
+    public int damage;
+    public float attackSpeed;
+    public float range;
+    public float projectileSpeed;
+    public int manaCost;
     
-    void OnTriggerEnter(Collider other)
-    {
-        if (hasHit) return;
-        
-        // Check if hit valid target
-        if (((1 << other.gameObject.layer) & targetLayer) != 0)
-        {
-            if (other.TryGetComponent<EnemyController>(out var enemy))
-            {
-                enemy.TakeDamage(damage);
-                hasHit = true;
-                
-                SpawnHitEffect();
-                Destroy(gameObject);
-            }
-        }
-        // Hit wall or obstacle
-        else if (!other.isTrigger)
-        {
-            SpawnHitEffect();
-            Destroy(gameObject);
-        }
-    }
-    
-    private void SpawnHitEffect()
-    {
-        if (hitEffectPrefab != null)
-        {
-            GameObject effect = Instantiate(hitEffectPrefab, transform.position, Quaternion.identity);
-            Destroy(effect, 1f);
-        }
-    }
+    [Header("Prefab")]
+    public GameObject prefab;
+}
+
+public enum WeaponType
+{
+    Melee,
+    Ranged,
+    Magic
 }
