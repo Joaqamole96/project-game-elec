@@ -23,7 +23,7 @@ public class WeaponConfig : MonoBehaviour
         if (Instance == null)
         {
             Instance = this;
-            DontDestroyOnLoad(gameObject);
+            if (transform.parent == null) DontDestroyOnLoad(gameObject);
             InitializeWeaponRegistry();
         }
         else Destroy(gameObject);

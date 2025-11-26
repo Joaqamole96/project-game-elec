@@ -37,7 +37,11 @@ public class EntityManager : MonoBehaviour
     
     void Awake()
     {
-        InitializeContainers();
+        if (entitiesContainer == null)
+        {
+            GameObject tempContainer = GameObject.Find("Entities");
+            if (tempContainer != null) entitiesContainer = tempContainer.transform;
+        }
         spawnRandom = new System.Random();
     }
     
@@ -61,8 +65,9 @@ public class EntityManager : MonoBehaviour
     {
         if (entitiesContainer == null)
         {
-            Debug.LogWarning("EntityManager: entitiesContainer not set");
-            return;
+            Debug.LogWarning("EntityManager: entitiesContainer not set, creating temporary");
+            GameObject container = new("Entities");
+            entitiesContainer = container.transform;
         }
         
         playersContainer = CreateOrGetChildContainer("Players");

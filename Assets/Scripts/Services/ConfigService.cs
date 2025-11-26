@@ -23,17 +23,15 @@ public class ConfigService
         Debug.Log($"Runtime configs created - Level: {LevelConfig.Width}x{LevelConfig.Height}, Floor: {LevelConfig.FloorLevel}");
     }
 
-    private T CreateConfigCopy<T>(T original) where T : class, new()
+    private T CreateConfigCopy<T>(T original) where T : ScriptableObject
     {
         if (original == null)
         {
             Debug.LogWarning($"Null config provided, creating default instance for {typeof(T).Name}");
-            return new T();
+            return ScriptableObject.CreateInstance<T>();
         }
-
-        if (original is IConfigCloneable cloneable) return (T)cloneable.Clone();
-
-        return ManualConfigCopy(original);
+        
+        return Object.Instantiate(original);
     }
 
     private T ManualConfigCopy<T>(T original) where T : class, new()

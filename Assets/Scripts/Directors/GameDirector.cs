@@ -1,5 +1,5 @@
 // -------------------------------------------------- //
-// Scripts/Directors/GameDirector.cs (ENHANCED)
+// Scripts/Directors/GameDirector.cs
 // -------------------------------------------------- //
 
 using UnityEngine;

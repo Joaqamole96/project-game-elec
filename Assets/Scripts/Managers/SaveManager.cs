@@ -37,7 +37,7 @@ public class SaveManager : MonoBehaviour
         if (Instance == null)
         {
             Instance = this;
-            DontDestroyOnLoad(gameObject);
+            if (transform.parent == null) DontDestroyOnLoad(gameObject);
         }
         else
         {
@@ -399,52 +399,3 @@ public class SaveManager : MonoBehaviour
         Debug.Log("SaveManager: Auto-saved on weapon acquisition");
     }
 }
-
-
-
-// ================================================== //
-// Enhanced GameDirector with SaveManager (ADD TO EXISTING)
-// ================================================== //
-
-/*
-Add to GameDirector.cs:
-
-[Header("Manager References (Auto-Created)")]
-public SaveManager saveManager; // ADD THIS
-
-In InitializeGameSystems(), add:
-InitializeSaveManager();
-yield return new WaitForSeconds(initializationDelay);
-
-Add this method:
-private void InitializeSaveManager()
-{
-    Debug.Log("GameDirector: Initializing SaveManager...");
-    
-    if (saveManager != null)
-    {
-        Debug.Log("GameDirector: SaveManager already exists");
-        return;
-    }
-    
-    GameObject saveObj = new("SaveManager");
-    saveObj.transform.SetParent(systemsContainer.transform);
-    saveManager = saveObj.AddComponent<SaveManager>();
-    
-    if (saveManager != null)
-    {
-        Debug.Log("GameDirector: SaveManager initialized");
-        
-        // Load game if save exists
-        if (saveManager.HasSaveData())
-        {
-            Debug.Log("GameDirector: Save data found, loading...");
-            // Don't load immediately, let player choose in main menu
-        }
-    }
-    else
-    {
-        Debug.LogError("GameDirector: Failed to initialize SaveManager!");
-    }
-}
-*/

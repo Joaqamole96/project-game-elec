@@ -72,11 +72,6 @@ public class LayoutManager : MonoBehaviour
     private RoomConfig RuntimeRoomConfig => _configService?.RoomConfig ?? RoomConfig;
 
     // ------------------------- //
-    
-    void Awake()
-    {
-        ValidateConfigs();
-    }
 
     void Start() 
     {
@@ -343,9 +338,9 @@ public class LayoutManager : MonoBehaviour
 
     private void ValidateConfigs()
     {
-        RuntimeLevelConfig.Validate();
-        RuntimePartitionConfig.Validate();
-        RuntimeRoomConfig.Validate();
+        RuntimeLevelConfig?.Validate();
+        RuntimePartitionConfig?.Validate();
+        RuntimeRoomConfig?.Validate();
     }
 
     private void ClearPreviousGeneration()
