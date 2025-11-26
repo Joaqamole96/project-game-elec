@@ -135,6 +135,12 @@ public class FloorProgressionManager : MonoBehaviour
         GameDirector.Instance?.NextFloor();
         
         yield return new WaitForSeconds(1f);
+
+        EntityManager entityManager = GameDirector.Instance?.entityManager;
+        if (entityManager != null)
+        {
+            entityManager.RespawnPlayerAtEntrance();
+        }
         
         // Spawn new portal
         SpawnExitPortal();

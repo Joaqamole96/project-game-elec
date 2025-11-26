@@ -222,7 +222,15 @@ public class PlayerController : MonoBehaviour
             {
                 if (enemy.TryGetComponent<EnemyController>(out var enemyController))
                 {
-                    enemyController.TakeDamage(playerDamage);
+                    // In PlayerController.PerformBasicMeleeAttack(), line ~160
+                    int finalDamage = playerDamage;
+                    // ADD THIS:
+                    if (powerManager != null) finalDamage = powerManager.ModifyDamageDealt(finalDamage);
+
+                    enemyController.TakeDamage(finalDamage);
+                    // Also notify power manager
+                    if (powerManager != null) powerManager.OnDamageDealt(finalDamage);
+                    
                     Debug.Log($"Hit enemy for {playerDamage} damage!");
                 }
             }
