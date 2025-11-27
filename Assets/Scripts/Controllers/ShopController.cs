@@ -12,6 +12,7 @@ public class ShopController : MonoBehaviour
     public List<ShopItem> availableItems = new();
     
     [Header("UI")]
+    public ShopDisplay shopUI;
     public bool isPlayerNearby = false;
     
     private PlayerController player;
@@ -85,19 +86,20 @@ public class ShopController : MonoBehaviour
     
     private void OpenShop()
     {
-        Debug.Log("=== SHOP MENU ===");
-        for (int i = 0; i < availableItems.Count; i++)
+        if (shopUI != null)
         {
-            ShopItem item = availableItems[i];
-            Debug.Log($"{i + 1}. {item.itemName} - {item.price} Gold");
+            shopUI.OpenShop(this);
         }
-        Debug.Log("=================");
-        
-        // TODO: Show UI menu
-        // For now, auto-buy first item if player has gold
-        if (player != null && player.inventory != null)
+        else
         {
-            Debug.Log($"Player gold: {player.inventory.gold}");
+            // Fallback to debug menu
+            Debug.Log("=== SHOP MENU ===");
+            for (int i = 0; i < availableItems.Count; i++)
+            {
+                ShopItem item = availableItems[i];
+                Debug.Log($"{i + 1}. {item.itemName} - {item.price} Gold");
+            }
+            Debug.Log("=================");
         }
     }
     
