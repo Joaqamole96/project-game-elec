@@ -354,14 +354,15 @@ public class LayoutManager : MonoBehaviour
                 new Vector2Int(-1, 0)  // West
             };
             
-            foreach (var dir in directions)
+            for (int i = 0; i < directions.Length; i++)
             {
+                Vector2Int dir = directions[i];
                 Vector2Int checkPos = tilePos + dir;
                 
                 // If neighbor is not a floor tile, place wall
                 if (!layout.AllFloorTiles.Contains(checkPos))
                 {
-                    Vector3 worldPos = new Vector3(checkPos.x + 0.5f, 5.5f, checkPos.y + 0.5f);
+                    Vector3 worldPos = new Vector3(checkPos.x + 0.5f, 5f, checkPos.y + 0.5f);
                     Quaternion rotation = GetWallRotationFromDirection(dir);
                     
                     GameObject wall = Object.Instantiate(wallPrefab, worldPos, rotation, wallContainer.transform);
@@ -381,13 +382,17 @@ public class LayoutManager : MonoBehaviour
 
     private Quaternion GetWallRotationFromDirection(Vector2Int direction)
     {
-        if (direction.x != 0)
+        // North/South directions (vertical movement)
+        if (direction.y != 0)
         {
-            return Quaternion.Euler(0, 0, 0); // East/West
+            // Wall should face along X axis (perpendicular to north/south)
+            return Quaternion.Euler(0, 90, 0);
         }
+        // East/West directions (horizontal movement)
         else
         {
-            return Quaternion.Euler(0, 90, 0); // North/South
+            // Wall should face along Z axis (perpendicular to east/west)
+            return Quaternion.Euler(0, 0, 0);
         }
     }
 

@@ -2,13 +2,16 @@
 // Scripts/Services/SaveService.cs
 // ================================================== //
 
-using UnityEngine;
+// using UnityEngine;
 
 /// <summary>
 /// Service for managing game save operations at key gameplay moments
 /// Bridges between game events and the SaveManager singleton
 /// Attach to GameDirector or relevant manager objects
 /// </summary>
+
+// NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
+/*
 public class SaveService : MonoBehaviour
 {
     private SaveManager saveManager;
@@ -130,3 +133,4 @@ public class SaveService : MonoBehaviour
         Debug.Log("SaveService: Service destroyed");
     }
 }
+*/

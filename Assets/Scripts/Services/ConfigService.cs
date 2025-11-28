@@ -144,135 +144,139 @@ public class ConfigService
     /// Typically called when player completes a floor
     /// </summary>
     /// <param name="random">Random number generator for procedural growth decisions</param>
-    public void ProgressToNextFloor(System.Random random)
-    {
-        try
-        {
-            if (LevelConfig == null)
-            {
-                Debug.LogError("ConfigService: Cannot progress to next floor - LevelConfig is null");
-                return;
-            }
+    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
+    // public void ProgressToNextFloor(System.Random random)
+    // {
+    //     try
+    //     {
+    //         if (LevelConfig == null)
+    //         {
+    //             Debug.LogError("ConfigService: Cannot progress to next floor - LevelConfig is null");
+    //             return;
+    //         }
 
-            if (random == null)
-            {
-                Debug.LogError("ConfigService: Cannot progress to next floor - Random generator is null");
-                return;
-            }
+    //         if (random == null)
+    //         {
+    //             Debug.LogError("ConfigService: Cannot progress to next floor - Random generator is null");
+    //             return;
+    //         }
 
-            int previousFloor = LevelConfig.FloorLevel;
-            int previousWidth = LevelConfig.Width;
-            int previousHeight = LevelConfig.Height;
+    //         int previousFloor = LevelConfig.FloorLevel;
+    //         int previousWidth = LevelConfig.Width;
+    //         int previousHeight = LevelConfig.Height;
 
-            // Increment floor level
-            LevelConfig.FloorLevel++;
+    //         // Increment floor level
+    //         LevelConfig.FloorLevel++;
             
-            // Randomly decide whether to grow the floor size
-            bool shouldGrow = random.NextDouble() > 0.5;
-            LevelConfig.GrowFloor(shouldGrow);
+    //         // Randomly decide whether to grow the floor size
+    //         bool shouldGrow = random.NextDouble() > 0.5;
+    //         LevelConfig.GrowFloor(shouldGrow);
             
-            // Re-validate the updated configuration
-            LevelConfig.Validate();
+    //         // Re-validate the updated configuration
+    //         LevelConfig.Validate();
 
-            Debug.Log($"ConfigService: Progressed from floor {previousFloor} to {LevelConfig.FloorLevel}");
-            Debug.Log($"ConfigService: Floor size changed from {previousWidth}x{previousHeight} to {LevelConfig.Width}x{LevelConfig.Height}");
-            Debug.Log($"ConfigService: Floor growth decision: {shouldGrow}");
+    //         Debug.Log($"ConfigService: Progressed from floor {previousFloor} to {LevelConfig.FloorLevel}");
+    //         Debug.Log($"ConfigService: Floor size changed from {previousWidth}x{previousHeight} to {LevelConfig.Width}x{LevelConfig.Height}");
+    //         Debug.Log($"ConfigService: Floor growth decision: {shouldGrow}");
 
-            // Notify other systems about floor progression
-            OnFloorProgressed(previousFloor, LevelConfig.FloorLevel);
-        }
-        catch (System.Exception ex)
-        {
-            Debug.LogError($"ConfigService: Error progressing to next floor: {ex.Message}");
-        }
-    }
+    //         // Notify other systems about floor progression
+    //         OnFloorProgressed(previousFloor, LevelConfig.FloorLevel);
+    //     }
+    //     catch (System.Exception ex)
+    //     {
+    //         Debug.LogError($"ConfigService: Error progressing to next floor: {ex.Message}");
+    //     }
+    // }
 
     /// <summary>
     /// Handles notifications and events when floor progression occurs
     /// </summary>
     /// <param name="previousFloor">The floor number before progression</param>
     /// <param name="newFloor">The new current floor number</param>
-    private void OnFloorProgressed(int previousFloor, int newFloor)
-    {
-        try
-        {
-            // This method can be extended to notify other systems about floor changes
-            Debug.Log($"ConfigService: Floor progression event - {previousFloor} -> {newFloor}");
+    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
+    // private void OnFloorProgressed(int previousFloor, int newFloor)
+    // {
+    //     try
+    //     {
+    //         // This method can be extended to notify other systems about floor changes
+    //         Debug.Log($"ConfigService: Floor progression event - {previousFloor} -> {newFloor}");
 
-            // Example: Adjust difficulty based on floor level
-            if (newFloor > previousFloor)
-            {
-                AdjustDifficultyForFloor(newFloor);
-            }
-        }
-        catch (System.Exception ex)
-        {
-            Debug.LogError($"ConfigService: Error in floor progression handler: {ex.Message}");
-        }
-    }
+    //         // Example: Adjust difficulty based on floor level
+    //         if (newFloor > previousFloor)
+    //         {
+    //             AdjustDifficultyForFloor(newFloor);
+    //         }
+    //     }
+    //     catch (System.Exception ex)
+    //     {
+    //         Debug.LogError($"ConfigService: Error in floor progression handler: {ex.Message}");
+    //     }
+    // }
 
     /// <summary>
     /// Adjusts game difficulty parameters based on the current floor level
     /// </summary>
     /// <param name="currentFloor">The current floor level</param>
-    private void AdjustDifficultyForFloor(int currentFloor)
-    {
-        try
-        {
-            // Example difficulty scaling - adjust based on your game's needs
-            if (currentFloor % 5 == 0)
-            {
-                Debug.Log($"ConfigService: Reached milestone floor {currentFloor} - consider increasing difficulty");
-                // RoomConfig.IncreaseEnemyDensity();
-                // GameConfig.IncreaseDifficulty();
-            }
-        }
-        catch (System.Exception ex)
-        {
-            Debug.LogError($"ConfigService: Error adjusting difficulty for floor {currentFloor}: {ex.Message}");
-        }
-    }
+    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
+    // private void AdjustDifficultyForFloor(int currentFloor)
+    // {
+    //     try
+    //     {
+    //         // Example difficulty scaling - adjust based on your game's needs
+    //         if (currentFloor % 5 == 0)
+    //         {
+    //             Debug.Log($"ConfigService: Reached milestone floor {currentFloor} - consider increasing difficulty");
+    //             // RoomConfig.IncreaseEnemyDensity();
+    //             // GameConfig.IncreaseDifficulty();
+    //         }
+    //     }
+    //     catch (System.Exception ex)
+    //     {
+    //         Debug.LogError($"ConfigService: Error adjusting difficulty for floor {currentFloor}: {ex.Message}");
+    //     }
+    // }
 
     /// <summary>
     /// Validates configuration compatibility between different config types
     /// </summary>
     /// <returns>True if all configurations are compatible, false otherwise</returns>
-    public bool ValidateConfigCompatibility()
-    {
-        try
-        {
-            Debug.Log("ConfigService: Validating configuration compatibility...");
+    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
+    // public bool ValidateConfigCompatibility()
+    // {
+    //     try
+    //     {
+    //         Debug.Log("ConfigService: Validating configuration compatibility...");
 
-            bool compatible = true;
+    //         bool compatible = true;
 
-            // Check if level dimensions are reasonable for room and partition configs
-            if (LevelConfig != null && RoomConfig != null)
-            {
-                int minRoomSize = RoomConfig.MinRoomSize;
-                if (LevelConfig.Width < minRoomSize * 2 || LevelConfig.Height < minRoomSize * 2)
-                {
-                    Debug.LogError($"ConfigService: Level size {LevelConfig.Width}x{LevelConfig.Height} too small for minimum room size {minRoomSize}");
-                    compatible = false;
-                }
-            }
+    //         // Check if level dimensions are reasonable for room and partition configs
+    //         if (LevelConfig != null && RoomConfig != null)
+    //         {
+    //             int minRoomSize = RoomConfig.MinRoomSize;
+    //             if (LevelConfig.Width < minRoomSize * 2 || LevelConfig.Height < minRoomSize * 2)
+    //             {
+    //                 Debug.LogError($"ConfigService: Level size {LevelConfig.Width}x{LevelConfig.Height} too small for minimum room size {minRoomSize}");
+    //                 compatible = false;
+    //             }
+    //         }
 
-            if (compatible)
-            {
-                Debug.Log("ConfigService: All configurations are compatible");
-            }
-            else
-            {
-                Debug.LogError("ConfigService: Configuration compatibility check failed");
-            }
+    //         if (compatible)
+    //         {
+    //             Debug.Log("ConfigService: All configurations are compatible");
+    //         }
+    //         else
+    //         {
+    //             Debug.LogError("ConfigService: Configuration compatibility check failed");
+    //         }
 
-            return compatible;
-        }
-        catch (System.Exception ex)
-        {
-            Debug.LogError($"ConfigService: Error during compatibility validation: {ex.Message}");
-            return false;
-        }
-    }
+    //         return compatible;
+    //     }
+    //     catch (System.Exception ex)
+    //     {
+    //         Debug.LogError($"ConfigService: Error during compatibility validation: {ex.Message}");
+    //         return false;
+    //     }
+    // }
 
     /// <summary>
     /// Gets a summary of all current configuration values for debugging
@@ -297,40 +301,42 @@ public class ConfigService
     /// <summary>
     /// Logs all current configuration values for debugging purposes
     /// </summary>
-    public void LogAllConfigs()
-    {
-        try
-        {
-            Debug.Log("=== ConfigService: Current Configuration State ===");
-            Debug.Log(GetConfigSummary());
-            Debug.Log("=================================================");
-        }
-        catch (System.Exception ex)
-        {
-            Debug.LogError($"ConfigService: Error logging configurations: {ex.Message}");
-        }
-    }
+    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
+    // public void LogAllConfigs()
+    // {
+    //     try
+    //     {
+    //         Debug.Log("=== ConfigService: Current Configuration State ===");
+    //         Debug.Log(GetConfigSummary());
+    //         Debug.Log("=================================================");
+    //     }
+    //     catch (System.Exception ex)
+    //     {
+    //         Debug.LogError($"ConfigService: Error logging configurations: {ex.Message}");
+    //     }
+    // }
 
     /// <summary>
     /// Cleans up runtime configuration instances
     /// </summary>
-    public void Cleanup()
-    {
-        try
-        {
-            Debug.Log("ConfigService: Cleaning up runtime configurations...");
+    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
+    // public void Cleanup()
+    // {
+    //     try
+    //     {
+    //         Debug.Log("ConfigService: Cleaning up runtime configurations...");
 
-            // Destroy runtime copies to free memory
-            if (GameConfig != null) Object.DestroyImmediate(GameConfig);
-            if (LevelConfig != null) Object.DestroyImmediate(LevelConfig);
-            if (PartitionConfig != null) Object.DestroyImmediate(PartitionConfig);
-            if (RoomConfig != null) Object.DestroyImmediate(RoomConfig);
+    //         // Destroy runtime copies to free memory
+    //         if (GameConfig != null) Object.DestroyImmediate(GameConfig);
+    //         if (LevelConfig != null) Object.DestroyImmediate(LevelConfig);
+    //         if (PartitionConfig != null) Object.DestroyImmediate(PartitionConfig);
+    //         if (RoomConfig != null) Object.DestroyImmediate(RoomConfig);
 
-            Debug.Log("ConfigService: Configuration cleanup completed");
-        }
-        catch (System.Exception ex)
-        {
-            Debug.LogError($"ConfigService: Error during cleanup: {ex.Message}");
-        }
-    }
+    //         Debug.Log("ConfigService: Configuration cleanup completed");
+    //     }
+    //     catch (System.Exception ex)
+    //     {
+    //         Debug.LogError($"ConfigService: Error during cleanup: {ex.Message}");
+    //     }
+    // }
 }

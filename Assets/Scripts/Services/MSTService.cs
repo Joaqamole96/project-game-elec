@@ -202,6 +202,8 @@ public static class MSTService
     /// <param name="rooms">List of rooms to check connectivity for</param>
     /// <param name="corridors">List of corridors connecting rooms</param>
     /// <returns>True if all rooms are connected, false otherwise</returns>
+    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
+    /*
     public static bool AreAllRoomsConnected(List<RoomModel> rooms, List<CorridorModel> corridors)
     {
         try
@@ -265,6 +267,7 @@ public static class MSTService
             return false; // Assume not connected on error
         }
     }
+    */
 
     /// <summary>
     /// Calculates the total length of all corridors in the list
@@ -272,6 +275,8 @@ public static class MSTService
     /// </summary>
     /// <param name="corridors">List of corridors to measure</param>
     /// <returns>Total length of all corridors</returns>
+    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
+    /*
     public static float CalculateTotalCorridorLength(List<CorridorModel> corridors)
     {
         try
@@ -302,4 +307,5 @@ public static class MSTService
             return 0f;
         }
     }
+    */
 }

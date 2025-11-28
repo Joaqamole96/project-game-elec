@@ -96,13 +96,13 @@ public class ProBuilderRoomRenderer
     {
         if (_floorPrefab == null) return;
         
-        // Calculate floor dimensions
+        // Calculate floor dimensions (inner area, excluding walls)
         int width = room.Bounds.width - 2; // Subtract 2 for walls
-        int height = room.Bounds.height - 2;
+        int depth = room.Bounds.height - 2;
         
-        if (width <= 0 || height <= 0) return;
+        if (width <= 0 || depth <= 0) return;
         
-        // Spawn floor at room center
+        // Spawn floor at room center (Y=0.5 for floor level)
         Vector3 centerPos = new Vector3(
             room.Bounds.center.x,
             0.5f, // Floor height
@@ -112,8 +112,8 @@ public class ProBuilderRoomRenderer
         GameObject floor = Object.Instantiate(_floorPrefab, centerPos, Quaternion.identity, parent);
         floor.name = "Floor";
         
-        // Stretch floor using ProBuilder
-        StretchProBuilderMesh(floor, width, 1, height);
+        // Stretch floor - only X and Z, Y stays at 1
+        floor.transform.localScale = new Vector3(width, 1, depth);
         
         // Apply biome material
         ApplyMaterialToObject(floor, material);
@@ -129,13 +129,14 @@ public class ProBuilderRoomRenderer
         
         var bounds = room.Bounds;
         
-        // Define 4 corner positions (at wall intersections)
+        // Define 4 corner positions (at exact wall intersections)
+        // Y=5 because corner is 10 units tall (0-10) + 1 unit floor
         Vector3[] cornerPositions = new Vector3[]
         {
-            new Vector3(bounds.xMin + 0.5f, 5.5f, bounds.yMin + 0.5f), // SW
-            new Vector3(bounds.xMin + 0.5f, 5.5f, bounds.yMax - 0.5f), // NW
-            new Vector3(bounds.xMax - 0.5f, 5.5f, bounds.yMin + 0.5f), // SE
-            new Vector3(bounds.xMax - 0.5f, 5.5f, bounds.yMax - 0.5f)  // NE
+            new Vector3(bounds.xMin + 0.5f, 5f, bounds.yMin + 0.5f), // SW
+            new Vector3(bounds.xMin + 0.5f, 5f, bounds.yMax - 0.5f), // NW
+            new Vector3(bounds.xMax - 0.5f, 5f, bounds.yMin + 0.5f), // SE
+            new Vector3(bounds.xMax - 0.5f, 5f, bounds.yMax - 0.5f)  // NE
         };
         
         string[] cornerNames = { "SW_Corner", "NW_Corner", "SE_Corner", "NE_Corner" };
@@ -184,13 +185,16 @@ public class ProBuilderRoomRenderer
             wall.name = $"{sideName}_Wall_{segmentIndex++}";
             
             // Stretch wall to cover segment
+            // Wall base is 1x11x0.75, stretch along appropriate axis
             if (isVertical)
             {
-                StretchProBuilderMesh(wall, 1, 11, length);
+                // East/West walls stretch along Z axis
+                wall.transform.localScale = new Vector3(1, 1, length);
             }
             else
             {
-                StretchProBuilderMesh(wall, length, 11, 1);
+                // North/South walls stretch along X axis  
+                wall.transform.localScale = new Vector3(length, 1, 1);
             }
             
             ApplyMaterialToObject(wall, material);
@@ -201,8 +205,7 @@ public class ProBuilderRoomRenderer
     // DOORWAY RENDERING
     // ==========================================
     
-    private void RenderRoomDoorways(RoomModel room, LevelModel layout, Transform parent, 
-                                   Material wallMat, Material doorMat)
+    private void RenderRoomDoorways(RoomModel room, LevelModel layout, Transform parent, Material wallMat, Material doorMat)
     {
         if (_doorwayPrefab == null || layout.AllDoorTiles == null) return;
         
@@ -213,7 +216,8 @@ public class ProBuilderRoomRenderer
             // Check if door is on this room's perimeter
             if (IsOnRoomPerimeter(doorPos, bounds))
             {
-                Vector3 worldPos = new Vector3(doorPos.x + 0.5f, 5.5f, doorPos.y + 0.5f);
+                // Doorway at ground level (Y=0)
+                Vector3 worldPos = new Vector3(doorPos.x + 0.5f, 0f, doorPos.y + 0.5f);
                 Quaternion rotation = GetDoorRotation(doorPos, bounds);
                 
                 GameObject doorway = Object.Instantiate(_doorwayPrefab, worldPos, rotation, parent);
@@ -222,13 +226,21 @@ public class ProBuilderRoomRenderer
                 // Apply materials to doorway parts
                 ApplyMaterialToDoorway(doorway, wallMat, doorMat);
                 
-                // Ensure DoorController exists
-                if (!doorway.TryGetComponent<DoorController>(out _))
+                // Ensure DoorController exists on DoorFrame
+                Transform doorFrame = doorway.transform.Find("DoorFrame");
+                if (doorFrame != null && !doorFrame.TryGetComponent<DoorController>(out _))
                 {
-                    var doorFrame = doorway.transform.Find("DoorFrame");
-                    if (doorFrame != null)
+                    DoorController controller = doorFrame.gameObject.AddComponent<DoorController>();
+                    
+                    // Setup door references
+                    Transform door = doorway.transform.Find("Door");
+                    if (door != null)
                     {
-                        doorFrame.gameObject.AddComponent<DoorController>();
+                        Debug.Log($"controller != null: {controller != null}");
+                        Debug.Log($"controller.doorModel != null: {controller.doorModel != null}"); // throws error here
+                        Debug.Log($"door != null: {door != null}");
+                        Debug.Log($"door.gameObject != null: {door.gameObject != null}");
+                        controller.doorModel = door.gameObject;
                     }
                 }
             }
@@ -283,13 +295,16 @@ public class ProBuilderRoomRenderer
     {
         float midpoint = (segment.start + segment.end) / 2f;
         
+        // Y position = 5 (center of 10-unit tall wall + 1 floor unit)
         if (isVertical)
         {
-            return new Vector3(segment.fixedCoord + 0.5f, 5.5f, midpoint + 0.5f);
+            // East/West walls
+            return new Vector3(segment.fixedCoord + 0.5f, 5f, midpoint + 0.5f);
         }
         else
         {
-            return new Vector3(midpoint + 0.5f, 5.5f, segment.fixedCoord + 0.5f);
+            // North/South walls
+            return new Vector3(midpoint + 0.5f, 5f, segment.fixedCoord + 0.5f);
         }
     }
     
@@ -297,25 +312,34 @@ public class ProBuilderRoomRenderer
     {
         if (isVertical)
         {
-            return Quaternion.Euler(0, 0, 0); // East/West walls
+            // East/West walls - no rotation (facing along Z axis)
+            return Quaternion.Euler(0, 0, 0);
         }
         else
         {
-            return Quaternion.Euler(0, 90, 0); // North/South walls
+            // North/South walls - rotate 90° to face along X axis
+            return Quaternion.Euler(0, 90, 0);
         }
     }
     
     private Quaternion GetDoorRotation(Vector2Int doorPos, RectInt bounds)
     {
         // Check which wall the door is on
-        if (doorPos.x == bounds.xMin || doorPos.x == bounds.xMax - 1)
+        bool isOnEastWest = (doorPos.x == bounds.xMin || doorPos.x == bounds.xMax - 1);
+        bool isOnNorthSouth = (doorPos.y == bounds.yMin || doorPos.y == bounds.yMax - 1);
+        
+        if (isOnEastWest)
         {
-            return Quaternion.Euler(0, 0, 0); // East/West
+            // Door on East/West wall - no rotation
+            return Quaternion.Euler(0, 0, 0);
         }
-        else
+        else if (isOnNorthSouth)
         {
-            return Quaternion.Euler(0, 90, 0); // North/South
+            // Door on North/South wall - rotate 90°
+            return Quaternion.Euler(0, 90, 0);
         }
+        
+        return Quaternion.identity;
     }
     
     private HashSet<Vector2Int> GetDoorwayPositionsForRoom(RoomModel room, LevelModel layout)
@@ -346,19 +370,11 @@ public class ProBuilderRoomRenderer
     }
     
     // ==========================================
-    // PROBUILDER MESH STRETCHING
+    // PROBUILDER MESH STRETCHING - REMOVED
     // ==========================================
     
-    private void StretchProBuilderMesh(GameObject obj, int width, int height, int depth)
-    {
-        // ProBuilder meshes can be stretched by scaling
-        // The 0.75 factor accounts for your wall thickness
-        float scaleX = width;
-        float scaleY = height / 11f; // Normalize to base height
-        float scaleZ = depth;
-        
-        obj.transform.localScale = new Vector3(scaleX, scaleY, scaleZ);
-    }
+    // ProBuilder meshes are stretched via localScale directly
+    // No need for custom StretchProBuilderMesh method
     
     // ==========================================
     // MATERIAL APPLICATION

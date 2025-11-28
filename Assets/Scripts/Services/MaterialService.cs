@@ -24,6 +24,8 @@ public class MaterialService
     /// <param name="defaultFloorMaterial">Default material for floor surfaces</param>
     /// <param name="defaultWallMaterial">Default material for wall surfaces</param>
     /// <param name="defaultDoorMaterial">Default material for door elements</param>
+    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
+    /*
     public MaterialService(Material defaultFloorMaterial, Material defaultWallMaterial, Material defaultDoorMaterial)
     {
         try
@@ -52,11 +54,14 @@ public class MaterialService
             Debug.LogError($"MaterialService: Error during constructor initialization: {ex.Message}");
         }
     }
+    */
 
     /// <summary>
     /// Initializes the material cache with colors for all room and wall types
     /// Call this before using the service to ensure all materials are ready
     /// </summary>
+    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
+    /*
     public void InitializeMaterialCache()
     {
         try
@@ -74,10 +79,13 @@ public class MaterialService
             Debug.LogError($"MaterialService: Error initializing material cache: {ex.Message}");
         }
     }
+    */
 
     /// <summary>
     /// Initializes materials for all room types with appropriate colors
     /// </summary>
+    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
+    /*
     private void InitializeRoomTypeMaterials()
     {
         try
@@ -97,10 +105,13 @@ public class MaterialService
             Debug.LogError($"MaterialService: Error initializing room type materials: {ex.Message}");
         }
     }
+    */
 
     /// <summary>
     /// Initializes materials for all wall types with appropriate colors
     /// </summary>
+    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
+    /*
     private void InitializeWallTypeMaterials()
     {
         try
@@ -133,6 +144,7 @@ public class MaterialService
             Debug.LogError($"MaterialService: Error initializing wall type materials: {ex.Message}");
         }
     }
+    */
 
     /// <summary>
     /// Creates a new material with the specified color, using existing material as template if available
@@ -140,6 +152,8 @@ public class MaterialService
     /// <param name="color">Color for the new material</param>
     /// <param name="materialName">Optional name for the material for debugging</param>
     /// <returns>New Material instance with the specified color</returns>
+    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
+    /*
     private Material CreateMaterial(Color color, string materialName = "UnnamedMaterial")
     {
         try
@@ -175,12 +189,15 @@ public class MaterialService
             return null;
         }
     }
+    */
 
     /// <summary>
     /// Gets the material for a specific room type
     /// </summary>
     /// <param name="roomType">The room type to get material for</param>
     /// <returns>Material for the room type, or default floor material if not found</returns>
+    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
+    /*
     public Material GetRoomMaterial(RoomType roomType)
     {
         try
@@ -199,12 +216,15 @@ public class MaterialService
             return _defaultFloorMaterial;
         }
     }
+    */
 
     /// <summary>
     /// Gets the material for a specific wall type
     /// </summary>
     /// <param name="wallType">The wall type to get material for</param>
     /// <returns>Material for the wall type, or default wall material if not found</returns>
+    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
+    /*
     public Material GetWallMaterial(WallType wallType)
     {
         try
@@ -223,11 +243,14 @@ public class MaterialService
             return _defaultWallMaterial;
         }
     }
+    */
 
     /// <summary>
     /// Gets the material for doors
     /// </summary>
     /// <returns>Door material, or default door material, or default wall material as fallback</returns>
+    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
+    /*
     public Material GetDoorMaterial()
     {
         try
@@ -251,6 +274,7 @@ public class MaterialService
             return _defaultWallMaterial ?? _defaultFloorMaterial;
         }
     }
+    */
 
     /// <summary>
     /// Clears the material cache and properly destroys created materials to prevent memory leaks
@@ -294,46 +318,49 @@ public class MaterialService
     /// Gets the number of cached room materials
     /// </summary>
     /// <returns>Count of room materials in cache</returns>
-    public int GetRoomMaterialCount()
-    {
-        return _roomTypeMaterials.Count;
-    }
+    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
+    // public int GetRoomMaterialCount()
+    // {
+    //     return _roomTypeMaterials.Count;
+    // }
 
     /// <summary>
     /// Gets the number of cached wall materials
     /// </summary>
     /// <returns>Count of wall materials in cache</returns>
-    public int GetWallMaterialCount()
-    {
-        return _wallTypeMaterials.Count;
-    }
+    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
+    // public int GetWallMaterialCount()
+    // {
+    //     return _wallTypeMaterials.Count;
+    // }
 
     /// <summary>
     /// Logs all currently cached materials for debugging purposes
     /// </summary>
-    public void LogCachedMaterials()
-    {
-        try
-        {
-            Debug.Log("=== MaterialService Cache ===");
-            Debug.Log($"Room Materials: {_roomTypeMaterials.Count}");
-            foreach (var kvp in _roomTypeMaterials)
-            {
-                Debug.Log($"  {kvp.Key}: {(kvp.Value != null ? kvp.Value.name : "NULL")}");
-            }
+    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
+    // public void LogCachedMaterials()
+    // {
+    //     try
+    //     {
+    //         Debug.Log("=== MaterialService Cache ===");
+    //         Debug.Log($"Room Materials: {_roomTypeMaterials.Count}");
+    //         foreach (var kvp in _roomTypeMaterials)
+    //         {
+    //             Debug.Log($"  {kvp.Key}: {(kvp.Value != null ? kvp.Value.name : "NULL")}");
+    //         }
             
-            Debug.Log($"Wall Materials: {_wallTypeMaterials.Count}");
-            foreach (var kvp in _wallTypeMaterials)
-            {
-                Debug.Log($"  {kvp.Key}: {(kvp.Value != null ? kvp.Value.name : "NULL")}");
-            }
-            Debug.Log("============================");
-        }
-        catch (System.Exception ex)
-        {
-            Debug.LogError($"MaterialService: Error logging cached materials: {ex.Message}");
-        }
-    }
+    //         Debug.Log($"Wall Materials: {_wallTypeMaterials.Count}");
+    //         foreach (var kvp in _wallTypeMaterials)
+    //         {
+    //             Debug.Log($"  {kvp.Key}: {(kvp.Value != null ? kvp.Value.name : "NULL")}");
+    //         }
+    //         Debug.Log("============================");
+    //     }
+    //     catch (System.Exception ex)
+    //     {
+    //         Debug.LogError($"MaterialService: Error logging cached materials: {ex.Message}");
+    //     }
+    // }
 
     /// <summary>
     /// Called when the service is being destroyed - ensures proper cleanup

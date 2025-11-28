@@ -233,20 +233,25 @@ public static class ResourceService
         }
     }
     
-    public static GameObject LoadEntrancePrefab()
-        => LoadCategoryPrefab(CATEGORY_LANDMARKS, "EntrancePrefab");
+    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
+    // public static GameObject LoadEntrancePrefab()
+    //     => LoadCategoryPrefab(CATEGORY_LANDMARKS, "EntrancePrefab");
     
-    public static GameObject LoadExitPrefab()
-        => LoadCategoryPrefab(CATEGORY_LANDMARKS, "ExitPrefab");
+    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
+    // public static GameObject LoadExitPrefab()
+    //     => LoadCategoryPrefab(CATEGORY_LANDMARKS, "ExitPrefab");
     
-    public static GameObject LoadShopPrefab()
-        => LoadCategoryPrefab(CATEGORY_LANDMARKS, "ShopPrefab");
+    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
+    // public static GameObject LoadShopPrefab()
+    //     => LoadCategoryPrefab(CATEGORY_LANDMARKS, "ShopPrefab");
     
-    public static GameObject LoadTreasurePrefab()
-        => LoadCategoryPrefab(CATEGORY_LANDMARKS, "TreasurePrefab");
+    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
+    // public static GameObject LoadTreasurePrefab()
+    //     => LoadCategoryPrefab(CATEGORY_LANDMARKS, "TreasurePrefab");
     
-    public static GameObject LoadBossPrefab()
-        => LoadCategoryPrefab(CATEGORY_LANDMARKS, "BossPrefab");
+    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
+    // public static GameObject LoadBossPrefab()
+    //     => LoadCategoryPrefab(CATEGORY_LANDMARKS, "BossPrefab");
     
     // ------------------------- //
     // PLAYER PREFABS (Biome-Independent)
@@ -262,23 +267,28 @@ public static class ResourceService
     // ITEM PREFABS (Biome-Independent)
     // ------------------------- //
     
-    public static GameObject LoadItemPrefab(string itemName)
-        => LoadCategoryPrefab(CATEGORY_ITEMS, itemName);
+    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
+    // public static GameObject LoadItemPrefab(string itemName)
+    //     => LoadCategoryPrefab(CATEGORY_ITEMS, itemName);
     
     public static GameObject LoadHealthPotionPrefab()
         => LoadCategoryPrefab(CATEGORY_ITEMS, "HealthPotionPrefab");
     
-    public static GameObject LoadCoinPrefab()
-        => LoadCategoryPrefab(CATEGORY_ITEMS, "CoinPrefab");
+    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
+    // public static GameObject LoadCoinPrefab()
+    //     => LoadCategoryPrefab(CATEGORY_ITEMS, "CoinPrefab");
     
-    public static GameObject LoadChestPrefab()
-        => LoadCategoryPrefab(CATEGORY_ITEMS, "ChestPrefab");
+    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
+    // public static GameObject LoadChestPrefab()
+    //     => LoadCategoryPrefab(CATEGORY_ITEMS, "ChestPrefab");
     
     /// <summary>
     /// Loads key prefab based on key type
     /// </summary>
     /// <param name="keyType">Type of key to load</param>
     /// <returns>Loaded key prefab or null if not found</returns>
+    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
+    /*
     public static GameObject LoadKeyPrefab(KeyType keyType)
     {
         try
@@ -296,47 +306,59 @@ public static class ResourceService
             return null;
         }
     }
+    */
     
     // ------------------------- //
     // WEAPON PREFABS (Biome-Independent)
     // ------------------------- //
     
-    public static GameObject LoadWeaponPrefab(string weaponName)
-        => LoadCategoryPrefab(CATEGORY_WEAPONS, weaponName);
+    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
+    // public static GameObject LoadWeaponPrefab(string weaponName)
+    //     => LoadCategoryPrefab(CATEGORY_WEAPONS, weaponName);
     
-    public static GameObject LoadSwordPrefab()
-        => LoadCategoryPrefab(CATEGORY_WEAPONS, "SwordPrefab");
+    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
+        // public static GameObject LoadSwordPrefab()
+        // => LoadCategoryPrefab(CATEGORY_WEAPONS, "SwordPrefab");
     
-    public static GameObject LoadBowPrefab()
-        => LoadCategoryPrefab(CATEGORY_WEAPONS, "BowPrefab");
+    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
+    // public static GameObject LoadBowPrefab()
+    //     => LoadCategoryPrefab(CATEGORY_WEAPONS, "BowPrefab");
     
-    public static GameObject LoadStaffPrefab()
-        => LoadCategoryPrefab(CATEGORY_WEAPONS, "StaffPrefab");
+    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
+    // public static GameObject LoadStaffPrefab()
+    //     => LoadCategoryPrefab(CATEGORY_WEAPONS, "StaffPrefab");
     
-    public static GameObject LoadAxePrefab()
-        => LoadCategoryPrefab(CATEGORY_WEAPONS, "AxePrefab");
+    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
+    // public static GameObject LoadAxePrefab()
+    //     => LoadCategoryPrefab(CATEGORY_WEAPONS, "AxePrefab");
     
     // ------------------------- //
     // UI PREFABS (Biome-Independent)
     // ------------------------- //
     
-    public static GameObject LoadUIPrefab(string uiName)
-        => LoadCategoryPrefab(CATEGORY_UI, uiName);
+    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
+    // public static GameObject LoadUIPrefab(string uiName)
+    //     => LoadCategoryPrefab(CATEGORY_UI, uiName);
     
-    public static GameObject LoadHealthBarPrefab()
-        => LoadCategoryPrefab(CATEGORY_UI, "HealthBarPrefab");
+    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
+    // public static GameObject LoadHealthBarPrefab()
+    //     => LoadCategoryPrefab(CATEGORY_UI, "HealthBarPrefab");
     
-    public static GameObject LoadMinimapPrefab()
-        => LoadCategoryPrefab(CATEGORY_UI, "MinimapPrefab");
+    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
+    // public static GameObject LoadMinimapPrefab()
+    //     => LoadCategoryPrefab(CATEGORY_UI, "MinimapPrefab");
     
-    public static GameObject LoadMainMenuPrefab()
-        => LoadCategoryPrefab(CATEGORY_UI, "MainMenuPrefab");
+    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
+    // public static GameObject LoadMainMenuPrefab()
+    //     => LoadCategoryPrefab(CATEGORY_UI, "MainMenuPrefab");
     
-    public static GameObject LoadPauseMenuPrefab()
-        => LoadCategoryPrefab(CATEGORY_UI, "PauseMenuPrefab");
+    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
+    // public static GameObject LoadPauseMenuPrefab()
+    //     => LoadCategoryPrefab(CATEGORY_UI, "PauseMenuPrefab");
     
-    public static GameObject LoadGameOverScreenPrefab()
-        => LoadCategoryPrefab(CATEGORY_UI, "GameOverScreenPrefab");
+    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
+    // public static GameObject LoadGameOverScreenPrefab()
+    //     => LoadCategoryPrefab(CATEGORY_UI, "GameOverScreenPrefab");
     
     // ------------------------- //
     // BATCH LOADING METHODS
@@ -381,6 +403,8 @@ public static class ResourceService
     /// <summary>
     /// Preloads all common (biome-independent) prefabs to populate cache
     /// </summary>
+    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
+    /*
     public static void PreloadCommonPrefabs()
     {
         try
@@ -414,6 +438,7 @@ public static class ResourceService
             Debug.LogError($"ResourceService: Error preloading common prefabs: {ex.Message}");
         }
     }
+    */
     
     // ------------------------- //
     // CACHE MANAGEMENT METHODS
@@ -422,6 +447,8 @@ public static class ResourceService
     /// <summary>
     /// Clears the entire prefab cache
     /// </summary>
+    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
+    /*
     public static void ClearCache()
     {
         try
@@ -435,6 +462,7 @@ public static class ResourceService
             Debug.LogError($"ResourceService: Error clearing cache: {ex.Message}");
         }
     }
+    */
     
     /// <summary>
     /// Clears cached prefabs for a specific biome
@@ -477,20 +505,21 @@ public static class ResourceService
     /// <param name="biome">Biome name</param>
     /// <param name="prefabName">Prefab name to check</param>
     /// <returns>True if the prefab exists</returns>
-    public static bool PrefabExists(string category, string biome, string prefabName)
-    {
-        try
-        {
-            string path = $"{category}/{biome}/{prefabName}";
-            GameObject prefab = Resources.Load<GameObject>(path);
-            return prefab != null;
-        }
-        catch (System.Exception ex)
-        {
-            Debug.LogError($"ResourceService: Error checking prefab existence {category}/{biome}/{prefabName}: {ex.Message}");
-            return false;
-        }
-    }
+    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
+    // public static bool PrefabExists(string category, string biome, string prefabName)
+    // {
+    //     try
+    //     {
+    //         string path = $"{category}/{biome}/{prefabName}";
+    //         GameObject prefab = Resources.Load<GameObject>(path);
+    //         return prefab != null;
+    //     }
+    //     catch (System.Exception ex)
+    //     {
+    //         Debug.LogError($"ResourceService: Error checking prefab existence {category}/{biome}/{prefabName}: {ex.Message}");
+    //         return false;
+    //     }
+    // }
     
     /// <summary>
     /// Checks if a category prefab exists without loading it
@@ -498,6 +527,8 @@ public static class ResourceService
     /// <param name="category">Resource category</param>
     /// <param name="prefabName">Prefab name to check</param>
     /// <returns>True if the prefab exists</returns>
+    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
+    /*
     public static bool PrefabExists(string category, string prefabName)
     {
         try
@@ -512,10 +543,13 @@ public static class ResourceService
             return false;
         }
     }
+    */
     
     /// <summary>
     /// Logs all currently cached prefabs for debugging
     /// </summary>
+    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
+    /*
     public static void LogLoadedPrefabs()
     {
         try
@@ -533,17 +567,21 @@ public static class ResourceService
             Debug.LogError($"ResourceService: Error logging loaded prefabs: {ex.Message}");
         }
     }
+    */
     
     /// <summary>
     /// Gets the current cache size
     /// </summary>
     /// <returns>Number of cached prefabs</returns>
-    public static int GetCacheSize() => _prefabCache.Count;
+    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
+    // public static int GetCacheSize() => _prefabCache.Count;
     
     /// <summary>
     /// Gets list of available biomes by checking directory existence
     /// </summary>
     /// <returns>List of available biome names</returns>
+    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
+    /*
     public static List<string> GetAvailableBiomes()
     {
         try
@@ -575,4 +613,5 @@ public static class ResourceService
             return new List<string> { BIOME_DEFAULT };
         }
     }
+    */
 }
