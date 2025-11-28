@@ -1969,7 +1969,7 @@ GameObject:
   m_Component:
   - component: {fileID: 683481970828366266}
   m_Layer: 5
-  m_Name: SettingsInterface
+  m_Name: modal_Settings
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
