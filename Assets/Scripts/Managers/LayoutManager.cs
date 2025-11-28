@@ -52,9 +52,7 @@ public class LayoutManager : MonoBehaviour
     private BiomeManager _biomeManager;
     
     // Private Fields - Renderers
-    private PrefabFloorRenderer _floorRenderer;
-    private PrefabWallRenderer _wallRenderer;
-    private PrefabDoorRenderer _doorRenderer;
+    private ProBuilderRoomRenderer _proBuilderRenderer;
     private LandmarkRenderer _specialRenderer;
     private OptimizedPrefabRenderer _optimizedRenderer;
     
@@ -150,14 +148,8 @@ public class LayoutManager : MonoBehaviour
         LandmarksParent = CreateParentIfNull(LandmarksParent, "Landmarks");
         EnvironmentParent = CreateParentIfNull(EnvironmentParent, "Environment");
         
-        var defaultBiome = _biomeManager.GetBiomeForFloor(RuntimeLevelConfig.FloorLevel);
-        
         try
         {
-            _floorRenderer = new PrefabFloorRenderer(_biomeManager.GetFloorPrefab(defaultBiome), _biomeManager);
-            _wallRenderer = new PrefabWallRenderer(_biomeManager.GetWallPrefab(defaultBiome), _biomeManager);
-            _doorRenderer = new PrefabDoorRenderer(_biomeManager.GetDoorPrefab(defaultBiome), _biomeManager);
-            
             // FIXED: Use GetLandmarkPrefab instead of deprecated method
             _specialRenderer = new LandmarkRenderer(
                 _biomeManager.GetLandmarkPrefab(RoomType.Entrance), 
@@ -166,6 +158,7 @@ public class LayoutManager : MonoBehaviour
             );
             
             _optimizedRenderer = new OptimizedPrefabRenderer(_biomeManager);
+            _proBuilderRenderer = new ProBuilderRoomRenderer(_biomeManager);
             
             Debug.Log("Renderers initialized");
         }
@@ -252,7 +245,8 @@ public class LayoutManager : MonoBehaviour
         ClearRendering();
         CreateParentContainers();
 
-        RenderRealMode(_layout, RuntimeLevelConfig.FloorLevel);
+        // RenderRealMode(_layout, RuntimeLevelConfig.FloorLevel);
+        RenderProBuilderMode(_layout, _rooms, RuntimeLevelConfig.FloorLevel);
         RenderLandmarks(_rooms);
         LogRenderingResults();
     }
@@ -270,10 +264,183 @@ public class LayoutManager : MonoBehaviour
         RenderEnvironment(layout);
     }
 
+    private void RenderProBuilderMode(LevelModel layout, List<RoomModel> rooms, int floorLevel)
+    {
+        if (_proBuilderRenderer == null)
+        {
+            Debug.LogError("ProBuilderRenderer not initialized!");
+            return;
+        }
+        
+        string currentBiome = _biomeManager.GetBiomeForFloor(floorLevel);
+        Debug.Log($"Rendering with ProBuilder for biome: {currentBiome}");
+        
+        // Render all rooms optimally (1 floor, 4 walls, 4 corners, N doorways per room)
+        _proBuilderRenderer.RenderAllRooms(layout, rooms, FloorsParent, currentBiome);
+        
+        // Render corridors (if needed - optional)
+        RenderCorridors(layout, currentBiome);
+        
+        // Render environment
+        RenderEnvironment(layout);
+    }
+
+    private void RenderCorridors(LevelModel layout, string biome)
+    {
+        if (layout.Corridors == null || layout.Corridors.Count == 0) return;
+        
+        GameObject floorPrefab = Resources.Load<GameObject>("Layout/pf_Floor");
+        GameObject wallPrefab = Resources.Load<GameObject>("Layout/pf_Wall");
+        Material floorMat = Resources.Load<Material>($"Layout/{biome}/FloorMaterial");
+        Material wallMat = Resources.Load<Material>($"Layout/{biome}/WallMaterial");
+        
+        if (floorPrefab == null || wallPrefab == null) return;
+        
+        // Create corridor container
+        GameObject corridorContainer = new GameObject("Corridors");
+        corridorContainer.transform.SetParent(FloorsParent);
+        
+        // Get all corridor floor tiles (excluding room tiles)
+        HashSet<Vector2Int> corridorFloors = new HashSet<Vector2Int>();
+        foreach (var corridor in layout.Corridors)
+        {
+            if (corridor?.Tiles == null) continue;
+            foreach (var tile in corridor.Tiles)
+            {
+                // Check if tile is not in any room
+                bool inRoom = false;
+                foreach (var room in _rooms)
+                {
+                    if (room.ContainsPosition(tile))
+                    {
+                        inRoom = true;
+                        break;
+                    }
+                }
+                
+                if (!inRoom)
+                {
+                    corridorFloors.Add(tile);
+                }
+            }
+        }
+        
+        // Render corridor floors
+        foreach (var tilePos in corridorFloors)
+        {
+            Vector3 worldPos = new Vector3(tilePos.x + 0.5f, 0.5f, tilePos.y + 0.5f);
+            GameObject floor = Object.Instantiate(floorPrefab, worldPos, Quaternion.identity, corridorContainer.transform);
+            floor.name = $"CorridorFloor_{tilePos.x}_{tilePos.y}";
+            
+            if (floorMat != null)
+            {
+                Renderer renderer = floor.GetComponent<Renderer>();
+                if (renderer != null) renderer.sharedMaterial = floorMat;
+            }
+        }
+        
+        // Render corridor walls
+        GameObject wallContainer = new GameObject("CorridorWalls");
+        wallContainer.transform.SetParent(WallsParent);
+        
+        foreach (var tilePos in corridorFloors)
+        {
+            // Check each cardinal direction for walls
+            Vector2Int[] directions = new Vector2Int[]
+            {
+                new Vector2Int(0, 1),  // North
+                new Vector2Int(0, -1), // South
+                new Vector2Int(1, 0),  // East
+                new Vector2Int(-1, 0)  // West
+            };
+            
+            foreach (var dir in directions)
+            {
+                Vector2Int checkPos = tilePos + dir;
+                
+                // If neighbor is not a floor tile, place wall
+                if (!layout.AllFloorTiles.Contains(checkPos))
+                {
+                    Vector3 worldPos = new Vector3(checkPos.x + 0.5f, 5.5f, checkPos.y + 0.5f);
+                    Quaternion rotation = GetWallRotationFromDirection(dir);
+                    
+                    GameObject wall = Object.Instantiate(wallPrefab, worldPos, rotation, wallContainer.transform);
+                    wall.name = $"CorridorWall_{checkPos.x}_{checkPos.y}";
+                    
+                    if (wallMat != null)
+                    {
+                        Renderer renderer = wall.GetComponent<Renderer>();
+                        if (renderer != null) renderer.sharedMaterial = wallMat;
+                    }
+                }
+            }
+        }
+        
+        Debug.Log($"Rendered {corridorFloors.Count} corridor tiles");
+    }
+
+    private Quaternion GetWallRotationFromDirection(Vector2Int direction)
+    {
+        if (direction.x != 0)
+        {
+            return Quaternion.Euler(0, 0, 0); // East/West
+        }
+        else
+        {
+            return Quaternion.Euler(0, 90, 0); // North/South
+        }
+    }
+
     private void RenderEnvironment(LevelModel layout)
     {
-        if (EnableCeiling) _optimizedRenderer.RenderCeilingOptimized(layout, EnvironmentParent);
-        if (EnableVoid) _optimizedRenderer.RenderVoidPlane(layout, EnvironmentParent);
+        if (EnableCeiling) RenderCeiling(layout);
+        if (EnableVoid) RenderVoidPlane(layout);
+    }
+
+    private void RenderCeiling(LevelModel layout)
+    {
+        GameObject ceiling = GameObject.CreatePrimitive(PrimitiveType.Plane);
+        ceiling.name = "Ceiling";
+        ceiling.transform.SetParent(EnvironmentParent);
+        
+        BoundsInt bounds = layout.OverallBounds;
+        Vector3 center = new Vector3(bounds.center.x, 11f, bounds.center.y);
+        ceiling.transform.position = center;
+        
+        float scaleX = bounds.size.x * 0.1f;
+        float scaleZ = bounds.size.y * 0.1f;
+        ceiling.transform.localScale = new Vector3(scaleX, 1f, scaleZ);
+        
+        Renderer renderer = ceiling.GetComponent<Renderer>();
+        Material mat = new Material(Shader.Find("Standard"))
+        {
+            color = new Color(0.3f, 0.3f, 0.3f)
+        };
+        renderer.sharedMaterial = mat;
+        
+        Object.DestroyImmediate(ceiling.GetComponent<Collider>());
+    }
+
+    private void RenderVoidPlane(LevelModel layout)
+    {
+        GameObject voidPlane = GameObject.CreatePrimitive(PrimitiveType.Plane);
+        voidPlane.name = "VoidPlane";
+        voidPlane.transform.SetParent(EnvironmentParent);
+        
+        BoundsInt bounds = layout.OverallBounds;
+        Vector3 center = new Vector3(bounds.center.x, -5f, bounds.center.y);
+        voidPlane.transform.position = center;
+        
+        float scaleX = bounds.size.x * 0.2f;
+        float scaleZ = bounds.size.y * 0.2f;
+        voidPlane.transform.localScale = new Vector3(scaleX, 1f, scaleZ);
+        
+        Renderer renderer = voidPlane.GetComponent<Renderer>();
+        Material mat = new Material(Shader.Find("Standard"))
+        {
+            color = Color.black
+        };
+        renderer.sharedMaterial = mat;
     }
 
     private void RenderLandmarks(List<RoomModel> rooms)
