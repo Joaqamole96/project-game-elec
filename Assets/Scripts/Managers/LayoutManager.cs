@@ -235,7 +235,7 @@ public class LayoutManager : MonoBehaviour
         _roomGenerator.FindAndAssignNeighbors(leaves);
         
         var allCorridors = _corridorGenerator.GenerateAllPossibleCorridors(leaves);
-        layout.Corridors = MinimumSpanningTree.Apply(allCorridors, layout.Rooms);
+        layout.Corridors = MSTService.Apply(allCorridors, layout.Rooms);
         
         return layout;
     }

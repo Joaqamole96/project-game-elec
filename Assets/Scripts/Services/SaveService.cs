@@ -1,48 +1,132 @@
 // ================================================== //
-// Scripts/Systems/SaveService.cs - Helper
+// Scripts/Services/SaveService.cs
 // ================================================== //
 
 using UnityEngine;
 
 /// <summary>
-/// Helper class to trigger saves at appropriate times
-/// Attach to GameDirector or relevant managers
+/// Service for managing game save operations at key gameplay moments
+/// Bridges between game events and the SaveManager singleton
+/// Attach to GameDirector or relevant manager objects
 /// </summary>
 public class SaveService : MonoBehaviour
 {
     private SaveManager saveManager;
     
+    /// <summary>
+    /// Initializes the SaveService by getting reference to SaveManager
+    /// </summary>
     void Start()
     {
-        saveManager = SaveManager.Instance;
-        
-        if (saveManager == null)
+        try
         {
-            Debug.LogWarning("SaveService: SaveManager not found!");
+            saveManager = SaveManager.Instance;
+            if (saveManager == null)
+            {
+                Debug.LogWarning("SaveService: SaveManager instance not found - save functionality disabled");
+            }
+            else
+            {
+                Debug.Log("SaveService: Successfully initialized with SaveManager");
+            }
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"SaveService: Error during initialization: {ex.Message}");
         }
     }
     
-    // Call these from appropriate places in your code
-    
+    /// <summary>
+    /// Called when player dies - intentionally does not save to allow reloading last save
+    /// </summary>
     public void OnPlayerDied()
     {
-        // Don't save on death - let player reload last save
-        Debug.Log("SaveService: Player died - not saving");
+        try
+        {
+            Debug.Log("SaveService: Player died - intentionally not saving to allow reload from last save");
+            // Note: This allows players to reload their last save point
+            // rather than saving the failed state
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"SaveService: Error in OnPlayerDied: {ex.Message}");
+        }
     }
     
+    /// <summary>
+    /// Called when player completes a floor - triggers floor completion save logic
+    /// </summary>
     public void OnFloorCleared()
     {
-        if (saveManager != null)
+        try
         {
-            saveManager.OnFloorCompleted();
+            if (saveManager != null)
+            {
+                saveManager.OnFloorCompleted();
+                Debug.Log("SaveService: Floor cleared - progress saved");
+            }
+            else
+            {
+                Debug.LogWarning("SaveService: Cannot save floor completion - SaveManager not available");
+            }
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"SaveService: Error saving floor completion: {ex.Message}");
         }
     }
     
+    /// <summary>
+    /// Called when boss is defeated - triggers immediate game save
+    /// </summary>
     public void OnBossDefeated()
     {
-        if (saveManager != null)
+        try
         {
-            saveManager.SaveGame();
+            if (saveManager != null)
+            {
+                saveManager.SaveGame();
+                Debug.Log("SaveService: Boss defeated - game saved");
+            }
+            else
+            {
+                Debug.LogWarning("SaveService: Cannot save boss defeat - SaveManager not available");
+            }
         }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"SaveService: Error saving boss defeat: {ex.Message}");
+        }
+    }
+    
+    /// <summary>
+    /// Manual save trigger for other game events
+    /// </summary>
+    public void ManualSave()
+    {
+        try
+        {
+            if (saveManager != null)
+            {
+                saveManager.SaveGame();
+                Debug.Log("SaveService: Manual save completed");
+            }
+            else
+            {
+                Debug.LogWarning("SaveService: Cannot perform manual save - SaveManager not available");
+            }
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError($"SaveService: Error during manual save: {ex.Message}");
+        }
+    }
+    
+    /// <summary>
+    /// Called when the object is destroyed - good place for cleanup
+    /// </summary>
+    void OnDestroy()
+    {
+        Debug.Log("SaveService: Service destroyed");
     }
 }
