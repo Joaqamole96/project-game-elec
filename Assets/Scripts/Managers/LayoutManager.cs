@@ -55,6 +55,7 @@ public class LayoutManager : MonoBehaviour
     private ProBuilderRoomRenderer _proBuilderRenderer;
     private LandmarkRenderer _specialRenderer;
     private OptimizedPrefabRenderer _optimizedRenderer;
+    private CorridorRenderer _corridorRenderer;
     
     // Private Fields - Data
     private LevelModel _layout;
@@ -159,6 +160,7 @@ public class LayoutManager : MonoBehaviour
             
             _optimizedRenderer = new OptimizedPrefabRenderer(_biomeManager);
             _proBuilderRenderer = new ProBuilderRoomRenderer(_biomeManager);
+            _corridorRenderer = new CorridorRenderer();
             
             Debug.Log("Renderers initialized");
         }
@@ -245,9 +247,10 @@ public class LayoutManager : MonoBehaviour
         ClearRendering();
         CreateParentContainers();
 
-        // RenderRealMode(_layout, RuntimeLevelConfig.FloorLevel);
+        // Use ProBuilder renderer instead of tile-by-tile
         RenderProBuilderMode(_layout, _rooms, RuntimeLevelConfig.FloorLevel);
         RenderLandmarks(_rooms);
+        
         LogRenderingResults();
     }
 
@@ -266,9 +269,9 @@ public class LayoutManager : MonoBehaviour
 
     private void RenderProBuilderMode(LevelModel layout, List<RoomModel> rooms, int floorLevel)
     {
-        if (_proBuilderRenderer == null)
+        if (_proBuilderRenderer == null || _corridorRenderer == null)
         {
-            Debug.LogError("ProBuilderRenderer not initialized!");
+            Debug.LogError("ProBuilderRenderer or CorridorRenderer not initialized!");
             return;
         }
         
@@ -278,8 +281,8 @@ public class LayoutManager : MonoBehaviour
         // Render all rooms optimally (1 floor, 4 walls, 4 corners, N doorways per room)
         _proBuilderRenderer.RenderAllRooms(layout, rooms, FloorsParent, currentBiome);
         
-        // Render corridors (if needed - optional)
-        RenderCorridors(layout, currentBiome);
+        // Render corridors as stretched segments (NEW - replaces tile-by-tile)
+        _corridorRenderer.RenderCorridors(layout, rooms, FloorsParent, currentBiome);
         
         // Render environment
         RenderEnvironment(layout);
@@ -362,7 +365,7 @@ public class LayoutManager : MonoBehaviour
                 // If neighbor is not a floor tile, place wall
                 if (!layout.AllFloorTiles.Contains(checkPos))
                 {
-                    Vector3 worldPos = new Vector3(checkPos.x + 0.5f, 5f, checkPos.y + 0.5f);
+                    Vector3 worldPos = new Vector3(checkPos.x + 0.5f, 5.5f, checkPos.y + 0.5f);
                     Quaternion rotation = GetWallRotationFromDirection(dir);
                     
                     GameObject wall = Object.Instantiate(wallPrefab, worldPos, rotation, wallContainer.transform);
@@ -382,16 +385,19 @@ public class LayoutManager : MonoBehaviour
 
     private Quaternion GetWallRotationFromDirection(Vector2Int direction)
     {
-        // North/South directions (vertical movement)
+        // Corridor walls: Same logic as room walls
+        // Z=0.75 is thickness, Y-rot=0 means facing Z axis
+        
+        // If checking North/South neighbor (direction.y != 0)
+        // Wall should extend East/West (along X axis), so needs Y-rot = 90
         if (direction.y != 0)
         {
-            // Wall should face along X axis (perpendicular to north/south)
             return Quaternion.Euler(0, 90, 0);
         }
-        // East/West directions (horizontal movement)
+        // If checking East/West neighbor (direction.x != 0)
+        // Wall should extend North/South (along Z axis), so needs Y-rot = 0
         else
         {
-            // Wall should face along Z axis (perpendicular to east/west)
             return Quaternion.Euler(0, 0, 0);
         }
     }

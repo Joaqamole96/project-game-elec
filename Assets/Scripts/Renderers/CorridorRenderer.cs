@@ -244,11 +244,11 @@ public class CorridorRenderer
         // Stretch floor based on orientation
         if (segment.isHorizontal)
         {
-            floor.transform.localScale = new Vector3(length, 1, 1);
+            floor.transform.localScale = new Vector3(length, 1, 2);
         }
         else
         {
-            floor.transform.localScale = new Vector3(1, 1, length);
+            floor.transform.localScale = new Vector3(2, 1, length);
         }
         
         ApplyMaterial(floor, material);
@@ -270,17 +270,17 @@ public class CorridorRenderer
             // Walls on North (+Z) and South (-Z) sides
             
             // North wall (rotation = 0, extends along X)
-            Vector3 northPos = center + new Vector3(0, 5f, 0.5f);
+            Vector3 northPos = center + new Vector3(0, 5f, 1f);
             GameObject northWall = Object.Instantiate(_wallPrefab, northPos, Quaternion.identity, parent);
             northWall.name = "NorthWall";
-            northWall.transform.localScale = new Vector3(length, 1, 1);
+            northWall.transform.localScale = new Vector3(length + 1, 1, 1);
             ApplyMaterial(northWall, material);
             
             // South wall (rotation = 0, extends along X)
-            Vector3 southPos = center + new Vector3(0, 5f, -0.5f);
+            Vector3 southPos = center + new Vector3(0, 5f, -1f);
             GameObject southWall = Object.Instantiate(_wallPrefab, southPos, Quaternion.identity, parent);
             southWall.name = "SouthWall";
-            southWall.transform.localScale = new Vector3(length, 1, 1);
+            southWall.transform.localScale = new Vector3(length + 1, 1, 1);
             ApplyMaterial(southWall, material);
         }
         else
@@ -289,17 +289,17 @@ public class CorridorRenderer
             // Walls on East (+X) and West (-X) sides
             
             // East wall (rotation = 90, extends along Z)
-            Vector3 eastPos = center + new Vector3(0.5f, 5f, 0);
+            Vector3 eastPos = center + new Vector3(1f, 5f, 0);
             GameObject eastWall = Object.Instantiate(_wallPrefab, eastPos, Quaternion.Euler(0, 90, 0), parent);
             eastWall.name = "EastWall";
-            eastWall.transform.localScale = new Vector3(length, 1, 1);
+            eastWall.transform.localScale = new Vector3(length + 1, 1, 1);
             ApplyMaterial(eastWall, material);
             
             // West wall (rotation = 90, extends along Z)
-            Vector3 westPos = center + new Vector3(-0.5f, 5f, 0);
+            Vector3 westPos = center + new Vector3(-1f, 5f, 0);
             GameObject westWall = Object.Instantiate(_wallPrefab, westPos, Quaternion.Euler(0, 90, 0), parent);
             westWall.name = "WestWall";
-            westWall.transform.localScale = new Vector3(length, 1, 1);
+            westWall.transform.localScale = new Vector3(length + 1, 1, 1);
             ApplyMaterial(westWall, material);
         }
     }
