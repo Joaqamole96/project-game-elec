@@ -13,18 +13,15 @@ public static class ResourceService
 {
     // Cache to avoid repeated Resources.Load calls
     private static Dictionary<string, GameObject> _prefabCache = new();
-    
     // Biome constants
     public const string BIOME_DEFAULT = "_Default";
     public const string BIOME_GRASSLANDS = "Grasslands";
     public const string BIOME_DUNGEON = "Dungeon";
     public const string BIOME_CAVES = "Caves";
-    
     // Component categories (biome-specific)
     private const string CATEGORY_LAYOUT = "Layout";
     private const string CATEGORY_PROPS = "Props";
     private const string CATEGORY_ENEMIES = "Enemies";
-    
     // Component categories (biome-independent)
     private const string CATEGORY_LANDMARKS = "Landmarks";
     private const string CATEGORY_PLAYERS = "Players";
@@ -35,26 +32,14 @@ public static class ResourceService
     // ------------------------- //
     // CORE LOADING METHODS
     // ------------------------- //
-    
-    /// <summary>
-    /// Loads a prefab from Resources/{category}/{biome}/{prefabName} (biome-specific)
-    /// </summary>
-    /// <param name="category">Resource category (Layout, Props, Enemies)</param>
-    /// <param name="biome">Biome name for biome-specific assets</param>
-    /// <param name="prefabName">Name of the prefab to load</param>
-    /// <returns>Loaded GameObject or null if not found</returns>
+
     private static GameObject LoadBiomeSpecificPrefab(string category, string biome, string prefabName)
     {
         try
         {
             string path = $"{category}/{biome}/{prefabName}";
-            
             // Check cache first for performance
-            if (_prefabCache.TryGetValue(path, out GameObject cached))
-            {
-                return cached;
-            }
-            
+            if (_prefabCache.TryGetValue(path, out GameObject cached)) return cached;
             // Load from Resources
             GameObject prefab = Resources.Load<GameObject>(path);
             if (prefab != null)
@@ -76,24 +61,13 @@ public static class ResourceService
         }
     }
     
-    /// <summary>
-    /// Loads a prefab from Resources/{category}/{prefabName} (biome-independent)
-    /// </summary>
-    /// <param name="category">Resource category</param>
-    /// <param name="prefabName">Name of the prefab to load</param>
-    /// <returns>Loaded GameObject or null if not found</returns>
     private static GameObject LoadCategoryPrefab(string category, string prefabName)
     {
         try
         {
             string path = $"{category}/{prefabName}";
-            
             // Check cache first for performance
-            if (_prefabCache.TryGetValue(path, out GameObject cached))
-            {
-                return cached;
-            }
-            
+            if (_prefabCache.TryGetValue(path, out GameObject cached)) return cached;
             // Load from Resources
             GameObject prefab = Resources.Load<GameObject>(path);
             if (prefab != null)
@@ -115,13 +89,6 @@ public static class ResourceService
         }
     }
     
-    /// <summary>
-    /// Loads with fallback to _Default biome if not found in specified biome
-    /// </summary>
-    /// <param name="category">Resource category</param>
-    /// <param name="biome">Preferred biome</param>
-    /// <param name="prefabName">Name of prefab to load</param>
-    /// <returns>Loaded GameObject or null if neither biome has the prefab</returns>
     private static GameObject LoadWithFallback(string category, string biome, string prefabName)
     {
         try
@@ -217,12 +184,7 @@ public static class ResourceService
                 RoomType.Boss => "BossPrefab",
                 _ => null
             };
-            
-            if (prefabName != null)
-            {
-                return LoadCategoryPrefab(CATEGORY_LANDMARKS, prefabName);
-            }
-            
+            if (prefabName != null) return LoadCategoryPrefab(CATEGORY_LANDMARKS, prefabName);
             Debug.LogWarning($"ResourceService: No prefab mapping for room type {roomType}");
             return null;
         }
@@ -373,25 +335,21 @@ public static class ResourceService
         try
         {
             Debug.Log($"ResourceService: Preloading biome '{biome}'...");
-            
             // Layout prefabs
             LoadFloorPrefab(biome);
             LoadWallPrefab(biome);
             LoadDoorPrefab(biome);
             LoadDoorTopPrefab(biome);
             LoadCeilingPrefab(biome);
-            
             // Prop prefabs
             LoadTorchPrefab(biome);
             LoadPillarPrefab(biome);
             LoadBarrelPrefab(biome);
             LoadCratePrefab(biome);
-            
             // Enemy prefabs
             LoadBasicEnemyPrefab(biome);
             LoadEliteEnemyPrefab(biome);
             LoadBossEnemyPrefab(biome);
-            
             Debug.Log($"ResourceService: Biome '{biome}' preloaded successfully");
         }
         catch (System.Exception ex)
@@ -410,27 +368,22 @@ public static class ResourceService
         try
         {
             Debug.Log("ResourceService: Preloading common prefabs...");
-            
             // Landmark prefabs
             LoadEntrancePrefab();
             LoadExitPrefab();
             LoadShopPrefab();
             LoadTreasurePrefab();
             LoadBossPrefab();
-            
             // Player prefabs
             LoadPlayerPrefab();
             LoadCameraPrefab();
-            
             // Item prefabs
             LoadHealthPotionPrefab();
             LoadCoinPrefab();
             LoadChestPrefab();
-            
             // Weapon prefabs
             LoadSwordPrefab();
             LoadBowPrefab();
-            
             Debug.Log("ResourceService: Common prefabs preloaded successfully");
         }
         catch (System.Exception ex)
@@ -473,19 +426,8 @@ public static class ResourceService
         try
         {
             List<string> keysToRemove = new();
-            foreach (var key in _prefabCache.Keys)
-            {
-                if (key.Contains($"/{biome}/"))
-                {
-                    keysToRemove.Add(key);
-                }
-            }
-            
-            foreach (var key in keysToRemove)
-            {
-                _prefabCache.Remove(key);
-            }
-            
+            foreach (var key in _prefabCache.Keys) if (key.Contains($"/{biome}/")) keysToRemove.Add(key);
+            foreach (var key in keysToRemove) _prefabCache.Remove(key);
             Debug.Log($"ResourceService: Cleared {keysToRemove.Count} cached prefabs for biome '{biome}'");
         }
         catch (System.Exception ex)

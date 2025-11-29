@@ -1,5 +1,5 @@
 // -------------------------------------------------- //
-// Scripts/Renderers/LandmarkRenderer.cs (UPDATED)
+// Scripts/Renderers/LandmarkRenderer.cs
 // -------------------------------------------------- //
 
 using UnityEngine;
@@ -18,31 +18,26 @@ public class LandmarkRenderer
     public void RenderLandmarks(List<RoomModel> rooms, Transform parent)
     {
         if (rooms == null || parent == null) throw new System.Exception("Cannot render special objects: rooms or parent is null");
-
         int landmarksCreated = 0;
-        foreach (var room in rooms)
-            if (room != null && IsSpecialRoomType(room.Type) && RenderRoomLandmark(room, parent)) landmarksCreated++;
-
+        foreach (var room in rooms) if (room != null && IsSpecialRoomType(room.Type) && RenderRoomLandmark(room, parent)) landmarksCreated++;
         Debug.Log($"Created {landmarksCreated} special room objects");
     }
 
     private bool IsSpecialRoomType(RoomType roomType)
-    {
-        return roomType == RoomType.Entrance || roomType == RoomType.Exit || 
-               roomType == RoomType.Shop || roomType == RoomType.Treasure || 
-               roomType == RoomType.Boss;
-    }
+        => roomType == RoomType.Entrance || 
+            roomType == RoomType.Exit || 
+            roomType == RoomType.Shop || 
+            roomType == RoomType.Treasure || 
+            roomType == RoomType.Boss;
 
     private bool RenderRoomLandmark(RoomModel room, Transform parent)
     {
         GameObject prefab = _biomeManager.GetLandmarkPrefab(room.Type);
-
         if (prefab != null)
         {
             Bounds prefabBounds = GetPrefabBounds(prefab);
             float floorHeight = 1f;
             float objectHeight = prefabBounds.size.y;
-            
             Vector3 position = new(room.Center.x, floorHeight + (objectHeight * 0.5f), room.Center.y);
             var landmark = Object.Instantiate(prefab, position, Quaternion.identity, parent);
             landmark.name = $"{room.Type}_{room.ID}";

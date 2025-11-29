@@ -2,7 +2,7 @@
 // Scripts/Services/SaveService.cs
 // ================================================== //
 
-// using UnityEngine;
+using UnityEngine;
 
 /// <summary>
 /// Service for managing game save operations at key gameplay moments
@@ -16,22 +16,13 @@ public class SaveService : MonoBehaviour
 {
     private SaveManager saveManager;
     
-    /// <summary>
-    /// Initializes the SaveService by getting reference to SaveManager
-    /// </summary>
     void Start()
     {
         try
         {
             saveManager = SaveManager.Instance;
-            if (saveManager == null)
-            {
-                Debug.LogWarning("SaveService: SaveManager instance not found - save functionality disabled");
-            }
-            else
-            {
-                Debug.Log("SaveService: Successfully initialized with SaveManager");
-            }
+            if (saveManager == null) Debug.LogWarning("SaveService: SaveManager instance not found - save functionality disabled");
+            else Debug.Log("SaveService: Successfully initialized with SaveManager");
         }
         catch (System.Exception ex)
         {
@@ -125,9 +116,6 @@ public class SaveService : MonoBehaviour
         }
     }
     
-    /// <summary>
-    /// Called when the object is destroyed - good place for cleanup
-    /// </summary>
     void OnDestroy()
     {
         Debug.Log("SaveService: Service destroyed");

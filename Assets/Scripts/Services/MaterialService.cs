@@ -13,7 +13,6 @@ public class MaterialService
 {
     private readonly Dictionary<RoomType, Material> _roomTypeMaterials = new();
     private readonly Dictionary<WallType, Material> _wallTypeMaterials = new();
-    
     private readonly Material _defaultFloorMaterial;
     private readonly Material _defaultWallMaterial;
     private readonly Material _defaultDoorMaterial;
@@ -285,27 +284,11 @@ public class MaterialService
         {
             int roomMaterialsCount = _roomTypeMaterials.Count;
             int wallMaterialsCount = _wallTypeMaterials.Count;
-            
             // Destroy all created materials to prevent memory leaks
-            foreach (var material in _roomTypeMaterials.Values)
-            {
-                if (material != null && material != _defaultFloorMaterial)
-                {
-                    Object.DestroyImmediate(material);
-                }
-            }
-            
-            foreach (var material in _wallTypeMaterials.Values)
-            {
-                if (material != null && material != _defaultWallMaterial && material != _defaultDoorMaterial)
-                {
-                    Object.DestroyImmediate(material);
-                }
-            }
-            
+            foreach (var material in _roomTypeMaterials.Values) if (material != null && material != _defaultFloorMaterial) Object.DestroyImmediate(material);
+            foreach (var material in _wallTypeMaterials.Values) if (material != null && material != _defaultWallMaterial && material != _defaultDoorMaterial) Object.DestroyImmediate(material);
             _roomTypeMaterials.Clear();
             _wallTypeMaterials.Clear();
-            
             Debug.Log($"MaterialService: Cache cleaned up - destroyed {roomMaterialsCount + wallMaterialsCount} materials");
         }
         catch (System.Exception ex)

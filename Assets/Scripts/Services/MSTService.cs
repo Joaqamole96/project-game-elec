@@ -29,18 +29,14 @@ public static class MSTService
                 Debug.LogWarning("MSTService: No rooms provided - returning empty corridor list");
                 return new List<CorridorModel>();
             }
-            
             if (corridors == null)
             {
                 Debug.LogWarning("MSTService: Null corridors list provided - returning empty list");
                 return new List<CorridorModel>();
             }
-
             Debug.Log($"MSTService: Starting MST algorithm with {rooms.Count} rooms and {corridors.Count} possible corridors");
-
             var parentIds = InitializeUnionFind(rooms.Count);
             var spanningTreeCorridors = new List<CorridorModel>();
-            
             // Sort corridors by distance (shorter corridors first for optimal MST)
             corridors.Sort((a, b) =>
             {
@@ -49,7 +45,6 @@ public static class MSTService
                     Debug.LogWarning("MSTService: Found null corridor during sorting");
                     return 0;
                 }
-                
                 try
                 {
                     float distA = Vector2.Distance(a.StartRoom.Bounds.center, a.EndRoom.Bounds.center);
@@ -62,12 +57,9 @@ public static class MSTService
                     return 0;
                 }
             });
-
             Debug.Log("MSTService: Corridors sorted by distance, building spanning tree...");
-
             int selectedCorridors = 0;
             int skippedCorridors = 0;
-            
             foreach (var corridor in corridors)
             {
                 if (corridor?.StartRoom == null || corridor.EndRoom == null)
@@ -76,24 +68,20 @@ public static class MSTService
                     skippedCorridors++;
                     continue;
                 }
-
                 int roomAIndex = rooms.IndexOf(corridor.StartRoom);
                 int roomBIndex = rooms.IndexOf(corridor.EndRoom);
-                
                 if (roomAIndex < 0 || roomBIndex < 0)
                 {
                     Debug.LogWarning("MSTService: Skipping corridor with rooms not in room list");
                     skippedCorridors++;
                     continue;
                 }
-
                 // Check if adding this corridor would create a cycle
                 if (FindRoot(roomAIndex, parentIds) != FindRoot(roomBIndex, parentIds))
                 {
                     spanningTreeCorridors.Add(corridor);
                     UnionSets(roomAIndex, roomBIndex, parentIds);
                     selectedCorridors++;
-                    
                     // Early exit if we've connected all rooms (MST has n-1 edges for n nodes)
                     if (selectedCorridors >= rooms.Count - 1)
                     {
@@ -101,15 +89,10 @@ public static class MSTService
                         break;
                     }
                 }
-                else
-                {
-                    skippedCorridors++;
-                }
+                else skippedCorridors++;
             }
-
             Debug.Log($"MSTService: MST completed - {selectedCorridors} corridors selected, {skippedCorridors} skipped");
             Debug.Log($"MSTService: Final result: {spanningTreeCorridors.Count} corridors from {corridors.Count} possible");
-            
             return spanningTreeCorridors;
         }
         catch (System.Exception ex)
@@ -119,22 +102,12 @@ public static class MSTService
         }
     }
 
-    /// <summary>
-    /// Initializes union-find data structure for Kruskal's algorithm
-    /// Each room starts as its own set
-    /// </summary>
-    /// <param name="roomCount">Number of rooms to initialize</param>
-    /// <returns>Initialized parent array for union-find</returns>
     private static int[] InitializeUnionFind(int roomCount)
     {
         try
         {
             var parentIds = new int[roomCount];
-            for (int i = 0; i < roomCount; i++)
-            {
-                parentIds[i] = i; // Each room is its own parent initially
-            }
-            
+            for (int i = 0; i < roomCount; i++) parentIds[i] = i;
             Debug.Log($"MSTService: Initialized union-find for {roomCount} rooms");
             return parentIds;
         }
@@ -145,22 +118,12 @@ public static class MSTService
         }
     }
 
-    /// <summary>
-    /// Finds the root representative of a set using path compression
-    /// Implements the find operation for union-find data structure
-    /// </summary>
-    /// <param name="elementId">Element to find root for</param>
-    /// <param name="parentIds">Parent array for union-find</param>
-    /// <returns>Root representative of the element's set</returns>
     private static int FindRoot(int elementId, int[] parentIds)
     {
         try
         {
             // Path compression: make nodes point directly to root
-            if (parentIds[elementId] != elementId)
-            {
-                parentIds[elementId] = FindRoot(parentIds[elementId], parentIds);
-            }
+            if (parentIds[elementId] != elementId) parentIds[elementId] = FindRoot(parentIds[elementId], parentIds);
             return parentIds[elementId];
         }
         catch (System.Exception ex)
@@ -170,24 +133,13 @@ public static class MSTService
         }
     }
 
-    /// <summary>
-    /// Merges two sets in the union-find data structure
-    /// Implements the union operation for union-find
-    /// </summary>
-    /// <param name="a">First element to union</param>
-    /// <param name="b">Second element to union</param>
-    /// <param name="parentIds">Parent array for union-find</param>
     private static void UnionSets(int a, int b, int[] parentIds)
     {
         try
         {
             int rootA = FindRoot(a, parentIds);
             int rootB = FindRoot(b, parentIds);
-            
-            if (rootA != rootB)
-            {
-                parentIds[rootB] = rootA; // Merge set B into set A
-            }
+            if (rootA != rootB) parentIds[rootB] = rootA;
         }
         catch (System.Exception ex)
         {

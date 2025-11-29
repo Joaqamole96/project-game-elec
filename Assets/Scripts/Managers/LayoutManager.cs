@@ -54,7 +54,7 @@ public class LayoutManager : MonoBehaviour
     // Private Fields - Renderers
     private ProBuilderRoomRenderer _proBuilderRenderer;
     private LandmarkRenderer _specialRenderer;
-    private OptimizedPrefabRenderer _optimizedRenderer;
+    private PrimitiveRenderer _optimizedRenderer;
     private CorridorRenderer _corridorRenderer;
     
     // Private Fields - Data
@@ -158,7 +158,7 @@ public class LayoutManager : MonoBehaviour
                 _biomeManager
             );
             
-            _optimizedRenderer = new OptimizedPrefabRenderer(_biomeManager);
+            _optimizedRenderer = new PrimitiveRenderer(_biomeManager);
             _proBuilderRenderer = new ProBuilderRoomRenderer(_biomeManager);
             _corridorRenderer = new CorridorRenderer();
             
@@ -300,11 +300,11 @@ public class LayoutManager : MonoBehaviour
         if (floorPrefab == null || wallPrefab == null) return;
         
         // Create corridor container
-        GameObject corridorContainer = new GameObject("Corridors");
+        GameObject corridorContainer = new("Corridors");
         corridorContainer.transform.SetParent(FloorsParent);
         
         // Get all corridor floor tiles (excluding room tiles)
-        HashSet<Vector2Int> corridorFloors = new HashSet<Vector2Int>();
+        HashSet<Vector2Int> corridorFloors = new();
         foreach (var corridor in layout.Corridors)
         {
             if (corridor?.Tiles == null) continue;
@@ -331,7 +331,7 @@ public class LayoutManager : MonoBehaviour
         // Render corridor floors
         foreach (var tilePos in corridorFloors)
         {
-            Vector3 worldPos = new Vector3(tilePos.x + 0.5f, 0.5f, tilePos.y + 0.5f);
+            Vector3 worldPos = new(tilePos.x + 0.5f, 0.5f, tilePos.y + 0.5f);
             GameObject floor = Object.Instantiate(floorPrefab, worldPos, Quaternion.identity, corridorContainer.transform);
             floor.name = $"CorridorFloor_{tilePos.x}_{tilePos.y}";
             
@@ -343,7 +343,7 @@ public class LayoutManager : MonoBehaviour
         }
         
         // Render corridor walls
-        GameObject wallContainer = new GameObject("CorridorWalls");
+        GameObject wallContainer = new("CorridorWalls");
         wallContainer.transform.SetParent(WallsParent);
         
         foreach (var tilePos in corridorFloors)
@@ -351,10 +351,10 @@ public class LayoutManager : MonoBehaviour
             // Check each cardinal direction for walls
             Vector2Int[] directions = new Vector2Int[]
             {
-                new Vector2Int(0, 1),  // North
-                new Vector2Int(0, -1), // South
-                new Vector2Int(1, 0),  // East
-                new Vector2Int(-1, 0)  // West
+                new(0, 1),  // North
+                new(0, -1), // South
+                new(1, 0),  // East
+                new(-1, 0)  // West
             };
             
             for (int i = 0; i < directions.Length; i++)
@@ -365,7 +365,7 @@ public class LayoutManager : MonoBehaviour
                 // If neighbor is not a floor tile, place wall
                 if (!layout.AllFloorTiles.Contains(checkPos))
                 {
-                    Vector3 worldPos = new Vector3(checkPos.x + 0.5f, 5.5f, checkPos.y + 0.5f);
+                    Vector3 worldPos = new(checkPos.x + 0.5f, 5.5f, checkPos.y + 0.5f);
                     Quaternion rotation = GetWallRotationFromDirection(dir);
                     
                     GameObject wall = Object.Instantiate(wallPrefab, worldPos, rotation, wallContainer.transform);
@@ -415,7 +415,7 @@ public class LayoutManager : MonoBehaviour
         ceiling.transform.SetParent(EnvironmentParent);
         
         BoundsInt bounds = layout.OverallBounds;
-        Vector3 center = new Vector3(bounds.center.x, 11f, bounds.center.y);
+        Vector3 center = new(bounds.center.x, 11f, bounds.center.y);
         ceiling.transform.position = center;
         
         float scaleX = bounds.size.x * 0.1f;
@@ -423,7 +423,7 @@ public class LayoutManager : MonoBehaviour
         ceiling.transform.localScale = new Vector3(scaleX, 1f, scaleZ);
         
         Renderer renderer = ceiling.GetComponent<Renderer>();
-        Material mat = new Material(Shader.Find("Standard"))
+        Material mat = new(Shader.Find("Standard"))
         {
             color = new Color(0.3f, 0.3f, 0.3f)
         };
@@ -439,7 +439,7 @@ public class LayoutManager : MonoBehaviour
         voidPlane.transform.SetParent(EnvironmentParent);
         
         BoundsInt bounds = layout.OverallBounds;
-        Vector3 center = new Vector3(bounds.center.x, -5f, bounds.center.y);
+        Vector3 center = new(bounds.center.x, -5f, bounds.center.y);
         voidPlane.transform.position = center;
         
         float scaleX = bounds.size.x * 0.2f;
@@ -447,7 +447,7 @@ public class LayoutManager : MonoBehaviour
         voidPlane.transform.localScale = new Vector3(scaleX, 1f, scaleZ);
         
         Renderer renderer = voidPlane.GetComponent<Renderer>();
-        Material mat = new Material(Shader.Find("Standard"))
+        Material mat = new(Shader.Find("Standard"))
         {
             color = Color.black
         };

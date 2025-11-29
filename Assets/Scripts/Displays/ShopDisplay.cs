@@ -151,7 +151,7 @@ public class ShopDisplay : MonoBehaviour
     
     private string GetPowerDescription(PowerType powerType)
     {
-        PowerModel preview = new PowerModel(powerType);
+        PowerModel preview = new(powerType);
         return preview.description;
     }
     
