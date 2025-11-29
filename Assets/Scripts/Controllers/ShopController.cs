@@ -12,7 +12,7 @@ public class ShopController : MonoBehaviour
     public List<ShopItem> availableItems = new();
     
     [Header("UI")]
-    public ShopDisplay shopUI;
+    public ShopDisplay shopDisplay;
     public bool isPlayerNearby = false;
     
     private PlayerController player;
@@ -86,9 +86,9 @@ public class ShopController : MonoBehaviour
     
     private void OpenShop()
     {
-        if (shopUI != null)
+        if (shopDisplay != null)
         {
-            shopUI.OpenShop(this);
+            shopDisplay.OpenShop(this);
         }
         else
         {
@@ -151,6 +151,7 @@ public class ShopController : MonoBehaviour
             isPlayerNearby = true;
             player = other.GetComponent<PlayerController>();
             Debug.Log("Press E to open shop");
+            UIManager.Instance?.ShowShopDisplay(this);
         }
     }
     
@@ -300,7 +301,7 @@ public class BossSpawner : MonoBehaviour
     private void UnlockExit()
     {
         // Find and unlock the exit portal
-        FloorProgressionManager progressionManager = FindObjectOfType<FloorProgressionManager>();
+        ProgressionManager progressionManager = FindObjectOfType<ProgressionManager>();
         if (progressionManager != null)
         {
             // Enable exit portal

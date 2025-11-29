@@ -139,9 +139,6 @@ MonoBehaviour:
     m_Bits: 512
   rb: {fileID: 0}
   animator: {fileID: 0}
-  autoConfigureOnStart: 1
-  capsuleHeight: 2
-  capsuleRadius: 0.5
-  mass: 1
-  drag: 0
-  angularDrag: 0
+  weaponManager: {fileID: 0}
+  powerManager: {fileID: 0}
+  inventory: {fileID: 0}

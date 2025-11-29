@@ -25,7 +25,7 @@ public class WeaponManager : MonoBehaviour
         {
             GameObject holder = new("WeaponHolder");
             holder.transform.SetParent(transform);
-            holder.transform.localPosition = new Vector3(0.5f, 1f, 0.5f);
+            holder.transform.localPosition = new Vector3(0.75f, 0f, 0.5f);
             weaponHolder = holder.transform;
         }
         

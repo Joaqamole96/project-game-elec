@@ -41,7 +41,7 @@ public class WeaponConfig : MonoBehaviour
                 attackSpeed = 1.0f,
                 range = 2f,
                 description = "A reliable balanced blade",
-                prefab = swordPrefab
+                prefab = ResourceService.LoadSwordPrefab(),
             }},
             
             { "Axe", new WeaponData
@@ -52,7 +52,7 @@ public class WeaponConfig : MonoBehaviour
                 attackSpeed = 1.5f,
                 range = 2.5f,
                 description = "Heavy weapon with devastating power",
-                prefab = axePrefab
+                prefab = ResourceService.LoadAxePrefab(),
             }},
             
             { "Dagger", new WeaponData

@@ -54,7 +54,6 @@ public class LayoutManager : MonoBehaviour
     // Private Fields - Renderers
     private ProBuilderRoomRenderer _proBuilderRenderer;
     private LandmarkRenderer _specialRenderer;
-    private PrimitiveRenderer _optimizedRenderer;
     private CorridorRenderer _corridorRenderer;
     
     // Private Fields - Data
@@ -158,7 +157,6 @@ public class LayoutManager : MonoBehaviour
                 _biomeManager
             );
             
-            _optimizedRenderer = new PrimitiveRenderer(_biomeManager);
             _proBuilderRenderer = new ProBuilderRoomRenderer(_biomeManager);
             _corridorRenderer = new CorridorRenderer();
             
@@ -252,19 +250,6 @@ public class LayoutManager : MonoBehaviour
         RenderLandmarks(_rooms);
         
         LogRenderingResults();
-    }
-
-    private void RenderRealMode(LevelModel layout, int floorLevel)
-    {
-        _optimizedRenderer.SetBiomeForFloor(floorLevel);
-        
-        _optimizedRenderer.RenderFloorsByRoom(layout, _rooms, FloorsParent);
-        _optimizedRenderer.RenderWallsOptimized(layout, WallsParent);
-        _optimizedRenderer.RenderDoorsOptimized(layout, DoorsParent);
-        
-        _optimizedRenderer.FinalizeRendering(FloorsParent, WallsParent);
-        
-        RenderEnvironment(layout);
     }
 
     private void RenderProBuilderMode(LevelModel layout, List<RoomModel> rooms, int floorLevel)

@@ -118,10 +118,7 @@ public class MeleeWeapon : WeaponModel
                 Destroy(slash, 0.5f);
                 Debug.Log($"MeleeWeapon: Spawned slash effect for {weaponName}");
             }
-            else
-            {
-                Debug.LogWarning($"MeleeWeapon: No slash effect prefab assigned for {weaponName}");
-            }
+            else Debug.LogWarning($"MeleeWeapon: No slash effect prefab assigned for {weaponName}");
             
             // Attack in cone
             Vector3 attackCenter = attackPosition + attackDirection * (attackRange * 0.5f);
@@ -135,10 +132,7 @@ public class MeleeWeapon : WeaponModel
                 Vector3 dirToTarget = (hit.transform.position - attackPosition).normalized;
                 float angleToTarget = Vector3.Angle(attackDirection, dirToTarget);
                 
-                if (angleToTarget <= swingAngle / 2f)
-                {
-                    DamageTarget(hit.gameObject);
-                }
+                if (angleToTarget <= swingAngle / 2f) DamageTarget(hit.gameObject);
             }
         }
         catch (System.Exception ex)
@@ -160,10 +154,7 @@ public class MeleeWeapon : WeaponModel
                 enemy.TakeDamage(baseDamage);
                 Debug.Log($"{weaponName} hit {target.name} for {baseDamage} damage");
             }
-            else
-            {
-                Debug.Log($"MeleeWeapon: {weaponName} hit {target.name} but no EnemyController found");
-            }
+            else Debug.Log($"MeleeWeapon: {weaponName} hit {target.name} but no EnemyController found");
         }
         catch (System.Exception ex)
         {
@@ -209,31 +200,19 @@ public class RangedWeapon : WeaponModel
                 Debug.Log($"RangedWeapon: Fired projectile from {weaponName} at position {spawnPos}");
                 
                 // Setup projectile
-                if (projectile.TryGetComponent<Rigidbody>(out var rb))
-                {
-                    rb.velocity = attackDirection * projectileSpeed;
-                }
-                else
-                {
-                    Debug.LogWarning($"RangedWeapon: Projectile from {weaponName} has no Rigidbody component");
-                }
-                
+                if (projectile.TryGetComponent<Rigidbody>(out var rb)) rb.velocity = attackDirection * projectileSpeed;
+                else Debug.LogWarning($"RangedWeapon: Projectile from {weaponName} has no Rigidbody component");
+
                 if (projectile.TryGetComponent<ProjectileModel>(out var proj))
                 {
                     proj.damage = baseDamage;
                     proj.targetLayer = targetLayer;
                 }
-                else
-                {
-                    Debug.LogWarning($"RangedWeapon: Projectile from {weaponName} has no ProjectileModel component");
-                }
-                
+                else Debug.LogWarning($"RangedWeapon: Projectile from {weaponName} has no ProjectileModel component");
+
                 Destroy(projectile, 5f);
             }
-            else
-            {
-                Debug.LogError($"RangedWeapon: No projectile prefab assigned for {weaponName}");
-            }
+            else Debug.LogError($"RangedWeapon: No projectile prefab assigned for {weaponName}");
         }
         catch (System.Exception ex)
         {
@@ -262,14 +241,4 @@ public class WeaponData
     
     [Header("Prefab")]
     public GameObject prefab;
-}
-
-/// <summary>
-/// Enum defining the different types of weapons available in the game
-/// </summary>
-public enum WeaponType
-{
-    Melee,
-    Ranged,
-    Magic
 }

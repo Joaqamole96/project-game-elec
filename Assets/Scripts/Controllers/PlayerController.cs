@@ -270,6 +270,8 @@ public class PlayerController : MonoBehaviour
         {
             animator.SetTrigger("TakeDamage");
         }
+
+        UIManager.Instance?.ShowDamageDisplay(transform.position + Vector3.up, damage, false, false);
         
         Debug.Log($"Player took {damage} damage! Health: {CurrentHealth}/{maxHealth}");
         

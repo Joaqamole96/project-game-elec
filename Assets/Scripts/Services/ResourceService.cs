@@ -196,24 +196,24 @@ public static class ResourceService
     }
     
     // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
-    // public static GameObject LoadEntrancePrefab()
-    //     => LoadCategoryPrefab(CATEGORY_LANDMARKS, "EntrancePrefab");
+    public static GameObject LoadEntrancePrefab()
+        => LoadCategoryPrefab(CATEGORY_LANDMARKS, "EntrancePrefab");
     
     // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
-    // public static GameObject LoadExitPrefab()
-    //     => LoadCategoryPrefab(CATEGORY_LANDMARKS, "ExitPrefab");
+    public static GameObject LoadExitPrefab()
+        => LoadCategoryPrefab(CATEGORY_LANDMARKS, "ExitPrefab");
     
     // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
-    // public static GameObject LoadShopPrefab()
-    //     => LoadCategoryPrefab(CATEGORY_LANDMARKS, "ShopPrefab");
+    public static GameObject LoadShopPrefab()
+        => LoadCategoryPrefab(CATEGORY_LANDMARKS, "ShopPrefab");
     
     // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
-    // public static GameObject LoadTreasurePrefab()
-    //     => LoadCategoryPrefab(CATEGORY_LANDMARKS, "TreasurePrefab");
+    public static GameObject LoadTreasurePrefab()
+        => LoadCategoryPrefab(CATEGORY_LANDMARKS, "TreasurePrefab");
     
     // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
-    // public static GameObject LoadBossPrefab()
-    //     => LoadCategoryPrefab(CATEGORY_LANDMARKS, "BossPrefab");
+    public static GameObject LoadBossPrefab()
+        => LoadCategoryPrefab(CATEGORY_LANDMARKS, "BossPrefab");
     
     // ------------------------- //
     // PLAYER PREFABS (Biome-Independent)
@@ -230,19 +230,19 @@ public static class ResourceService
     // ------------------------- //
     
     // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
-    // public static GameObject LoadItemPrefab(string itemName)
-    //     => LoadCategoryPrefab(CATEGORY_ITEMS, itemName);
+    public static GameObject LoadItemPrefab(string itemName)
+        => LoadCategoryPrefab(CATEGORY_ITEMS, itemName);
     
     public static GameObject LoadHealthPotionPrefab()
         => LoadCategoryPrefab(CATEGORY_ITEMS, "HealthPotionPrefab");
     
     // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
-    // public static GameObject LoadCoinPrefab()
-    //     => LoadCategoryPrefab(CATEGORY_ITEMS, "CoinPrefab");
+    public static GameObject LoadCoinPrefab()
+        => LoadCategoryPrefab(CATEGORY_ITEMS, "CoinPrefab");
     
     // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
-    // public static GameObject LoadChestPrefab()
-    //     => LoadCategoryPrefab(CATEGORY_ITEMS, "ChestPrefab");
+    public static GameObject LoadChestPrefab()
+        => LoadCategoryPrefab(CATEGORY_ITEMS, "ChestPrefab");
     
     /// <summary>
     /// Loads key prefab based on key type
@@ -250,7 +250,6 @@ public static class ResourceService
     /// <param name="keyType">Type of key to load</param>
     /// <returns>Loaded key prefab or null if not found</returns>
     // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
-    /*
     public static GameObject LoadKeyPrefab(KeyType keyType)
     {
         try
@@ -268,59 +267,58 @@ public static class ResourceService
             return null;
         }
     }
-    */
     
     // ------------------------- //
     // WEAPON PREFABS (Biome-Independent)
     // ------------------------- //
     
     // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
-    // public static GameObject LoadWeaponPrefab(string weaponName)
-    //     => LoadCategoryPrefab(CATEGORY_WEAPONS, weaponName);
+    public static GameObject LoadWeaponPrefab(string weaponName)
+        => LoadCategoryPrefab(CATEGORY_WEAPONS, weaponName);
     
     // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
-        // public static GameObject LoadSwordPrefab()
-        // => LoadCategoryPrefab(CATEGORY_WEAPONS, "SwordPrefab");
+        public static GameObject LoadSwordPrefab()
+        => LoadCategoryPrefab(CATEGORY_WEAPONS, "SwordPrefab");
     
     // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
-    // public static GameObject LoadBowPrefab()
-    //     => LoadCategoryPrefab(CATEGORY_WEAPONS, "BowPrefab");
+    public static GameObject LoadBowPrefab()
+        => LoadCategoryPrefab(CATEGORY_WEAPONS, "BowPrefab");
     
     // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
-    // public static GameObject LoadStaffPrefab()
-    //     => LoadCategoryPrefab(CATEGORY_WEAPONS, "StaffPrefab");
+    public static GameObject LoadStaffPrefab()
+        => LoadCategoryPrefab(CATEGORY_WEAPONS, "StaffPrefab");
     
     // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
-    // public static GameObject LoadAxePrefab()
-    //     => LoadCategoryPrefab(CATEGORY_WEAPONS, "AxePrefab");
+    public static GameObject LoadAxePrefab()
+        => LoadCategoryPrefab(CATEGORY_WEAPONS, "AxePrefab");
     
     // ------------------------- //
     // UI PREFABS (Biome-Independent)
     // ------------------------- //
     
     // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
-    // public static GameObject LoadUIPrefab(string uiName)
-    //     => LoadCategoryPrefab(CATEGORY_UI, uiName);
+    public static GameObject LoadUIPrefab(string uiName)
+        => LoadCategoryPrefab(CATEGORY_UI, uiName);
     
     // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
-    // public static GameObject LoadHealthBarPrefab()
-    //     => LoadCategoryPrefab(CATEGORY_UI, "HealthBarPrefab");
+    public static GameObject LoadHealthBarPrefab()
+        => LoadCategoryPrefab(CATEGORY_UI, "HealthBarPrefab");
     
     // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
-    // public static GameObject LoadMinimapPrefab()
-    //     => LoadCategoryPrefab(CATEGORY_UI, "MinimapPrefab");
+    public static GameObject LoadMinimapPrefab()
+        => LoadCategoryPrefab(CATEGORY_UI, "MinimapPrefab");
     
     // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
-    // public static GameObject LoadMainMenuPrefab()
-    //     => LoadCategoryPrefab(CATEGORY_UI, "MainMenuPrefab");
+    public static GameObject LoadMainMenuPrefab()
+        => LoadCategoryPrefab(CATEGORY_UI, "MainMenuPrefab");
     
     // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
-    // public static GameObject LoadPauseMenuPrefab()
-    //     => LoadCategoryPrefab(CATEGORY_UI, "PauseMenuPrefab");
+    public static GameObject LoadPauseMenuPrefab()
+        => LoadCategoryPrefab(CATEGORY_UI, "PauseMenuPrefab");
     
     // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
-    // public static GameObject LoadGameOverScreenPrefab()
-    //     => LoadCategoryPrefab(CATEGORY_UI, "GameOverScreenPrefab");
+    public static GameObject LoadGameOverScreenPrefab()
+        => LoadCategoryPrefab(CATEGORY_UI, "GameOverScreenPrefab");
     
     // ------------------------- //
     // BATCH LOADING METHODS

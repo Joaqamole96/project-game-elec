@@ -1,5 +1,5 @@
 // -------------------------------------------------- //
-// Scripts/Managers/FloorProgressionManager.cs
+// Scripts/Managers/ProgressionManager.cs
 // -------------------------------------------------- //
 
 using UnityEngine;
@@ -8,7 +8,7 @@ using System.Collections;
 /// <summary>
 /// Manages progression between floors and scaling difficulty
 /// </summary>
-public class FloorProgressionManager : MonoBehaviour
+public class ProgressionManager : MonoBehaviour
 {
     [Header("Current Progress")]
     public int currentFloor = 1;
@@ -23,7 +23,7 @@ public class FloorProgressionManager : MonoBehaviour
     public GameObject exitPortalPrefab;
     private GameObject currentExitPortal;
     
-    public static FloorProgressionManager Instance { get; private set; }
+    public static ProgressionManager Instance { get; private set; }
     
     // ------------------------- //
     
@@ -86,12 +86,12 @@ public class FloorProgressionManager : MonoBehaviour
         if (portalPrefab != null)
         {
             currentExitPortal = Instantiate(portalPrefab, portalPosition, Quaternion.identity);
-            currentExitPortal.name = "ExitPortal";
+            currentExitPortal.name = "ExitController";
             
             // Add portal trigger
-            if (!currentExitPortal.GetComponent<ExitPortal>())
+            if (!currentExitPortal.GetComponent<ExitController>())
             {
-                currentExitPortal.AddComponent<ExitPortal>();
+                currentExitPortal.AddComponent<ExitController>();
             }
             
             Debug.Log($"FloorProgression: Exit portal spawned at {portalPosition}");
@@ -223,66 +223,3 @@ public class FloorProgressionManager : MonoBehaviour
     }
 }
 
-// -------------------------------------------------- //
-// Scripts/Interactables/ExitPortal.cs
-// -------------------------------------------------- //
-
-/// <summary>
-/// Exit portal that triggers floor transition
-/// </summary>
-[RequireComponent(typeof(Collider))]
-public class ExitPortal : MonoBehaviour
-{
-    [Header("Visual Effects")]
-    public float rotationSpeed = 50f;
-    public GameObject visualEffect;
-    
-    private bool hasBeenUsed = false;
-    
-    void Start()
-    {
-        // Ensure trigger collider exists
-        Collider col = GetComponent<Collider>();
-        if (col != null)
-        {
-            col.isTrigger = true;
-        }
-        else
-        {
-            SphereCollider sphere = gameObject.AddComponent<SphereCollider>();
-            sphere.isTrigger = true;
-            sphere.radius = 1.5f;
-        }
-    }
-    
-    void Update()
-    {
-        // Rotate portal for visual effect
-        if (visualEffect != null)
-        {
-            visualEffect.transform.Rotate(Vector3.up, rotationSpeed * Time.deltaTime);
-        }
-        else
-        {
-            transform.Rotate(Vector3.up, rotationSpeed * Time.deltaTime);
-        }
-    }
-    
-    void OnTriggerEnter(Collider other)
-    {
-        if (other.CompareTag("Player") && !hasBeenUsed)
-        {
-            hasBeenUsed = true;
-            
-            FloorProgressionManager progressionManager = FloorProgressionManager.Instance;
-            if (progressionManager != null)
-            {
-                progressionManager.OnPlayerEnterExitPortal();
-            }
-            else
-            {
-                Debug.LogWarning("ExitPortal: FloorProgressionManager not found!");
-            }
-        }
-    }
-}

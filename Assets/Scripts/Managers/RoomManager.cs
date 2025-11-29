@@ -62,5 +62,10 @@ public class RoomManager : MonoBehaviour
         {
             combatManager.OnPlayerEnterRoom(room);
         }
+
+        if (SaveManager.Instance != null)
+        {
+            SaveManager.Instance.SaveGame();
+        }
     }
 }
