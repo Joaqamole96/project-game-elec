@@ -15,10 +15,12 @@ public class WeaponManager : MonoBehaviour
     private float lastAttackTime = 0f;
     
     private PlayerController player;
+    private Animator animator;
     
     void Start()
     {
         player = GetComponent<PlayerController>();
+        animator = GetComponent<Animator>();
         
         // Create weapon holder if doesn't exist
         if (weaponHolder == null)
@@ -121,7 +123,8 @@ public class WeaponManager : MonoBehaviour
         }
         
         // Visual effect
-        SpawnMeleeEffect(attackCenter);
+        // SpawnMeleeEffect(attackCenter);
+        animator.SetTrigger("Swing");
     }
     
     private void PerformRangedAttack(Vector3 position, Vector3 direction)
