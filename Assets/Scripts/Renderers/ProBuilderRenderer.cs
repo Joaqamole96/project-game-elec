@@ -297,7 +297,7 @@ public class ProBuilderRoomRenderer
                 // Calculate base length
                 int baseLength = segment.end - segment.start;
                 
-                // Apply doorway adjacency corrections
+                // Apply scaling and positioning corrections
                 int adjustedLength = baseLength;
                 Vector3 position = CalculateWallPosition(segment, isVertical, isPositiveSide, ref adjustedLength);
                 Quaternion rotation = GetWallRotation(isVertical, isPositiveSide);
@@ -311,10 +311,12 @@ public class ProBuilderRoomRenderer
                 GameObject wall = Object.Instantiate(_wallPrefab, position, rotation, parent);
                 wall.name = $"{sideName}_Wall_{segmentIndex++}";
                 
-                // FIXED: ALL walls stretch along X-scale only, Y and Z remain 1
+                // ALL walls stretch along X-scale only, Y and Z remain 1
                 wall.transform.localScale = new Vector3(adjustedLength, 1, 1);
                 
                 ApplyMaterialToObject(wall, material);
+                
+                Debug.Log($"ProBuilderRoomRenderer: {sideName} wall segment {segmentIndex-1} at {position} with scale {adjustedLength}x1x1");
             }
             
             Debug.Log($"ProBuilderRoomRenderer: {sideName} wall rendered with {segments.Count} segments");
@@ -432,7 +434,7 @@ public class ProBuilderRoomRenderer
     /// Calculates wall segments by splitting around doorway positions
     /// </summary>
     private List<WallSegment> CalculateWallSegments(int fixedCoord, int start, int end, 
-                                                     bool isVertical, HashSet<Vector2Int> doorways, bool isPositiveSide)
+                                                    bool isVertical, HashSet<Vector2Int> doorways, bool isPositiveSide)
     {
         try
         {
@@ -445,13 +447,14 @@ public class ProBuilderRoomRenderer
                 
                 if (doorways.Contains(checkPos))
                 {
-                    // Found doorway - close current segment
-                    if (i > currentStart)
+                    // Found doorway - close current segment at doorway start (not center)
+                    // FIXED: Changed from 'i' to 'i-1' to stop 1 unit before doorway center
+                    if (i - 1 > currentStart)
                     {
                         segments.Add(new WallSegment { 
                             fixedCoord = fixedCoord, 
                             start = currentStart, 
-                            end = i,
+                            end = i - 1,  // Stop before doorway
                             isPositiveSide = isPositiveSide,
                             isVertical = isVertical
                         });
@@ -459,7 +462,7 @@ public class ProBuilderRoomRenderer
                     
                     // Skip doorway (3 units wide) - ensure we don't go beyond end
                     i += 2;
-                    currentStart = i + 1;
+                    currentStart = i;  // Start after doorway
                     
                     if (i >= end) break;
                 }
@@ -487,7 +490,7 @@ public class ProBuilderRoomRenderer
     }
     
     /// <summary>
-    /// Calculates the world position for a wall segment with doorway adjacency corrections
+    /// Calculates the world position for a wall segment with scaling and positioning corrections
     /// </summary>
     private Vector3 CalculateWallPosition(WallSegment segment, bool isVertical, bool isPositiveSide, ref int adjustedLength)
     {
@@ -499,23 +502,30 @@ public class ProBuilderRoomRenderer
             if (isVertical)
             {
                 // West/East walls
-                float zPos = midpoint + 0.5f;
+                float zPos = midpoint;
                 
                 // FIXED: Z-pos of ALL West/East walls are over by 0.5 - decrease accordingly
                 zPos -= 0.5f;
                 
+                // Apply base corrections for South/West walls (negative sides)
+                if (!isPositiveSide) // West wall (-X direction)
+                {
+                    // FIXED: South and West walls x-scale is under by 1. Add scale by 1, add 0.5 to Z-pos of west walls
+                    adjustedLength += 1;
+                    zPos += 0.5f;
+                }
+                
                 // Apply doorway adjacency corrections for West/East walls
                 if (segment.isPositiveSide) // East wall (+X direction)
                 {
-                    // +Z direction: X-scale under by 1, Z-pos over by 0.5
+                    // FIXED: +X side and +Z side doorway-adjacent walls x-scale are under by 1. Add scale by 1, add 0.5 to Z-pos of west walls
                     adjustedLength += 1;
-                    zPos -= 0.5f;
+                    zPos += 0.5f;
                 }
                 else // West wall (-X direction)  
                 {
-                    // -Z direction: X-scale over by 1, Z-pos over by 0.5
-                    adjustedLength -= 1;
-                    zPos -= 0.5f;
+                    // West walls already got base correction above
+                    // No additional doorway correction needed for negative sides
                 }
                 
                 return new Vector3(segment.fixedCoord + 0.5f, 5.5f, zPos);
@@ -523,23 +533,30 @@ public class ProBuilderRoomRenderer
             else
             {
                 // North/South walls
-                float xPos = midpoint + 0.5f;
+                float xPos = midpoint;
                 
                 // FIXED: X-pos of ALL North/South walls are over by 0.5 - decrease accordingly
                 xPos -= 0.5f;
                 
+                // Apply base corrections for South/West walls (negative sides)
+                if (!isPositiveSide) // South wall (-Z direction)
+                {
+                    // FIXED: South and West walls x-scale is under by 1. Add scale by 1, add 0.5 to X-pos of south walls
+                    adjustedLength += 1;
+                    xPos += 0.5f;
+                }
+                
                 // Apply doorway adjacency corrections for North/South walls
                 if (segment.isPositiveSide) // North wall (+Z direction)
                 {
-                    // +X direction: X-scale under by 1, X-pos over by 0.5
+                    // FIXED: +X side and +Z side doorway-adjacent walls x-scale are under by 1. Add scale by 1, add 0.5 to X-pos of south walls
                     adjustedLength += 1;
-                    xPos -= 0.5f;
+                    xPos += 0.5f;
                 }
                 else // South wall (-Z direction)
                 {
-                    // -X direction: X-scale over by 1, X-pos over by 0.5
-                    adjustedLength -= 1;
-                    xPos -= 0.5f;
+                    // South walls already got base correction above
+                    // No additional doorway correction needed for negative sides
                 }
                 
                 return new Vector3(xPos, 5.5f, segment.fixedCoord + 0.5f);
@@ -561,12 +578,12 @@ public class ProBuilderRoomRenderer
         {
             if (isVertical)
             {
-                // West/East walls - FIXED: Y-rotation should be 90
+                // West/East walls - Y-rotation should be 90
                 return Quaternion.Euler(0, 90, 0);
             }
             else
             {
-                // North/South walls - FIXED: Y-rotation should be 0
+                // North/South walls - Y-rotation should be 0
                 return Quaternion.identity;
             }
         }
@@ -589,12 +606,12 @@ public class ProBuilderRoomRenderer
             
             if (isOnEastWest)
             {
-                // Door on East/West wall - FIXED: Y-rotation should be 90
+                // Door on East/West wall - Y-rotation should be 90
                 return Quaternion.Euler(0, 90, 0);
             }
             else if (isOnNorthSouth)
             {
-                // Door on North/South wall - FIXED: Y-rotation should be 0
+                // Door on North/South wall - Y-rotation should be 0
                 return Quaternion.identity;
             }
             
