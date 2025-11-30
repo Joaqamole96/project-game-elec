@@ -21,7 +21,7 @@ public class RangedEnemyController : EnemyController
         moveSpeed = 2f;
         attackRange = 8f;
         detectionRange = 12f;
-        attackCooldown = 2f;
+        attackCooldown = 2.5f;
         
         agent.stoppingDistance = minDistance;
     }

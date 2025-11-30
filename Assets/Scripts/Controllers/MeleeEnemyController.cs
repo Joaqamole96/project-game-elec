@@ -16,7 +16,7 @@ public class MeleeEnemyController : EnemyController
         damage = 10;
         moveSpeed = 2.5f;
         attackRange = 1.5f;
-        detectionRange = 10f;
+        detectionRange = 8f;
         attackCooldown = 1.5f;
     }
     

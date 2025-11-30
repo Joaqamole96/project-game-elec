@@ -33,7 +33,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0.0000037877012}
+  m_AnchoredPosition: {x: 0, y: 0.000064375396}
   m_SizeDelta: {x: 0, y: 300}
   m_Pivot: {x: 0, y: 1}
 --- !u!1 &888819148119630637
@@ -683,7 +683,7 @@ MonoBehaviour:
   m_HandleRect: {fileID: 3037407856221796393}
   m_Direction: 2
   m_Value: 0
-  m_Size: 0.99993837
+  m_Size: 1
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -761,6 +761,7 @@ GameObject:
   - component: {fileID: 4248445944590269189}
   - component: {fileID: 3816186242177664772}
   - component: {fileID: 522544257414019205}
+  - component: {fileID: 2426366698008834020}
   m_Layer: 5
   m_Name: modal_Shop
   m_TagString: Untagged
@@ -839,6 +840,28 @@ CanvasGroup:
   m_Interactable: 1
   m_BlocksRaycasts: 1
   m_IgnoreParentGroups: 0
+--- !u!114 &2426366698008834020
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5560025185848303334}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2dde7d21ceba3144996faf342c695378, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  shopPanel: {fileID: 5833239541850172104}
+  itemsContainer: {fileID: 7190036346161430038}
+  itemCardPrefab: {fileID: 5920558334244132195, guid: 6b346151d232cd04980ec7ea90e68273,
+    type: 3}
+  playerGoldText: {fileID: 9038874714609661713}
+  closeButton: {fileID: 1891321991762735195}
+  purchasePopup: {fileID: 0}
+  popupText: {fileID: 0}
+  confirmButton: {fileID: 0}
+  cancelButton: {fileID: 0}
 --- !u!1 &5833239541850172104
 GameObject:
   m_ObjectHideFlags: 0

@@ -153,14 +153,23 @@ public static class ResourceService
     public static GameObject LoadEnemy(string biome, string enemyName)
         => LoadWithFallback(CATEGORY_ENEMIES, biome, enemyName);
     
-    public static GameObject LoadBasicEnemyPrefab(string biome)
-        => LoadWithFallback(CATEGORY_ENEMIES, biome, "BasicEnemyPrefab");
+    // public static GameObject LoadBasicEnemyPrefab(string biome)
+    //     => LoadWithFallback(CATEGORY_ENEMIES, biome, "BasicEnemyPrefab");
     
-    public static GameObject LoadEliteEnemyPrefab(string biome)
-        => LoadWithFallback(CATEGORY_ENEMIES, biome, "EliteEnemyPrefab");
+    // public static GameObject LoadEliteEnemyPrefab(string biome)
+    //     => LoadWithFallback(CATEGORY_ENEMIES, biome, "EliteEnemyPrefab");
     
     public static GameObject LoadBossEnemyPrefab(string biome)
-        => LoadWithFallback(CATEGORY_ENEMIES, biome, "BossPrefab");
+        => LoadWithFallback(CATEGORY_ENEMIES, biome, "pf_Boss");
+    
+    public static GameObject LoadMeleeEnemyPrefab(string biome)
+        => LoadWithFallback(CATEGORY_ENEMIES, biome, "pf_MeleeEnemy");
+    
+    public static GameObject LoadRangedEnemyPrefab(string biome)
+        => LoadWithFallback(CATEGORY_ENEMIES, biome, "pf_RangedEnemy");
+    
+    public static GameObject LoadTankEnemyPrefab(string biome)
+        => LoadWithFallback(CATEGORY_ENEMIES, biome, "pf_TankEnemy");
     
     // ------------------------- //
     // LANDMARK PREFABS (Biome-Independent)
@@ -177,10 +186,10 @@ public static class ResourceService
         {
             string prefabName = roomType switch
             {
-                RoomType.Entrance => "EntrancePrefab",
-                RoomType.Exit => "ExitPrefab",
-                RoomType.Shop => "ShopPrefab",
-                RoomType.Treasure => "TreasurePrefab",
+                RoomType.Entrance => "pf_Entrance",
+                RoomType.Exit => "pf_Exit",
+                RoomType.Shop => "pf_Shop",
+                RoomType.Treasure => "pf_Treasure",
                 RoomType.Boss => "BossPrefab",
                 _ => null
             };
@@ -197,19 +206,19 @@ public static class ResourceService
     
     // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
     public static GameObject LoadEntrancePrefab()
-        => LoadCategoryPrefab(CATEGORY_LANDMARKS, "EntrancePrefab");
+        => LoadCategoryPrefab(CATEGORY_LANDMARKS, "pf_Entrance");
     
     // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
     public static GameObject LoadExitPrefab()
-        => LoadCategoryPrefab(CATEGORY_LANDMARKS, "ExitPrefab");
+        => LoadCategoryPrefab(CATEGORY_LANDMARKS, "pf_Exit");
     
     // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
     public static GameObject LoadShopPrefab()
-        => LoadCategoryPrefab(CATEGORY_LANDMARKS, "ShopPrefab");
+        => LoadCategoryPrefab(CATEGORY_LANDMARKS, "pf_Shop");
     
     // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
     public static GameObject LoadTreasurePrefab()
-        => LoadCategoryPrefab(CATEGORY_LANDMARKS, "TreasurePrefab");
+        => LoadCategoryPrefab(CATEGORY_LANDMARKS, "pf_Treasure");
     
     // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
     public static GameObject LoadBossPrefab()
@@ -345,8 +354,11 @@ public static class ResourceService
             LoadBarrelPrefab(biome);
             LoadCratePrefab(biome);
             // Enemy prefabs
-            LoadBasicEnemyPrefab(biome);
-            LoadEliteEnemyPrefab(biome);
+            // LoadBasicEnemyPrefab(biome);
+            // LoadEliteEnemyPrefab(biome);
+            LoadMeleeEnemyPrefab(biome);
+            LoadRangedEnemyPrefab(biome);
+            LoadTankEnemyPrefab(biome);
             LoadBossEnemyPrefab(biome);
             Debug.Log($"ResourceService: Biome '{biome}' preloaded successfully");
         }
@@ -355,65 +367,6 @@ public static class ResourceService
             Debug.LogError($"ResourceService: Error preloading biome '{biome}': {ex.Message}");
         }
     }
-    
-    /// <summary>
-    /// Preloads all common (biome-independent) prefabs to populate cache
-    /// </summary>
-    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
-    /*
-    public static void PreloadCommonPrefabs()
-    {
-        try
-        {
-            Debug.Log("ResourceService: Preloading common prefabs...");
-            // Landmark prefabs
-            LoadEntrancePrefab();
-            LoadExitPrefab();
-            LoadShopPrefab();
-            LoadTreasurePrefab();
-            LoadBossPrefab();
-            // Player prefabs
-            LoadPlayerPrefab();
-            LoadCameraPrefab();
-            // Item prefabs
-            LoadHealthPotionPrefab();
-            LoadCoinPrefab();
-            LoadChestPrefab();
-            // Weapon prefabs
-            LoadSwordPrefab();
-            LoadBowPrefab();
-            Debug.Log("ResourceService: Common prefabs preloaded successfully");
-        }
-        catch (System.Exception ex)
-        {
-            Debug.LogError($"ResourceService: Error preloading common prefabs: {ex.Message}");
-        }
-    }
-    */
-    
-    // ------------------------- //
-    // CACHE MANAGEMENT METHODS
-    // ------------------------- //
-    
-    /// <summary>
-    /// Clears the entire prefab cache
-    /// </summary>
-    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
-    /*
-    public static void ClearCache()
-    {
-        try
-        {
-            int cacheSize = _prefabCache.Count;
-            _prefabCache.Clear();
-            Debug.Log($"ResourceService: Cache cleared ({cacheSize} prefabs removed)");
-        }
-        catch (System.Exception ex)
-        {
-            Debug.LogError($"ResourceService: Error clearing cache: {ex.Message}");
-        }
-    }
-    */
     
     /// <summary>
     /// Clears cached prefabs for a specific biome
@@ -433,125 +386,4 @@ public static class ResourceService
             Debug.LogError($"ResourceService: Error clearing biome cache for '{biome}': {ex.Message}");
         }
     }
-    
-    // ------------------------- //
-    // UTILITY METHODS
-    // ------------------------- //
-    
-    /// <summary>
-    /// Checks if a biome-specific prefab exists without loading it
-    /// </summary>
-    /// <param name="category">Resource category</param>
-    /// <param name="biome">Biome name</param>
-    /// <param name="prefabName">Prefab name to check</param>
-    /// <returns>True if the prefab exists</returns>
-    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
-    // public static bool PrefabExists(string category, string biome, string prefabName)
-    // {
-    //     try
-    //     {
-    //         string path = $"{category}/{biome}/{prefabName}";
-    //         GameObject prefab = Resources.Load<GameObject>(path);
-    //         return prefab != null;
-    //     }
-    //     catch (System.Exception ex)
-    //     {
-    //         Debug.LogError($"ResourceService: Error checking prefab existence {category}/{biome}/{prefabName}: {ex.Message}");
-    //         return false;
-    //     }
-    // }
-    
-    /// <summary>
-    /// Checks if a category prefab exists without loading it
-    /// </summary>
-    /// <param name="category">Resource category</param>
-    /// <param name="prefabName">Prefab name to check</param>
-    /// <returns>True if the prefab exists</returns>
-    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
-    /*
-    public static bool PrefabExists(string category, string prefabName)
-    {
-        try
-        {
-            string path = $"{category}/{prefabName}";
-            GameObject prefab = Resources.Load<GameObject>(path);
-            return prefab != null;
-        }
-        catch (System.Exception ex)
-        {
-            Debug.LogError($"ResourceService: Error checking prefab existence {category}/{prefabName}: {ex.Message}");
-            return false;
-        }
-    }
-    */
-    
-    /// <summary>
-    /// Logs all currently cached prefabs for debugging
-    /// </summary>
-    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
-    /*
-    public static void LogLoadedPrefabs()
-    {
-        try
-        {
-            Debug.Log("=== ResourceService Cache ===");
-            foreach (var kvp in _prefabCache)
-            {
-                Debug.Log($"  {kvp.Key} → {kvp.Value.name}");
-            }
-            Debug.Log($"Total: {_prefabCache.Count} prefabs cached");
-            Debug.Log("===========================");
-        }
-        catch (System.Exception ex)
-        {
-            Debug.LogError($"ResourceService: Error logging loaded prefabs: {ex.Message}");
-        }
-    }
-    */
-    
-    /// <summary>
-    /// Gets the current cache size
-    /// </summary>
-    /// <returns>Number of cached prefabs</returns>
-    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
-    // public static int GetCacheSize() => _prefabCache.Count;
-    
-    /// <summary>
-    /// Gets list of available biomes by checking directory existence
-    /// </summary>
-    /// <returns>List of available biome names</returns>
-    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
-    /*
-    public static List<string> GetAvailableBiomes()
-    {
-        try
-        {
-            List<string> biomes = new()
-            {
-                BIOME_DEFAULT,
-                BIOME_GRASSLANDS,
-                BIOME_DUNGEON,
-                BIOME_CAVES
-            };
-            
-            // Filter to only existing biomes
-            List<string> existingBiomes = new();
-            foreach (string biome in biomes)
-            {
-                if (PrefabExists(CATEGORY_LAYOUT, biome, "FloorPrefab"))
-                {
-                    existingBiomes.Add(biome);
-                }
-            }
-            
-            Debug.Log($"ResourceService: Found {existingBiomes.Count} available biomes");
-            return existingBiomes;
-        }
-        catch (System.Exception ex)
-        {
-            Debug.LogError($"ResourceService: Error getting available biomes: {ex.Message}");
-            return new List<string> { BIOME_DEFAULT };
-        }
-    }
-    */
 }

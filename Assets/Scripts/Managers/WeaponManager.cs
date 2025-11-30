@@ -124,7 +124,7 @@ public class WeaponManager : MonoBehaviour
         
         // Visual effect
         // SpawnMeleeEffect(attackCenter);
-        animator.SetTrigger("Swing");
+        // currentWeaponInstance.animator.SetTrigger("Swing");
     }
     
     private void PerformRangedAttack(Vector3 position, Vector3 direction)

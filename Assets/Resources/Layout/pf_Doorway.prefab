@@ -14,7 +14,6 @@ GameObject:
   - component: {fileID: 5599649104103769893}
   - component: {fileID: 8271497628730725558}
   - component: {fileID: 4084845601311640064}
-  - component: {fileID: 8391426844504125414}
   m_Layer: 0
   m_Name: Door
   m_TagString: Untagged
@@ -35,7 +34,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 2682013072642279064}
-  m_RootOrder: 1
+  m_RootOrder: 2
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &4270580241963729241
 MonoBehaviour:
@@ -249,7 +248,7 @@ MonoBehaviour:
   m_PreserveMeshAssetOnDestroy: 0
   assetGuid: 
   m_Mesh: {fileID: 0}
-  m_VersionIndex: 1693
+  m_VersionIndex: 1704
   m_IsSelectable: 1
   m_SelectedFaces: 
   m_SelectedEdges: []
@@ -272,7 +271,7 @@ MonoBehaviour:
   m_Rotation: {x: 0, y: 0, z: 0, w: 1}
   m_PivotLocation: 0
   m_PivotPosition: {x: 0, y: 0, z: 0}
-  m_UnmodifiedMeshVersion: 1690
+  m_UnmodifiedMeshVersion: 1704
   m_ShapeBox:
     m_Center: {x: 0, y: 0, z: 0}
     m_Extent: {x: 0.75, y: 1.25, z: 0.125}
@@ -346,26 +345,6 @@ MeshCollider:
   m_Convex: 0
   m_CookingOptions: 30
   m_Mesh: {fileID: 0}
---- !u!114 &8391426844504125414
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 267797617971216529}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fbecad036615347449d845446cb10106, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  isLocked: 0
-  isOpen: 0
-  requiredKey: 0
-  doorModel: {fileID: 267797617971216529}
-  blockingCollider: {fileID: 4084845601311640064}
-  triggerCollider: {fileID: 4084845601311640064}
-  lockedColor: {r: 1, g: 0, b: 0, a: 1}
-  unlockedColor: {r: 0, g: 1, b: 0, a: 1}
 --- !u!1 &2292219506315710861
 GameObject:
   m_ObjectHideFlags: 0
@@ -394,9 +373,9 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
+  - {fileID: 7102426952680580043}
   - {fileID: 2541950738998069886}
   - {fileID: 6168862460218094677}
-  - {fileID: 7102426952680580043}
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -409,6 +388,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2541950738998069886}
+  - component: {fileID: 5258140507470855713}
+  - component: {fileID: 9139736883590767799}
+  - component: {fileID: 596130930531255483}
   m_Layer: 0
   m_Name: DoorFrame
   m_TagString: Untagged
@@ -431,8 +413,54 @@ Transform:
   - {fileID: 5159376098361282364}
   - {fileID: 1273480542310695727}
   m_Father: {fileID: 2682013072642279064}
-  m_RootOrder: 0
+  m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &5258140507470855713
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2643167346196779617}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 0
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Size: {x: 3, y: 11, z: 0.75}
+  m_Center: {x: 0, y: 5.5, z: 0}
+--- !u!65 &9139736883590767799
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2643167346196779617}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 1
+  m_Enabled: 1
+  serializedVersion: 2
+  m_Size: {x: 3, y: 11, z: 2}
+  m_Center: {x: 0, y: 5.5, z: 0}
+--- !u!114 &596130930531255483
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2643167346196779617}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fbecad036615347449d845446cb10106, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  isLocked: 0
+  isOpen: 0
+  requiredKey: 0
+  doorModel: {fileID: 267797617971216529}
+  blockingCollider: {fileID: 5258140507470855713}
+  triggerCollider: {fileID: 9139736883590767799}
+  lockedColor: {r: 1, g: 0, b: 0, a: 1}
+  unlockedColor: {r: 0, g: 1, b: 0, a: 1}
 --- !u!1 &6858010177910215431
 GameObject:
   m_ObjectHideFlags: 0
@@ -1033,7 +1061,7 @@ Transform:
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 2682013072642279064}
-  m_RootOrder: 2
+  m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &7471300470352758291
 MonoBehaviour:

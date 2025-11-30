@@ -361,12 +361,20 @@ public class EntityManager : MonoBehaviour
         List<GameObject> prefabs = new();
         
         // Try to load 3 enemy types per biome
-        GameObject basic = ResourceService.LoadBasicEnemyPrefab(biome);
-        GameObject elite = ResourceService.LoadEliteEnemyPrefab(biome);
+        // GameObject basic = ResourceService.LoadBasicEnemyPrefab(biome);
+        // GameObject elite = ResourceService.LoadEliteEnemyPrefab(biome);
         GameObject boss = ResourceService.LoadBossEnemyPrefab(biome);
         
-        if (basic != null) prefabs.Add(basic);
-        if (elite != null) prefabs.Add(elite);
+        GameObject melee = ResourceService.LoadMeleeEnemyPrefab(biome);
+        GameObject ranged = ResourceService.LoadRangedEnemyPrefab(biome);
+        GameObject tank = ResourceService.LoadTankEnemyPrefab(biome);
+        
+        // if (basic != null) prefabs.Add(basic);
+        // if (elite != null) prefabs.Add(elite);
+
+        if (melee != null) prefabs.Add(melee);
+        if (ranged != null) prefabs.Add(ranged);
+        if (tank != null) prefabs.Add(tank);
         
         // Don't add boss to regular combat rooms
         

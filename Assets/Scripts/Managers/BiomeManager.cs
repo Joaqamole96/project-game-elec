@@ -25,10 +25,10 @@ public class BiomeManager : MonoBehaviour
     // Biome configuration - Define which biomes are available at which floors
     public List<BiomeData> availableBiomes = new()
     {
-        new BiomeData(ResourceService.BIOME_DEFAULT, 1, 100),
-        new BiomeData(ResourceService.BIOME_GRASSLANDS, 5, 20),
-        new BiomeData(ResourceService.BIOME_DUNGEON, 15, 40),
-        new BiomeData(ResourceService.BIOME_CAVES, 30, 100)
+        // new BiomeData(ResourceService.BIOME_DEFAULT, 1, 100),
+        new BiomeData(ResourceService.BIOME_GRASSLANDS, 1, 5),
+        new BiomeData(ResourceService.BIOME_DUNGEON, 6, 10),
+        new BiomeData(ResourceService.BIOME_CAVES, 11, 15),
     };
     
     private System.Random _random;
@@ -110,14 +110,23 @@ public class BiomeManager : MonoBehaviour
     public GameObject GetEnemy(string enemyName, string biome = null)
         => ResourceService.LoadEnemy(biome ?? _currentBiome, enemyName);
     
-    public GameObject GetBasicEnemyPrefab(string biome = null)
-        => ResourceService.LoadBasicEnemyPrefab(biome ?? _currentBiome);
+    // public GameObject GetBasicEnemyPrefab(string biome = null)
+    //     => ResourceService.LoadBasicEnemyPrefab(biome ?? _currentBiome);
     
-    public GameObject GetEliteEnemyPrefab(string biome = null)
-        => ResourceService.LoadEliteEnemyPrefab(biome ?? _currentBiome);
+    // public GameObject GetEliteEnemyPrefab(string biome = null)
+    //     => ResourceService.LoadEliteEnemyPrefab(biome ?? _currentBiome);
     
     public GameObject GetBossEnemyPrefab(string biome = null)
         => ResourceService.LoadBossEnemyPrefab(biome ?? _currentBiome);
+    
+    public GameObject GetMeleeEnemyPrefab(string biome = null)
+        => ResourceService.LoadMeleeEnemyPrefab(biome ?? _currentBiome);
+    
+    public GameObject GetRangedEnemyPrefab(string biome = null)
+        => ResourceService.LoadRangedEnemyPrefab(biome ?? _currentBiome);
+    
+    public GameObject GetTankEnemyPrefab(string biome = null)
+        => ResourceService.LoadTankEnemyPrefab(biome ?? _currentBiome);
     
     // ------------------------- //
     // LANDMARK PREFABS (Biome-independent)

@@ -1,11 +1,16 @@
-// DamageDisplay.cs
+// -------------------------------------------------- //
+// Scripts/Displays/DamageDisplay.cs (FIXED)
+// -------------------------------------------------- //
+
 using UnityEngine;
 using TMPro;
-using System.Collections;
 
 public class DamageDisplay : MonoBehaviour
 {
-    public TextMeshProUGUI text;
+    [Header("References")]
+    public TextMeshProUGUI textComponent;
+    
+    [Header("Settings")]
     public float floatSpeed = 2f;
     public float lifetime = 1f;
     public float fadeSpeed = 1f;
@@ -13,58 +18,118 @@ public class DamageDisplay : MonoBehaviour
     private Vector3 floatDirection = Vector3.up;
     private float spawnTime;
     private Color originalColor;
+    private Camera mainCamera;
+    
+    void Start()
+    {
+        mainCamera = Camera.main;
+        
+        // Auto-find text component if not assigned
+        if (textComponent == null)
+        {
+            textComponent = GetComponentInChildren<TextMeshProUGUI>();
+        }
+        
+        if (textComponent == null)
+        {
+            Debug.LogError("DamageDisplay: No TextMeshProUGUI component found!");
+            Destroy(gameObject);
+            return;
+        }
+        
+        originalColor = textComponent.color;
+        spawnTime = Time.time;
+        
+        // Random horizontal offset
+        floatDirection += new Vector3(
+            Random.Range(-0.5f, 0.5f), 
+            0, 
+            Random.Range(-0.5f, 0.5f)
+        );
+    }
     
     public void Initialize(int damage, bool isCritical = false, bool isHeal = false)
     {
-        if (text != null)
+        // Ensure we have text component
+        if (textComponent == null)
         {
-            text.text = damage.ToString();
+            textComponent = GetComponentInChildren<TextMeshProUGUI>();
+        }
+        
+        if (textComponent != null)
+        {
+            textComponent.text = damage.ToString();
             
             if (isCritical)
             {
-                text.color = Color.yellow;
-                text.fontSize = 64;
-                text.text += "!";
+                textComponent.color = Color.yellow;
+                textComponent.fontSize = 48;
+                textComponent.text += "!";
             }
             else if (isHeal)
             {
-                text.color = Color.green;
-                text.text = "+" + text.text;
+                textComponent.color = Color.green;
+                textComponent.text = "+" + textComponent.text;
             }
             else
             {
-                text.color = Color.white;
+                textComponent.color = Color.white;
             }
             
-            originalColor = text.color;
+            originalColor = textComponent.color;
         }
         
         spawnTime = Time.time;
         
         // Random horizontal offset
-        floatDirection += new Vector3(Random.Range(-0.5f, 0.5f), 0, 0);
+        floatDirection = Vector3.up + new Vector3(
+            Random.Range(-0.5f, 0.5f), 
+            0, 
+            0
+        );
     }
     
     void Update()
     {
+        if (textComponent == null)
+        {
+            Destroy(gameObject);
+            return;
+        }
+        
         // Float upward
         transform.position += floatDirection * floatSpeed * Time.deltaTime;
         
-        // Fade out
+        // Calculate age
         float age = Time.time - spawnTime;
+        
+        // Fade out
         if (age > lifetime - fadeSpeed)
         {
             float alpha = 1f - ((age - (lifetime - fadeSpeed)) / fadeSpeed);
-            text.color = new Color(originalColor.r, originalColor.g, originalColor.b, alpha);
+            alpha = Mathf.Clamp01(alpha);
+            textComponent.color = new Color(
+                originalColor.r, 
+                originalColor.g, 
+                originalColor.b, 
+                alpha
+            );
         }
         
         // Destroy after lifetime
         if (age > lifetime)
         {
             Destroy(gameObject);
+            return;
         }
         
-        // Face camera
-        transform.LookAt(transform.position + Camera.main.transform.rotation * Vector3.forward);
+        // Face camera (billboard effect)
+        if (mainCamera != null)
+        {
+            transform.LookAt(
+                transform.position + mainCamera.transform.rotation * Vector3.forward,
+                mainCamera.transform.rotation * Vector3.up
+            );
+        }
     }
 }

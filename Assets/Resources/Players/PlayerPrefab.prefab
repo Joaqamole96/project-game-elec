@@ -1,5 +1,36 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
+--- !u!1 &3002506694988521594
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2321361997400737045}
+  m_Layer: 10
+  m_Name: WeaponHolder
+  m_TagString: Untagged
+  m_Icon: {fileID: 7866945982896999795, guid: 0000000000000000d000000000000000, type: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2321361997400737045
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3002506694988521594}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0.8, y: 0, z: 0.4}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 3372277551282276795}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &8371862738579787169
 GameObject:
   m_ObjectHideFlags: 0
@@ -14,6 +45,9 @@ GameObject:
   - component: {fileID: 5131582967059355018}
   - component: {fileID: 1512576732869639871}
   - component: {fileID: 3829044155242255540}
+  - component: {fileID: 3980727020194725280}
+  - component: {fileID: 4103342334686262045}
+  - component: {fileID: 992721696908794623}
   m_Layer: 10
   m_Name: PlayerPrefab
   m_TagString: Player
@@ -32,7 +66,8 @@ Transform:
   m_LocalPosition: {x: 0, y: 0.5, z: 0}
   m_LocalScale: {x: 0.5, y: 0.5, z: 0.5}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 2321361997400737045}
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -142,3 +177,58 @@ MonoBehaviour:
   weaponManager: {fileID: 0}
   powerManager: {fileID: 0}
   inventory: {fileID: 0}
+--- !u!114 &3980727020194725280
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8371862738579787169}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 61a701c57065ec0479e684a5337d1c7d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  currentWeaponData:
+    weaponName: 
+    weaponType: 0
+    description: 
+    damage: 0
+    attackSpeed: 0
+    range: 0
+    projectileSpeed: 0
+    manaCost: 0
+    prefab: {fileID: 0}
+  currentWeaponInstance: {fileID: 0}
+  weaponHolder: {fileID: 2321361997400737045}
+--- !u!114 &4103342334686262045
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8371862738579787169}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a5a04497fb8fb49488c6e4e830b38dfd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  activePowers: []
+  maxPowers: 10
+  dashCooldown: 2
+--- !u!114 &992721696908794623
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8371862738579787169}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 029c29a2296dacf4080808a2867244e4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  gold: 0
+  keys: 
+  items: []
+  maxInventorySize: 20

@@ -1,5 +1,5 @@
 // -------------------------------------------------- //
-// Scripts/Controllers/DoorController.cs (ENHANCED)
+// Scripts/Controllers/DoorController.cs (FIXED)
 // -------------------------------------------------- //
 
 using UnityEngine;
@@ -7,12 +7,15 @@ using UnityEngine;
 [RequireComponent(typeof(Collider))]
 public class DoorController : MonoBehaviour
 {
+    [Header("Door State")]
     public bool isLocked = false;
     public bool isOpen = false;
     public KeyType requiredKey = KeyType.None;
-    public GameObject doorModel;
-    public Collider blockingCollider;
-    public Collider triggerCollider;
+    
+    [Header("References")]
+    public GameObject doorModel; // The actual door mesh
+    public Collider blockingCollider; // Solid collider that blocks movement
+    public Collider triggerCollider; // Trigger for player detection
     
     [Header("Visual Feedback")]
     public Color lockedColor = Color.red;
@@ -22,9 +25,21 @@ public class DoorController : MonoBehaviour
     
     void Start()
     {
-        if (blockingCollider == null) blockingCollider = GetComponent<Collider>();
-            
-        if (doorModel == null && transform.childCount > 0) doorModel = transform.GetChild(0).gameObject;
+        SetupComponents();
+        UpdateVisuals();
+    }
+    
+    private void SetupComponents()
+    {
+        // Find door model (child named "Door")
+        if (doorModel == null)
+        {
+            Transform doorTransform = transform.Find("Door");
+            if (doorTransform != null)
+            {
+                doorModel = doorTransform.gameObject;
+            }
+        }
         
         // Get renderer for visual feedback
         if (doorModel != null)
@@ -35,85 +50,81 @@ public class DoorController : MonoBehaviour
                 originalColor = doorRenderer.material.color;
             }
         }
-            
-        SetupTriggerCollider();
-        UpdateVisuals();
-    }
-    
-    private void SetupTriggerCollider()
-    {
-        Collider[] colliders = GetComponents<Collider>();
-
+        
+        // Setup colliders
+        Collider[] colliders = GetComponentsInChildren<Collider>();
+        
         foreach (Collider col in colliders)
+        {
             if (col.isTrigger)
             {
                 triggerCollider = col;
-                return;
             }
+            else
+            {
+                blockingCollider = col;
+            }
+        }
         
-        BoxCollider trigger = gameObject.AddComponent<BoxCollider>();
-        trigger.isTrigger = true;
-        trigger.size = new Vector3(1.5f, 2f, 1.5f);
-        trigger.center = Vector3.zero;
-        triggerCollider = trigger;
+        // If no trigger found, add one
+        if (triggerCollider == null)
+        {
+            BoxCollider trigger = gameObject.AddComponent<BoxCollider>();
+            trigger.isTrigger = true;
+            trigger.size = new Vector3(2f, 2f, 2f);
+            trigger.center = Vector3.zero;
+            triggerCollider = trigger;
+        }
     }
     
     void OnTriggerEnter(Collider other)
     {
-        if (other.CompareTag("Player")) TryOpenDoor();
-    }
-    
-    public void TryOpenDoor()
-    {
-        if (isLocked)
+        if (other.CompareTag("Player") && !isLocked && !isOpen)
         {
-            Debug.Log("Door is locked!");
-            // TODO: Play locked sound
-            return;
+            OpenDoor();
         }
-        
-        if (requiredKey != KeyType.None && !PlayerHasRequiredKey())
-        {
-            Debug.Log($"Door requires {requiredKey}!");
-            // TODO: Play locked sound
-            return;
-        }
-        
-        OpenDoor();
-    }
-    
-    private bool PlayerHasRequiredKey()
-    {
-        // TODO: Check player inventory
-        return false;
     }
     
     private void OpenDoor()
     {
-        if (!isOpen)
+        if (isOpen) return;
+        
+        isOpen = true;
+        
+        // Disable blocking collider
+        if (blockingCollider != null)
         {
-            isOpen = true;
-            
-            if (blockingCollider != null) blockingCollider.enabled = false;
-                
-            if (doorModel != null) doorModel.SetActive(false);
-            
-            Debug.Log("Door opened");
+            blockingCollider.enabled = false;
         }
+        
+        // Hide door model
+        if (doorModel != null)
+        {
+            doorModel.SetActive(false);
+        }
+        
+        Debug.Log("Door opened");
     }
     
     public void CloseDoor()
     {
-        if (isOpen)
+        if (!isOpen) return;
+        
+        isOpen = false;
+        
+        // Enable blocking collider
+        if (blockingCollider != null)
         {
-            isOpen = false;
-            
-            if (blockingCollider != null) blockingCollider.enabled = true;
-                
-            if (doorModel != null) doorModel.SetActive(true);
-            
-            Debug.Log("Door closed");
+            blockingCollider.enabled = true;
         }
+        
+        // Show door model
+        if (doorModel != null)
+        {
+            doorModel.SetActive(true);
+        }
+        
+        Debug.Log("Door closed");
     }
     
     public void LockDoor()
@@ -135,8 +146,7 @@ public class DoorController : MonoBehaviour
     {
         if (doorRenderer != null)
         {
-            if (isLocked) doorRenderer.material.color = lockedColor;
-            else doorRenderer.material.color = originalColor;
+            doorRenderer.material.color = isLocked ? lockedColor : originalColor;
         }
     }
 }
