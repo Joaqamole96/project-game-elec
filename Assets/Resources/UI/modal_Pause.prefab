@@ -89,7 +89,7 @@ GameObject:
   - component: {fileID: 7381450870323051283}
   - component: {fileID: 3307673231493990799}
   m_Layer: 5
-  m_Name: Exit
+  m_Name: ExitButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -423,7 +423,7 @@ GameObject:
   - component: {fileID: 8665973955301413987}
   - component: {fileID: 1004513599536962838}
   m_Layer: 5
-  m_Name: Resume
+  m_Name: ResumeButtom
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1089,7 +1089,7 @@ GameObject:
   - component: {fileID: 7320700798438058292}
   - component: {fileID: 6954480571980112792}
   m_Layer: 5
-  m_Name: Settings
+  m_Name: SettingsButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

@@ -265,14 +265,10 @@ public class UIManager : MonoBehaviour
     {
         Button resumeBtn = FindComponentInChildren<Button>(pauseModal, "ResumeButton");
         Button settingsBtn = FindComponentInChildren<Button>(pauseModal, "SettingsButton");
-        Button saveBtn = FindComponentInChildren<Button>(pauseModal, "SaveButton");
-        Button mainMenuBtn = FindComponentInChildren<Button>(pauseModal, "MainMenuButton");
-        Button quitBtn = FindComponentInChildren<Button>(pauseModal, "QuitButton");
+        Button quitBtn = FindComponentInChildren<Button>(pauseModal, "ExitButton");
         
         if (resumeBtn != null) resumeBtn.onClick.AddListener(TogglePauseMenu);
         if (settingsBtn != null) settingsBtn.onClick.AddListener(ShowSettingsModal);
-        if (saveBtn != null) saveBtn.onClick.AddListener(SaveGame);
-        if (mainMenuBtn != null) mainMenuBtn.onClick.AddListener(ReturnToMainMenu);
         if (quitBtn != null) quitBtn.onClick.AddListener(QuitGame);
     }
     
