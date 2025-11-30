@@ -321,26 +321,24 @@ public class EnemyController : MonoBehaviour
 
     protected IEnumerator WaitForNavMesh()
     {
-        // Wait until we're on NavMesh
-        int attempts = 0;
-        while (!agent.isOnNavMesh && attempts < 10)
-        {
-            yield return new WaitForSeconds(0.5f);
-            attempts++;
-            
-            // Try to warp to nearest NavMesh position
-            if (UnityEngine.AI.NavMesh.SamplePosition(transform.position, out UnityEngine.AI.NavMeshHit hit, 10f, UnityEngine.AI.NavMesh.AllAreas))
-            {
-                agent.Warp(hit.position);
-                break;
-            }
-        }
-        
+        // Agent should already be on NavMesh since we validated spawn position
         if (!agent.isOnNavMesh)
         {
-            Debug.LogError($"Enemy {gameObject.name} could not be placed on NavMesh after {attempts} attempts!");
-            enabled = false; // Disable the enemy controller
-            yield break;
+            Debug.LogWarning($"Enemy {gameObject.name} not on NavMesh despite validation!");
+            
+            // Try once to fix position
+            if (UnityEngine.AI.NavMesh.SamplePosition(transform.position, out UnityEngine.AI.NavMeshHit hit, 5f, UnityEngine.AI.NavMesh.AllAreas))
+            {
+                transform.position = hit.position;
+                yield return null; // Wait one frame
+            }
+            
+            if (!agent.isOnNavMesh)
+            {
+                Debug.LogError($"Enemy {gameObject.name} cannot be placed on NavMesh - destroying");
+                Destroy(gameObject);
+                yield break;
+            }
         }
         
         // Setup agent properties
@@ -349,6 +347,8 @@ public class EnemyController : MonoBehaviour
         
         SetRandomPatrolPoint();
         SetState(EnemyState.Patrolling);
+        
+        Debug.Log($"Enemy {gameObject.name} successfully initialized on NavMesh");
     }
     
     // ------------------------- //

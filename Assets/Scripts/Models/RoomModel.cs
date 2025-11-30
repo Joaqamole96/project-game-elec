@@ -83,7 +83,7 @@ public class RoomModel
         if (room != null && room != this && !ConnectedRooms.Contains(room)) ConnectedRooms.Add(room);
     }
 
-    public void GenerateSpawnPositions(int count, int padding = 2)
+    public void GenerateSpawnPositions(int count, int padding = 3)
     {
         var innerTiles = GetInnerTiles(padding).ToList();
         if (innerTiles.Count == 0) return;

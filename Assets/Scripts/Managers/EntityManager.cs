@@ -3,6 +3,7 @@
 // ================================================== //
 
 using UnityEngine;
+using UnityEngine.AI;
 using System.Collections.Generic;
 using System.Collections;
 
@@ -32,6 +33,7 @@ public class EntityManager : MonoBehaviour
     
     private string currentBiome = ResourceService.BIOME_DEFAULT;
     private System.Random spawnRandom;
+    private bool navMeshReady = false;
     
     // ------------------------- //
     
@@ -47,14 +49,51 @@ public class EntityManager : MonoBehaviour
     
     void Start()
     {
+        // Subscribe to NavMesh ready event
+        LayoutManager.OnNavMeshReady += OnNavMeshReady;
+        StartCoroutine(SpawnEntitiesAfterGeneration());
+    }
+
+    private void OnNavMeshReady()
+    {
+        Debug.Log("EntityManager: Received NavMesh ready signal");
+        navMeshReady = true;
         StartCoroutine(SpawnEntitiesAfterGeneration());
     }
     
     private IEnumerator SpawnEntitiesAfterGeneration()
     {
+        if (!navMeshReady)
+        {
+            Debug.LogWarning("EntityManager: NavMesh not ready, waiting...");
+            yield return new WaitUntil(() => navMeshReady);
+        }
+        
+        // Additional safety wait
         yield return new WaitForSeconds(1f);
         
+        // Triple-check NavMesh exists
+        if (!IsNavMeshReady())
+        {
+            Debug.LogError("EntityManager: NavMesh still not ready after event!");
+            yield break;
+        }
+        
+        Debug.Log("EntityManager: NavMesh confirmed ready, spawning entities...");
         SpawnAllEntitiesInDungeon();
+    }
+
+    private bool IsNavMeshReady()
+    {
+        NavMeshTriangulation triangulation = NavMesh.CalculateTriangulation();
+        bool ready = triangulation.vertices.Length > 0;
+        
+        if (!ready)
+        {
+            Debug.LogWarning("EntityManager: NavMesh has 0 vertices!");
+        }
+        
+        return ready;
     }
     
     // ------------------------- //
@@ -188,6 +227,25 @@ public class EntityManager : MonoBehaviour
     // ------------------------- //
     // ENHANCED ENEMY SPAWNING
     // ------------------------- //
+
+    [ContextMenu("Debug NavMesh State")]
+    public void DebugNavMeshState()
+    {
+        NavMeshTriangulation triangulation = NavMesh.CalculateTriangulation();
+        Debug.Log($"=== NavMesh Debug ===");
+        Debug.Log($"Vertices: {triangulation.vertices.Length}");
+        Debug.Log($"Indices: {triangulation.indices.Length}");
+        Debug.Log($"Areas: {triangulation.areas.Length}");
+        
+        if (triangulation.vertices.Length > 0)
+        {
+            Debug.Log($"Sample position: {triangulation.vertices[0]}");
+        }
+        else
+        {
+            Debug.LogError("NavMesh has NO geometry!");
+        }
+    }
     
     public void SpawnAllEntitiesInDungeon()
     {
@@ -249,30 +307,38 @@ public class EntityManager : MonoBehaviour
         }
         
         int successfulSpawns = 0;
+        int maxAttempts = enemyCount * 5; // More attempts
+        int attempts = 0;
         
-        for (int i = 0; i < enemyCount; i++)
+        while (successfulSpawns < enemyCount && attempts < maxAttempts)
         {
+            attempts++;
+            
             GameObject enemyPrefab = enemyPrefabs[spawnRandom.Next(0, enemyPrefabs.Count)];
             
             Vector2Int spawnTile = room.GetRandomSpawnPosition();
             Vector3 spawnPosition = new(spawnTile.x + 0.5f, spawnHeight, spawnTile.y + 0.5f);
             
-            // CRITICAL: Check if position is on NavMesh before spawning
-            NavMeshGenerator navMeshGen = FindObjectOfType<NavMeshGenerator>();
-            if (navMeshGen != null)
+            // CRITICAL: Validate position is on NavMesh
+            if (!NavMesh.SamplePosition(spawnPosition, out NavMeshHit hit, 10f, NavMesh.AllAreas))
             {
-                if (!navMeshGen.IsPositionOnNavMesh(spawnPosition, 5f))
-                {
-                    spawnPosition = navMeshGen.GetNearestNavMeshPosition(spawnPosition, 10f);
-                    Debug.LogWarning($"Adjusted enemy spawn position to nearest NavMesh point: {spawnPosition}");
-                }
+                Debug.LogWarning($"No NavMesh near {spawnTile}, trying another position...");
+                continue; // Skip this position, try another
             }
+            
+            // Use the confirmed NavMesh position
+            spawnPosition = hit.position;
             
             GameObject enemy = SpawnEnemy(enemyPrefab, spawnPosition);
             if (enemy != null)
             {
                 successfulSpawns++;
             }
+        }
+        
+        if (successfulSpawns < enemyCount)
+        {
+            Debug.LogWarning($"Room {room.ID}: Only spawned {successfulSpawns}/{enemyCount} enemies (NavMesh constraints)");
         }
         
         return successfulSpawns;
@@ -556,7 +622,13 @@ public class EntityManager : MonoBehaviour
         
         Debug.Log("EntityManager: All entities cleared");
     }
-    
+
+    void OnDestroy()
+    {
+        // Unsubscribe to prevent memory leaks
+        LayoutManager.OnNavMeshReady -= OnNavMeshReady;
+    }
+        
     // ------------------------- //
     // DEBUG
     // ------------------------- //

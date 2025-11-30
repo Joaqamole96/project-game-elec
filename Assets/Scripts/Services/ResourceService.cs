@@ -160,7 +160,7 @@ public static class ResourceService
     //     => LoadWithFallback(CATEGORY_ENEMIES, biome, "EliteEnemyPrefab");
     
     public static GameObject LoadBossEnemyPrefab(string biome)
-        => LoadWithFallback(CATEGORY_ENEMIES, biome, "pf_Boss");
+        => LoadWithFallback(CATEGORY_ENEMIES, biome, "pf_BossEnemy");
     
     public static GameObject LoadMeleeEnemyPrefab(string biome)
         => LoadWithFallback(CATEGORY_ENEMIES, biome, "pf_MeleeEnemy");
@@ -287,7 +287,7 @@ public static class ResourceService
     
     // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
         public static GameObject LoadSwordPrefab()
-        => LoadCategoryPrefab(CATEGORY_WEAPONS, "SwordPrefab");
+        => LoadCategoryPrefab(CATEGORY_WEAPONS, "pf_Sword");
     
     // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
     public static GameObject LoadBowPrefab()
@@ -299,7 +299,7 @@ public static class ResourceService
     
     // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
     public static GameObject LoadAxePrefab()
-        => LoadCategoryPrefab(CATEGORY_WEAPONS, "AxePrefab");
+        => LoadCategoryPrefab(CATEGORY_WEAPONS, "pf_Axe");
     
     // ------------------------- //
     // UI PREFABS (Biome-Independent)

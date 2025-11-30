@@ -3,10 +3,12 @@
 // -------------------------------------------------- //
 
 using UnityEngine;
+using UnityEngine.AI;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using Debug = UnityEngine.Debug;
+using System.Collections;
 
 [RequireComponent(typeof(BiomeManager))]
 public class LayoutManager : MonoBehaviour
@@ -36,6 +38,8 @@ public class LayoutManager : MonoBehaviour
     
     // Public Accessors
     public LevelModel CurrentLayout => _layout;
+
+    public static System.Action OnNavMeshReady;
     
     // Private Fields - Generators
     private PartitionGenerator _partitionGenerator;
@@ -448,24 +452,33 @@ public class LayoutManager : MonoBehaviour
     {
         if (_navMeshGenerator != null && _layout != null)
         {
-            Debug.Log("Baking NavMesh for dungeon...");
-            StartCoroutine(BakeNavMeshDelayed());
+            Debug.Log("LayoutManager: Baking NavMesh for dungeon (SYNCHRONOUS)...");
+            
+            // Bake immediately (not via coroutine)
+            _navMeshGenerator.BakeNavMesh(_layout, FloorsParent, WallsParent);
+            
+            // Verify it worked
+            NavMeshTriangulation triangulation = NavMesh.CalculateTriangulation();
+            if (triangulation.vertices.Length > 0)
+            {
+                Debug.Log($"LayoutManager: NavMesh baked successfully - {triangulation.vertices.Length} vertices");
+            }
+            else
+            {
+                Debug.LogError("LayoutManager: NavMesh bake FAILED - no geometry generated!");
+            }
         }
         else
         {
-            Debug.LogWarning("Cannot bake NavMesh: generator or layout is null");
+            Debug.LogWarning("LayoutManager: Cannot bake NavMesh - generator or layout is null");
         }
-    }
-
-    private System.Collections.IEnumerator BakeNavMeshDelayed()
-    {
-        yield return new WaitForFixedUpdate();
-        _navMeshGenerator.BakeNavMesh(_layout, FloorsParent, WallsParent);
     }
 
     private void NotifyDungeonReady()
     {
-        // Systems notified here
+        // Notify that dungeon AND NavMesh are ready
+        OnNavMeshReady?.Invoke();
+        Debug.Log("LayoutManager: Dungeon generation complete, NavMesh ready");
     }
 
     // ------------------------- //
