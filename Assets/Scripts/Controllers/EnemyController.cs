@@ -48,11 +48,8 @@ public class EnemyController : MonoBehaviour
         
         if (agent == null) agent = GetComponent<NavMeshAgent>();
         
-        agent.speed = moveSpeed;
-        agent.stoppingDistance = attackRange - 0.2f;
-        
-        SetRandomPatrolPoint();
-        SetState(EnemyState.Patrolling);
+        // CRITICAL: Wait for NavMesh before enabling agent
+        StartCoroutine(WaitForNavMesh());
         
         OnStart();
     }
@@ -118,7 +115,14 @@ public class EnemyController : MonoBehaviour
     
     protected virtual void UpdatePatrolling()
     {
-        if (agent.remainingDistance <= agent.stoppingDistance)
+        // CRITICAL: Check if agent is on NavMesh before accessing properties
+        if (agent == null || !agent.isOnNavMesh)
+        {
+            return;
+        }
+        
+        // Check if reached destination
+        if (!agent.pathPending && agent.remainingDistance <= agent.stoppingDistance)
         {
             SetRandomPatrolPoint();
         }
@@ -285,13 +289,15 @@ public class EnemyController : MonoBehaviour
     
     protected void SetRandomPatrolPoint()
     {
-        Vector2 randomCircle = Random.insideUnitCircle * 3f;
-        patrolPoint = transform.position + new Vector3(randomCircle.x, 0, randomCircle.y);
+        Vector2 randomCircle = Random.insideUnitCircle * 5f;
+        Vector3 randomPoint = transform.position + new Vector3(randomCircle.x, 0, randomCircle.y);
 
-        if (NavMesh.SamplePosition(patrolPoint, out NavMeshHit hit, 3f, NavMesh.AllAreas))
+        // CRITICAL: Sample NavMesh position before setting destination
+        if (UnityEngine.AI.NavMesh.SamplePosition(randomPoint, out UnityEngine.AI.NavMeshHit hit, 10f, UnityEngine.AI.NavMesh.AllAreas))
         {
             patrolPoint = hit.position;
-            if (agent != null && agent.isOnNavMesh)
+            
+            if (agent != null && agent.isOnNavMesh && agent.isActiveAndEnabled)
             {
                 agent.SetDestination(patrolPoint);
             }
@@ -311,6 +317,38 @@ public class EnemyController : MonoBehaviour
         rend.material.color = Color.red;
         yield return new WaitForSeconds(0.2f);
         rend.material.color = original;
+    }
+
+    protected IEnumerator WaitForNavMesh()
+    {
+        // Wait until we're on NavMesh
+        int attempts = 0;
+        while (!agent.isOnNavMesh && attempts < 10)
+        {
+            yield return new WaitForSeconds(0.5f);
+            attempts++;
+            
+            // Try to warp to nearest NavMesh position
+            if (UnityEngine.AI.NavMesh.SamplePosition(transform.position, out UnityEngine.AI.NavMeshHit hit, 10f, UnityEngine.AI.NavMesh.AllAreas))
+            {
+                agent.Warp(hit.position);
+                break;
+            }
+        }
+        
+        if (!agent.isOnNavMesh)
+        {
+            Debug.LogError($"Enemy {gameObject.name} could not be placed on NavMesh after {attempts} attempts!");
+            enabled = false; // Disable the enemy controller
+            yield break;
+        }
+        
+        // Setup agent properties
+        agent.speed = moveSpeed;
+        agent.stoppingDistance = attackRange - 0.2f;
+        
+        SetRandomPatrolPoint();
+        SetState(EnemyState.Patrolling);
     }
     
     // ------------------------- //

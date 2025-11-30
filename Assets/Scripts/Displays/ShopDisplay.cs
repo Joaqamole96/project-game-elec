@@ -1,15 +1,12 @@
-// ================================================== //
-// Scripts/Display/ShopDisplay.cs
-// ================================================== //
+// -------------------------------------------------- //
+// Scripts/Displays/ShopDisplay.cs (DIRECT PURCHASE - NO POPUP)
+// -------------------------------------------------- //
 
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using System.Collections.Generic;
 
-/// <summary>
-/// Handles shop UI display and purchase interactions
-/// </summary>
 public class ShopDisplay : MonoBehaviour
 {
     [Header("UI References")]
@@ -19,32 +16,20 @@ public class ShopDisplay : MonoBehaviour
     public TextMeshProUGUI playerGoldText;
     public Button closeButton;
     
-    [Header("Purchase Popup")]
-    public GameObject purchasePopup;
-    public TextMeshProUGUI popupText;
-    public Button confirmButton;
-    public Button cancelButton;
-    
     private ShopController currentShop;
     private PlayerController player;
-    private ShopController.ShopItem pendingPurchase;
     
     void Start()
     {
         if (closeButton != null)
+        {
             closeButton.onClick.AddListener(CloseShop);
-        
-        if (confirmButton != null)
-            confirmButton.onClick.AddListener(ConfirmPurchase);
-        
-        if (cancelButton != null)
-            cancelButton.onClick.AddListener(CancelPurchase);
+        }
         
         if (shopPanel != null)
+        {
             shopPanel.SetActive(false);
-        
-        if (purchasePopup != null)
-            purchasePopup.SetActive(false);
+        }
         
         player = PlayerController.Instance;
     }
@@ -64,7 +49,6 @@ public class ShopDisplay : MonoBehaviour
         
         currentShop = shop;
         
-        // Show panel
         if (shopPanel != null)
         {
             shopPanel.SetActive(true);
@@ -75,10 +59,7 @@ public class ShopDisplay : MonoBehaviour
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
         
-        // Update gold display
         UpdateGoldDisplay();
-        
-        // Populate items
         PopulateShopItems();
     }
     
@@ -93,14 +74,17 @@ public class ShopDisplay : MonoBehaviour
         }
         
         // Create item cards
-        foreach (var item in currentShop.availableItems)
+        for (int i = 0; i < currentShop.availableItems.Count; i++)
         {
+            int itemIndex = i; // Capture for closure
+            var item = currentShop.availableItems[i];
+            
             GameObject card = Instantiate(itemCardPrefab, itemsContainer);
-            SetupItemCard(card, item);
+            SetupItemCard(card, item, itemIndex);
         }
     }
     
-    private void SetupItemCard(GameObject card, ShopController.ShopItem item)
+    private void SetupItemCard(GameObject card, ShopController.ShopItem item, int itemIndex)
     {
         // Get components
         var nameText = card.transform.Find("ItemName")?.GetComponent<TextMeshProUGUI>();
@@ -114,26 +98,49 @@ public class ShopDisplay : MonoBehaviour
         if (priceText != null) priceText.text = $"{item.price} Gold";
         if (descText != null) descText.text = GetItemDescription(item);
         
-        // Set icon
+        // Set icon color
         if (icon != null)
         {
             icon.color = GetItemColor(item.itemType);
         }
         
-        // Setup buy button
+        // Setup buy button - DIRECT PURCHASE
         if (buyButton != null)
         {
-            buyButton.onClick.AddListener(() => OnBuyButtonClicked(item));
-            
-            // Disable if can't afford
             bool canAfford = player.inventory.gold >= item.price;
             buyButton.interactable = canAfford;
+            
+            // Remove any existing listeners
+            buyButton.onClick.RemoveAllListeners();
+            
+            // Add direct purchase listener
+            buyButton.onClick.AddListener(() => OnDirectPurchase(itemIndex));
             
             var buttonText = buyButton.GetComponentInChildren<TextMeshProUGUI>();
             if (buttonText != null)
             {
-                buttonText.text = canAfford ? "Buy" : "Can't Afford";
+                buttonText.text = canAfford ? "Buy" : "Too Expensive";
             }
+        }
+    }
+    
+    private void OnDirectPurchase(int itemIndex)
+    {
+        if (currentShop == null) return;
+        
+        bool success = currentShop.BuyItem(itemIndex);
+        
+        if (success)
+        {
+            // Update display
+            UpdateGoldDisplay();
+            PopulateShopItems(); // Refresh to update affordability
+            
+            Debug.Log("Purchase successful!");
+        }
+        else
+        {
+            Debug.Log("Purchase failed - not enough gold!");
         }
     }
     
@@ -165,51 +172,6 @@ public class ShopDisplay : MonoBehaviour
             ShopController.ShopItemType.Weapon => Color.green,
             _ => Color.white
         };
-    }
-    
-    private void OnBuyButtonClicked(ShopController.ShopItem item)
-    {
-        pendingPurchase = item;
-        
-        if (purchasePopup != null)
-        {
-            purchasePopup.SetActive(true);
-        }
-        
-        if (popupText != null)
-        {
-            popupText.text = $"Buy {item.itemName} for {item.price} Gold?";
-        }
-    }
-    
-    private void ConfirmPurchase()
-    {
-        if (pendingPurchase == null || currentShop == null) return;
-        
-        int itemIndex = currentShop.availableItems.IndexOf(pendingPurchase);
-        bool success = currentShop.BuyItem(itemIndex);
-        
-        if (success)
-        {
-            // Refresh shop display
-            UpdateGoldDisplay();
-            PopulateShopItems();
-            
-            // Show success message
-            Debug.Log($"Purchased {pendingPurchase.itemName}!");
-        }
-        
-        CancelPurchase();
-    }
-    
-    private void CancelPurchase()
-    {
-        pendingPurchase = null;
-        
-        if (purchasePopup != null)
-        {
-            purchasePopup.SetActive(false);
-        }
     }
     
     private void UpdateGoldDisplay()

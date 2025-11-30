@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 22c0d74f311bdd341a6a84c07f30af76
+guid: 01b23b166d70e214084db007a30c4557
 ModelImporter:
   serializedVersion: 21300
   internalIDToNameTable: []
@@ -13,7 +13,7 @@ ModelImporter:
     legacyGenerateAnimations: 4
     bakeSimulation: 0
     resampleCurves: 1
-    optimizeGameObjects: 1
+    optimizeGameObjects: 0
     removeConstantScaleCurves: 1
     motionNodeName: 
     rigImportErrors: 

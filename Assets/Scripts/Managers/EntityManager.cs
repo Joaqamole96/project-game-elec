@@ -240,7 +240,6 @@ public class EntityManager : MonoBehaviour
     {
         int enemyCount = spawnRandom.Next(minEnemiesPerRoom, maxEnemiesPerRoom + 1);
         
-        // Get varied enemy types for this biome
         List<GameObject> enemyPrefabs = GetBiomeEnemyPrefabs(currentBiome);
         
         if (enemyPrefabs.Count == 0)
@@ -249,18 +248,34 @@ public class EntityManager : MonoBehaviour
             return 0;
         }
         
+        int successfulSpawns = 0;
+        
         for (int i = 0; i < enemyCount; i++)
         {
-            // Random enemy type from available
             GameObject enemyPrefab = enemyPrefabs[spawnRandom.Next(0, enemyPrefabs.Count)];
             
             Vector2Int spawnTile = room.GetRandomSpawnPosition();
             Vector3 spawnPosition = new(spawnTile.x + 0.5f, spawnHeight, spawnTile.y + 0.5f);
             
-            SpawnEnemy(enemyPrefab, spawnPosition);
+            // CRITICAL: Check if position is on NavMesh before spawning
+            NavMeshGenerator navMeshGen = FindObjectOfType<NavMeshGenerator>();
+            if (navMeshGen != null)
+            {
+                if (!navMeshGen.IsPositionOnNavMesh(spawnPosition, 5f))
+                {
+                    spawnPosition = navMeshGen.GetNearestNavMeshPosition(spawnPosition, 10f);
+                    Debug.LogWarning($"Adjusted enemy spawn position to nearest NavMesh point: {spawnPosition}");
+                }
+            }
+            
+            GameObject enemy = SpawnEnemy(enemyPrefab, spawnPosition);
+            if (enemy != null)
+            {
+                successfulSpawns++;
+            }
         }
         
-        return enemyCount;
+        return successfulSpawns;
     }
     
     private int SpawnBossRoomEntities(RoomModel room)

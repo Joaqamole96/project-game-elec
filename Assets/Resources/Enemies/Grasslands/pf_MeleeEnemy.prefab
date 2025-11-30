@@ -981,8 +981,8 @@ MonoBehaviour:
   attackRange: 1.5
   detectionRange: 8
   attackCooldown: 2
-  agent: {fileID: 0}
-  animator: {fileID: 0}
+  agent: {fileID: -7468422086402014446}
+  animator: {fileID: 5162232971360506}
 --- !u!1 &6861681153245785469
 GameObject:
   m_ObjectHideFlags: 0

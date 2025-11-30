@@ -88,6 +88,15 @@ public class WeaponManager : MonoBehaviour
         if (Time.time < lastAttackTime + currentWeaponData.attackSpeed) return;
         
         lastAttackTime = Time.time;
+
+        if (currentWeaponInstance != null)
+        {
+            Animator weaponAnimator = currentWeaponInstance.GetComponentInChildren<Animator>();
+            if (weaponAnimator != null)
+            {
+                weaponAnimator.SetTrigger("Attack");
+            }
+        }
         
         switch (currentWeaponData.weaponType)
         {

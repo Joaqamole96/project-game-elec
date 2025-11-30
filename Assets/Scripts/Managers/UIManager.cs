@@ -198,14 +198,14 @@ public class UIManager : MonoBehaviour
             shopModal.name = "ShopModal";
             
             // Add ShopDisplay component if not present
-            ShopDisplay shopUI = shopModal.GetComponent<ShopDisplay>();
-            if (shopUI == null)
+            ShopDisplay shopDisplay = shopModal.GetComponent<ShopDisplay>();
+            if (shopDisplay == null)
             {
-                shopUI = shopModal.AddComponent<ShopDisplay>();
+                shopDisplay = shopModal.AddComponent<ShopDisplay>();
             }
             
             // Cache references
-            CacheShopDisplayReferences(shopUI);
+            CacheShopDisplayReferences(shopDisplay);
         }
         
         shopModal.SetActive(true);
@@ -223,26 +223,16 @@ public class UIManager : MonoBehaviour
         Cursor.visible = true;
     }
     
-    private void CacheShopDisplayReferences(ShopDisplay shopUI)
+    private void CacheShopDisplayReferences(ShopDisplay shopDisplay)
     {
         // Find and assign UI components
-        shopUI.shopPanel = FindChildByName(shopModal, "ShopPanel");
-        shopUI.itemsContainer = FindChildByName(shopModal, "ItemsContainer")?.transform;
-        shopUI.playerGoldText = FindComponentInChildren<TextMeshProUGUI>(shopModal, "GoldText");
-        shopUI.closeButton = FindComponentInChildren<Button>(shopModal, "CloseButton");
-        
-        // Purchase popup
-        GameObject popup = FindChildByName(shopModal, "PurchasePopup");
-        if (popup != null)
-        {
-            shopUI.purchasePopup = popup;
-            shopUI.popupText = FindComponentInChildren<TextMeshProUGUI>(popup, "PopupText");
-            shopUI.confirmButton = FindComponentInChildren<Button>(popup, "ConfirmButton");
-            shopUI.cancelButton = FindComponentInChildren<Button>(popup, "CancelButton");
-        }
+        shopDisplay.shopPanel = FindChildByName(shopModal, "ShopPanel");
+        shopDisplay.itemsContainer = FindChildByName(shopModal, "ItemsContainer")?.transform;
+        shopDisplay.playerGoldText = FindComponentInChildren<TextMeshProUGUI>(shopModal, "GoldText");
+        shopDisplay.closeButton = FindComponentInChildren<Button>(shopModal, "CloseButton");
         
         // Load item card prefab
-        shopUI.itemCardPrefab = Resources.Load<GameObject>("UI/comp_ShopItem");
+        shopDisplay.itemCardPrefab = Resources.Load<GameObject>("UI/comp_ShopItem");
     }
     
     // ==========================================
