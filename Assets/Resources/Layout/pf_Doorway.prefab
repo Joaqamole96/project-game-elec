@@ -388,7 +388,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2541950738998069886}
-  - component: {fileID: 5258140507470855713}
   - component: {fileID: 9139736883590767799}
   - component: {fileID: 596130930531255483}
   m_Layer: 8
@@ -415,19 +414,6 @@ Transform:
   m_Father: {fileID: 2682013072642279064}
   m_RootOrder: 1
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!65 &5258140507470855713
-BoxCollider:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2643167346196779617}
-  m_Material: {fileID: 0}
-  m_IsTrigger: 0
-  m_Enabled: 1
-  serializedVersion: 2
-  m_Size: {x: 3, y: 11, z: 0.75}
-  m_Center: {x: 0, y: 5.5, z: 0}
 --- !u!65 &9139736883590767799
 BoxCollider:
   m_ObjectHideFlags: 0
@@ -457,7 +443,7 @@ MonoBehaviour:
   isOpen: 0
   requiredKey: 0
   doorModel: {fileID: 267797617971216529}
-  blockingCollider: {fileID: 5258140507470855713}
+  blockingCollider: {fileID: 4084845601311640064}
   triggerCollider: {fileID: 9139736883590767799}
   lockedColor: {r: 1, g: 0, b: 0, a: 1}
   unlockedColor: {r: 0, g: 1, b: 0, a: 1}
