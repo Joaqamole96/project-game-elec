@@ -98,7 +98,6 @@ public class TreasureChestController : MonoBehaviour
     private void GiveWeaponReward(PlayerController player)
     {
         Debug.Log("Treasure: Found weapon!");
-        // TODO: Give weapon to player
     }
     
     private void GiveGoldReward(PlayerController player)
