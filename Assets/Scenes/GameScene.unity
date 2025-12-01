@@ -153,7 +153,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   autoInitializeOnStart: 1
   initializationDelay: 0.1
-  currentBiome: 
+  currentBiome: Default
   layoutManagerPrefab: {fileID: 0}
   uiManagerPrefab: {fileID: 0}
   entityManagerPrefab: {fileID: 0}
