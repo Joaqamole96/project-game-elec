@@ -20,6 +20,9 @@ public abstract class WeaponModel : MonoBehaviour
     [Header("Animation")]
     public Animator animator;
     public RuntimeAnimatorController animatorController;
+    
+    [Header("Attack Direction")]
+    public Vector3 currentAttackDirection = Vector3.forward;
 
     private Coroutine attackResetCoroutine;
     

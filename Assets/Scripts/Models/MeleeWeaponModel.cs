@@ -130,14 +130,19 @@ public class MeleeWeaponModel : WeaponModel
     // Called by animation event
     public void OnDealDamage()
     {
-        // Damage detection in cone
-        Vector3 attackCenter = transform.position + transform.forward * (attackRange * 0.5f);
+        // Use stored attack direction instead of weapon's forward
+        Vector3 attackCenter = transform.position + currentAttackDirection * (attackRange * 0.5f);
+        
+        // Alternative: Use the player's position and direction
+        // PlayerController player = FindObjectOfType<PlayerController>();
+        // Vector3 attackCenter = player.transform.position + player.transform.forward * (attackRange * 0.5f);
+        
         Collider[] hits = Physics.OverlapSphere(attackCenter, attackRange, targetLayer);
         
         foreach (Collider hit in hits)
         {
             Vector3 dirToTarget = (hit.transform.position - transform.position).normalized;
-            float angleToTarget = Vector3.Angle(transform.forward, dirToTarget);
+            float angleToTarget = Vector3.Angle(currentAttackDirection, dirToTarget);
             
             if (angleToTarget <= swingAngle / 2f)
             {

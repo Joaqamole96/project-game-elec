@@ -78,6 +78,14 @@ public class WeaponManager : MonoBehaviour
                 weaponScript.baseDamage = weaponData.damage;
                 weaponScript.attackRange = weaponData.range;
                 weaponScript.attackCooldown = weaponData.attackSpeed;
+                
+                // CRITICAL FIX 1: Set targetLayer from player
+                weaponScript.targetLayer = player.enemyLayer;
+                
+                // CRITICAL FIX 2: Store attack direction reference
+                // You might need to add this to WeaponModel base class:
+                // weaponScript.attackDirectionOverride = attackDirection;
+                
                 weaponScript.Equip();
             }
         }
