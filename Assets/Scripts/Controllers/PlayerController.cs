@@ -9,7 +9,7 @@ public class PlayerController : MonoBehaviour
 {
     [Header("Movement")]
     public float moveSpeed = 5f;
-    public float rotationSpeed = 15f; // Increased for snappier rotation
+    public float rotationSpeed = 15f;
     
     [Header("Combat")]
     public int maxHealth = 100;
@@ -25,14 +25,18 @@ public class PlayerController : MonoBehaviour
     public PowerManager powerManager;
     public InventoryManager inventory;
     
+    [Header("Visual")]
+    public GameObject visualMesh; // Assign the capsule mesh in Inspector
+    
     public static PlayerController Instance { get; private set; }
     public int CurrentHealth { get; private set; }
     
     private Vector3 movement;
-    private Vector3 moveDirection; // CAMERA-RELATIVE direction
+    private Vector3 moveDirection;
     private bool isMoving;
     private float lastAttackTime = 0f;
     private bool isDead = false;
+    private Camera mainCamera;
     
     void Awake()
     {
@@ -52,8 +56,14 @@ public class PlayerController : MonoBehaviour
     {
         CurrentHealth = maxHealth;
         rb = GetComponent<Rigidbody>();
+        mainCamera = Camera.main;
         
-        // Get or add weapon manager
+        // CRITICAL: Hide visual mesh in first-person
+        if (visualMesh != null)
+        {
+            visualMesh.SetActive(false); // Player capsule should not be visible
+        }
+        
         weaponManager = GetComponent<WeaponManager>();
         if (weaponManager == null)
         {
@@ -66,22 +76,16 @@ public class PlayerController : MonoBehaviour
             powerManager = gameObject.AddComponent<PowerManager>();
         }
         
-        // Get or add inventory
         inventory = GetComponent<InventoryManager>();
         if (inventory == null)
         {
             inventory = gameObject.AddComponent<InventoryManager>();
         }
         
-        // CRITICAL: Lock rotation to prevent physics from rotating player
         rb.freezeRotation = true;
         rb.constraints = RigidbodyConstraints.FreezeRotation;
-        
-        // Reduce drag for smoother movement
         rb.drag = 0f;
         rb.angularDrag = 0f;
-        
-        // Better physics settings
         rb.interpolation = RigidbodyInterpolation.Interpolate;
         rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
         
@@ -109,13 +113,9 @@ public class PlayerController : MonoBehaviour
         float horizontal = Input.GetAxisRaw("Horizontal");
         float vertical = Input.GetAxisRaw("Vertical");
         
-        // Get RAW input vector (not normalized yet)
         Vector3 inputVector = new(horizontal, 0, vertical);
-        
-        // Get camera-relative movement direction
         moveDirection = GetCameraRelativeMovement(inputVector);
         
-        // Normalize AFTER camera transformation to maintain consistent speed
         if (moveDirection.magnitude > 1f)
         {
             moveDirection.Normalize();
@@ -127,25 +127,18 @@ public class PlayerController : MonoBehaviour
     private Vector3 GetCameraRelativeMovement(Vector3 input)
     {
         if (input.magnitude < 0.01f) return Vector3.zero;
+        if (mainCamera == null) return input;
         
-        Camera mainCamera = Camera.main;
-        if (mainCamera == null) return input; // Fallback
-        
-        // Get camera's forward and right vectors (flatten to ground plane)
         Vector3 cameraForward = mainCamera.transform.forward;
         Vector3 cameraRight = mainCamera.transform.right;
         
-        // CRITICAL: Project onto horizontal plane
         cameraForward.y = 0;
         cameraRight.y = 0;
         
-        // CRITICAL: Normalize BEFORE using them
         cameraForward.Normalize();
         cameraRight.Normalize();
         
-        // Calculate movement direction relative to camera
         Vector3 result = (cameraForward * input.z) + (cameraRight * input.x);
-        
         return result;
     }
     
@@ -161,11 +154,9 @@ public class PlayerController : MonoBehaviour
     {
         if (isMoving && moveDirection.magnitude > 0.01f)
         {
-            // Apply velocity in the EXACT direction of moveDirection
             Vector3 targetVelocity = moveDirection * moveSpeed;
             rb.velocity = new Vector3(targetVelocity.x, rb.velocity.y, targetVelocity.z);
             
-            // Rotate player to face movement direction INSTANTLY
             Quaternion targetRotation = Quaternion.LookRotation(moveDirection);
             transform.rotation = Quaternion.Slerp(
                 transform.rotation, 
@@ -175,7 +166,6 @@ public class PlayerController : MonoBehaviour
         }
         else
         {
-            // Stop horizontal movement but keep vertical velocity (gravity)
             rb.velocity = new Vector3(0, rb.velocity.y, 0);
         }
     }
@@ -191,47 +181,43 @@ public class PlayerController : MonoBehaviour
             animator.SetTrigger("Attack");
         }
         
-        // Use weapon manager if available
+        // CRITICAL FIX: Use camera forward direction for attacks
+        Vector3 attackDirection = mainCamera != null ? mainCamera.transform.forward : transform.forward;
+        attackDirection.y = 0;
+        attackDirection.Normalize();
+        
         if (weaponManager != null && weaponManager.currentWeaponData != null)
         {
-            weaponManager.Attack(transform.position + Vector3.up, transform.forward);
+            weaponManager.Attack(transform.position + Vector3.up, attackDirection);
         }
         else
         {
-            // Fallback: basic melee attack
-            PerformBasicMeleeAttack();
+            PerformBasicMeleeAttack(attackDirection);
         }
     }
     
-    private void PerformBasicMeleeAttack()
+    private void PerformBasicMeleeAttack(Vector3 attackDirection)
     {
-        // Attack in a cone in front of player
-        // NOTE: Use camera direction instead of player
-        Vector3 attackDirection = transform.forward;
         Vector3 attackCenter = transform.position + attackDirection * (attackRange * 0.5f);
         
         Collider[] hitEnemies = Physics.OverlapSphere(attackCenter, attackRange, enemyLayer);
         
         foreach (Collider enemy in hitEnemies)
         {
-            // Check if enemy is in front of player (within 120 degree cone)
             Vector3 dirToEnemy = (enemy.transform.position - transform.position).normalized;
-            float angleToEnemy = Vector3.Angle(transform.forward, dirToEnemy);
+            float angleToEnemy = Vector3.Angle(attackDirection, dirToEnemy);
             
-            if (angleToEnemy < 60f) // 120 degree cone (60 degrees each side)
+            if (angleToEnemy < 60f)
             {
                 if (enemy.TryGetComponent<EnemyController>(out var enemyController))
                 {
-                    // In PlayerController.PerformBasicMeleeAttack(), line ~160
                     int finalDamage = playerDamage;
-                    // ADD THIS:
                     if (powerManager != null) finalDamage = powerManager.ModifyDamageDealt(finalDamage);
 
                     enemyController.TakeDamage(finalDamage);
-                    // Also notify power manager
                     if (powerManager != null) powerManager.OnDamageDealt(finalDamage);
                     
-                    Debug.Log($"Hit enemy for {playerDamage} damage!");
+                    Debug.Log($"Hit enemy for {finalDamage} damage!");
                 }
             }
         }
@@ -248,7 +234,6 @@ public class PlayerController : MonoBehaviour
     
     private void UpdateRoomDetection()
     {
-        // Only check every 30 frames for performance
         if (Time.frameCount % 30 == 0)
         {
             RoomManager roomManager = FindObjectOfType<RoomManager>();
@@ -262,6 +247,12 @@ public class PlayerController : MonoBehaviour
     public void TakeDamage(int damage)
     {
         if (isDead) return;
+        
+        // Apply power damage reduction
+        if (powerManager != null)
+        {
+            damage = powerManager.ModifyDamageTaken(damage);
+        }
         
         CurrentHealth -= damage;
         CurrentHealth = Mathf.Max(0, CurrentHealth);
@@ -305,12 +296,12 @@ public class PlayerController : MonoBehaviour
         
         Debug.Log("Player died - Game Over!");
         
-        // NEW: Show game over UI
         Invoke(nameof(TriggerGameOver), 2f);
     }
 
     private void TriggerGameOver()
     {
+        // Find GameOverUI in scene
         GameOverUI gameOverUI = FindObjectOfType<GameOverUI>();
         if (gameOverUI != null)
         {
@@ -319,6 +310,10 @@ public class PlayerController : MonoBehaviour
             int goldCollected = inventory?.gold ?? 0;
             
             gameOverUI.ShowGameOver(false, floorReached, goldCollected, 0);
+        }
+        else
+        {
+            Debug.LogError("PlayerController: GameOverUI not found in scene!");
         }
     }
     
@@ -330,7 +325,6 @@ public class PlayerController : MonoBehaviour
             Vector3 spawnPosition = generator.GetEntranceRoomPosition();
             transform.position = spawnPosition;
             
-            // Ensure player is on NavMesh (if exists)
             NavMeshGenerator navMeshGen = generator.GetComponent<NavMeshGenerator>();
             if (navMeshGen != null && navMeshGen.IsPositionOnNavMesh(spawnPosition))
             {
@@ -345,7 +339,7 @@ public class PlayerController : MonoBehaviour
         }
     }
     
-    // ===== MOBILE CONTROLS INTERFACE ===== //
+    // Mobile controls interface
     public void SetMovementInput(Vector2 input)
     {
         Vector3 inputVector = new(input.x, 0, input.y);
@@ -364,23 +358,21 @@ public class PlayerController : MonoBehaviour
         PerformAttack();
     }
     
-    // ===== DEBUG VISUALIZATION ===== //
     void OnDrawGizmosSelected()
     {
-        // Draw attack range
+        if (mainCamera == null) return;
+        
+        // Draw attack range in camera direction
+        Vector3 attackDirection = mainCamera.transform.forward;
+        attackDirection.y = 0;
+        attackDirection.Normalize();
+        
         Gizmos.color = Color.red;
-        Vector3 attackCenter = transform.position + transform.forward * (attackRange * 0.5f);
+        Vector3 attackCenter = transform.position + attackDirection * (attackRange * 0.5f);
         Gizmos.DrawWireSphere(attackCenter, attackRange);
         
-        // Draw movement direction
-        if (isMoving)
-        {
-            Gizmos.color = Color.blue;
-            Gizmos.DrawRay(transform.position, movement * 2f);
-        }
-        
-        // Draw forward direction
-        Gizmos.color = Color.green;
-        Gizmos.DrawRay(transform.position + Vector3.up, transform.forward * 2f);
+        // Draw camera forward direction
+        Gizmos.color = Color.blue;
+        Gizmos.DrawRay(transform.position + Vector3.up, attackDirection * 3f);
     }
 }

@@ -13,9 +13,9 @@ public class DoorController : MonoBehaviour
     public KeyType requiredKey = KeyType.None;
     
     [Header("References")]
-    public GameObject doorModel; // The actual door mesh
-    public Collider blockingCollider; // Solid collider that blocks movement
-    public Collider triggerCollider; // Trigger for player detection
+    public GameObject doorModel;
+    public Collider blockingCollider;
+    public Collider triggerCollider;
     
     [Header("Visual Feedback")]
     public Color lockedColor = Color.red;
