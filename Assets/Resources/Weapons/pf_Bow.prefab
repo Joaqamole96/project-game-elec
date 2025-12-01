@@ -9,6 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 8394204958818076244}
+  - component: {fileID: 3034794821784182711}
   m_Layer: 0
   m_Name: pf_Bow
   m_TagString: Untagged
@@ -32,6 +33,31 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &3034794821784182711
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8110395735694694061}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f23c8c7b2805a34b8fc13d477e1741f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  weaponName: Wooden Bow
+  baseDamage: 8
+  attackCooldown: 1.25
+  attackRange: 8
+  targetLayer:
+    serializedVersion: 2
+    m_Bits: 512
+  animator: {fileID: 3082873659134048682}
+  animatorController: {fileID: 9100000, guid: 01bc958bc6644eb44833041cc7d0cfbe, type: 2}
+  projectilePrefab: {fileID: 3943054517214224619, guid: 874b5eb9ff199b94db2660ce2b03938a,
+    type: 3}
+  projectileSpeed: 20
+  firePoint: {fileID: 8148251170783373691}
 --- !u!1001 &384818519100836337
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -134,3 +160,9 @@ Animator:
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
   m_WriteDefaultValuesOnDisable: 0
+--- !u!4 &8148251170783373691 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -845760683167752054, guid: d55016ae80139644f81b7d4414261756,
+    type: 3}
+  m_PrefabInstance: {fileID: 384818519100836337}
+  m_PrefabAsset: {fileID: 0}

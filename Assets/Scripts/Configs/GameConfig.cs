@@ -20,6 +20,7 @@ public class GameConfig : ScriptableObject
 
     public void Validate()
     {
+        // NOTE: Doesn't work; observed enemy count in room exceeds this.
         EnemiesPerCombatRoom = Mathf.Clamp(EnemiesPerCombatRoom, 1, 10);
         TreasureRoomsPerFloor = Mathf.Clamp(TreasureRoomsPerFloor, 0, 5);
         ShopRoomsPerFloor = Mathf.Clamp(ShopRoomsPerFloor, 0, 3);

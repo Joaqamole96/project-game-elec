@@ -327,7 +327,7 @@ public class EnemyController : MonoBehaviour
             Debug.LogWarning($"Enemy {gameObject.name} not on NavMesh despite validation!");
             
             // Try once to fix position
-            if (UnityEngine.AI.NavMesh.SamplePosition(transform.position, out UnityEngine.AI.NavMeshHit hit, 5f, UnityEngine.AI.NavMesh.AllAreas))
+            if (NavMesh.SamplePosition(transform.position, out NavMeshHit hit, 5f, NavMesh.AllAreas))
             {
                 transform.position = hit.position;
                 yield return null; // Wait one frame

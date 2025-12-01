@@ -16,11 +16,11 @@ public class BossController : EnemyController
     
     [Header("Phase System")]
     public bool isEnraged = false;
-    public float enrageThreshold = 0.5f; // 50% HP
+    public float enrageThreshold = 0.5f;
     
     [Header("Enrage Buffs")]
-    public float enrageDamageMultiplier = 1.5f;
-    public float enrageSpeedMultiplier = 1.3f;
+    public float enrageDamageMultiplier = 1.2f;
+    public float enrageSpeedMultiplier = 1.1f;
     
     [Header("Visual Effects")]
     public ParticleSystem enrageEffect;

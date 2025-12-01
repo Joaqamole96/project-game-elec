@@ -15,19 +15,17 @@ public class WeaponManager : MonoBehaviour
     private float lastAttackTime = 0f;
     
     private PlayerController player;
-    private Animator animator;
     
     void Start()
     {
         player = GetComponent<PlayerController>();
-        animator = GetComponent<Animator>();
         
         // Create weapon holder if doesn't exist
         if (weaponHolder == null)
         {
             GameObject holder = new("WeaponHolder");
             holder.transform.SetParent(transform);
-            holder.transform.localPosition = new Vector3(0.75f, 0f, 0.5f);
+            holder.transform.localPosition = new Vector3(0.8f, 0f, 0.4f);
             weaponHolder = holder.transform;
         }
         
@@ -42,10 +40,11 @@ public class WeaponManager : MonoBehaviour
     void Update()
     {
         // Weapon switching with number keys
-        if (Input.GetKeyDown(KeyCode.Alpha1) && currentWeaponData != null)
-        {
-            // Could switch to saved weapon slot 1
-        }
+        // if (Input.GetKeyDown(KeyCode.Alpha1) && currentWeaponData != null)
+        // {
+        //     // Could switch to saved weapon slot 1
+        // }
+        // NOTE: You can only equip one weapon at a time.
     }
     
     public void PickupWeapon(WeaponData weaponData)
@@ -132,7 +131,7 @@ public class WeaponManager : MonoBehaviour
         }
         
         // Visual effect
-        // SpawnMeleeEffect(attackCenter);
+        SpawnMeleeEffect(attackCenter);
         // currentWeaponInstance.animator.SetTrigger("Swing");
     }
     

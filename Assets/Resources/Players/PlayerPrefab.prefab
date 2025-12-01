@@ -12,7 +12,7 @@ GameObject:
   m_Layer: 10
   m_Name: WeaponHolder
   m_TagString: Untagged
-  m_Icon: {fileID: 7866945982896999795, guid: 0000000000000000d000000000000000, type: 0}
+  m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
@@ -199,6 +199,7 @@ MonoBehaviour:
     projectileSpeed: 0
     manaCost: 0
     prefab: {fileID: 0}
+    animatorController: {fileID: 0}
   currentWeaponInstance: {fileID: 0}
   weaponHolder: {fileID: 2321361997400737045}
 --- !u!114 &4103342334686262045

@@ -9,6 +9,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 2337324071457885360}
+  - component: {fileID: 8741483332150860968}
   m_Layer: 0
   m_Name: pf_Staff
   m_TagString: Untagged
@@ -32,6 +33,31 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &8741483332150860968
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6514766370964017793}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 47446a27c1fe8534e876ba7aa85ea06f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  weaponName: Wooden Staff
+  baseDamage: 12
+  attackCooldown: 2
+  attackRange: 6
+  targetLayer:
+    serializedVersion: 2
+    m_Bits: 512
+  animator: {fileID: 6524322740970523696}
+  animatorController: {fileID: 9100000, guid: 0a98f4e9ae60f674bbadfe9f5562c2b4, type: 2}
+  spellPrefabs: []
+  projectileSpeed: 15
+  firePoint: {fileID: 8070128013781491998}
+  currentSpellType: 0
 --- !u!1001 &1797578263812636262
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -94,6 +120,11 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -8418885108249170206, guid: 81dace31091bca448afd8cdc81933fa2,
+        type: 3}
+      propertyPath: m_Name
+      value: orb
+      objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 81dace31091bca448afd8cdc81933fa2,
         type: 3}
       propertyPath: m_Name
@@ -131,6 +162,12 @@ Animator:
 --- !u!4 &2267842329630906765 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 81dace31091bca448afd8cdc81933fa2,
+    type: 3}
+  m_PrefabInstance: {fileID: 1797578263812636262}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &8070128013781491998 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -644967731239837832, guid: 81dace31091bca448afd8cdc81933fa2,
     type: 3}
   m_PrefabInstance: {fileID: 1797578263812636262}
   m_PrefabAsset: {fileID: 0}

@@ -30,9 +30,7 @@ public class CameraController : MonoBehaviour
     public CameraMode currentMode = CameraMode.ThirdPerson;
     
     private float currentRotationX = 0f;
-    private float currentRotationY = 0f;
-    private float targetDistance;
-    private bool manualFirstPerson = false;
+    private float currentRotationY = 0f;    private bool manualFirstPerson = false;
     
     public enum CameraMode { FirstPerson, ThirdPerson }
     
@@ -44,8 +42,6 @@ public class CameraController : MonoBehaviour
             currentRotationY = Mathf.Atan2(direction.x, direction.z) * Mathf.Rad2Deg;
             currentRotationX = -Mathf.Asin(direction.y) * Mathf.Rad2Deg;
         }
-        
-        targetDistance = thirdPersonOffset.magnitude;
         
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;

@@ -1,5 +1,5 @@
 // -------------------------------------------------- //
-// Scripts/Managers/LayoutManager.cs (FIXED)
+// Scripts/Managers/LayoutManager.cs
 // -------------------------------------------------- //
 
 using UnityEngine;
@@ -8,7 +8,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using Debug = UnityEngine.Debug;
-using System.Collections;
 
 [RequireComponent(typeof(BiomeManager))]
 public class LayoutManager : MonoBehaviour
