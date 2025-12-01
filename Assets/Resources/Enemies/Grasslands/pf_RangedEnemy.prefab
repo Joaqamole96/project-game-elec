@@ -363,6 +363,7 @@ GameObject:
   - component: {fileID: 8035681660144644490}
   - component: {fileID: -8088324483484706421}
   - component: {fileID: -9110580144272714362}
+  - component: {fileID: 4391381679310404486}
   m_Layer: 9
   m_Name: pf_RangedEnemy
   m_TagString: Enemy
@@ -452,6 +453,20 @@ MonoBehaviour:
   animator: {fileID: 8035681660144644490}
   minDistance: 4
   projectileSpeed: 10
+--- !u!136 &4391381679310404486
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7153141402127884706}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 0
+  m_Enabled: 1
+  m_Radius: 0.75
+  m_Height: 0.75
+  m_Direction: 1
+  m_Center: {x: 0, y: 0.375, z: 0}
 --- !u!1 &7446019047767849115
 GameObject:
   m_ObjectHideFlags: 0

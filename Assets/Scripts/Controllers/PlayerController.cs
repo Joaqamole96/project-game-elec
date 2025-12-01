@@ -16,7 +16,7 @@ public class PlayerController : MonoBehaviour
     public int playerDamage = 15;
     public float attackRange = 2f;
     public float attackCooldown = 1f;
-    public LayerMask enemyLayer = 1;
+    public LayerMask enemyLayer = 9;
 
     [Header("Components")]
     public Rigidbody rb;
@@ -198,6 +198,8 @@ public class PlayerController : MonoBehaviour
         {
             Debug.Log("Calling WeaponManager.Attack()...");
             weaponManager.Attack(transform.position + Vector3.up, attackDirection);
+            // Trying this as well
+            PerformBasicMeleeAttack(attackDirection);
         }
         else
         {

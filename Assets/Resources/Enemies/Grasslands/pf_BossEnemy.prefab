@@ -333,6 +333,7 @@ GameObject:
   - component: {fileID: 1077356409}
   - component: {fileID: 14319899595867306}
   - component: {fileID: -7544677498373624369}
+  - component: {fileID: 4188558478504111601}
   m_Layer: 9
   m_Name: pf_BossEnemy
   m_TagString: Enemy
@@ -426,6 +427,20 @@ MonoBehaviour:
   enrageDamageMultiplier: 1.5
   enrageSpeedMultiplier: 1.3
   enrageEffect: {fileID: 0}
+--- !u!136 &4188558478504111601
+CapsuleCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1077356408}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 0
+  m_Enabled: 1
+  m_Radius: 2.25
+  m_Height: 4
+  m_Direction: 1
+  m_Center: {x: 0, y: 2, z: 0}
 --- !u!1 &1099011281
 GameObject:
   m_ObjectHideFlags: 0

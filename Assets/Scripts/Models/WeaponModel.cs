@@ -2,6 +2,7 @@
 // Scripts/Models/WeaponModel.cs (UPDATED)
 // ================================================== //
 
+using System.Collections;
 using UnityEngine;
 
 /// <summary>
@@ -19,6 +20,8 @@ public abstract class WeaponModel : MonoBehaviour
     [Header("Animation")]
     public Animator animator;
     public RuntimeAnimatorController animatorController;
+
+    private Coroutine attackResetCoroutine;
     
     protected float lastAttackTime = 0f;
     protected bool isEquipped = false;
@@ -32,6 +35,31 @@ public abstract class WeaponModel : MonoBehaviour
         Debug.Log($"Able to attack: {Time.time >= lastAttackTime + attackCooldown}");
         Debug.Log($"Is attacking: {isAttacking}");
         return Time.time >= lastAttackTime + attackCooldown && !isAttacking;
+    }
+
+    protected virtual void StartAttack()
+    {
+        isAttacking = true;
+        lastAttackTime = Time.time;
+        
+        // Start auto-reset coroutine
+        if (attackResetCoroutine != null)
+            StopCoroutine(attackResetCoroutine);
+        attackResetCoroutine = StartCoroutine(ResetAttackState());
+    }
+
+    private IEnumerator ResetAttackState()
+    {
+        // Auto-reset after reasonable time (attackCooldown + buffer)
+        yield return new WaitForSeconds(attackCooldown + 0.5f);
+        
+        if (isAttacking)
+        {
+            Debug.LogWarning("Auto-resetting attack state (animation event may have failed)");
+            isAttacking = false;
+        }
+        
+        attackResetCoroutine = null;
     }
 
     public virtual void Equip()
@@ -58,17 +86,34 @@ public abstract class WeaponModel : MonoBehaviour
         Debug.Log($"Attack registered on {lastAttackTime}");
         lastAttackTime = Time.time;
     }
+
+    public virtual void OnAttackComplete()
+    {
+        isAttacking = false;
+        Debug.Log($"Attack completed, isAttacking set to false");
+    }
+
+    public void CompleteAttack()
+    {
+        isAttacking = false;
+        
+        if (attackResetCoroutine != null)
+        {
+            StopCoroutine(attackResetCoroutine);
+            attackResetCoroutine = null;
+        }
+    }
+
+    void OnDisable()
+    {
+        if (attackResetCoroutine != null)
+        {
+            StopCoroutine(attackResetCoroutine);
+            attackResetCoroutine = null;
+        }
+        isAttacking = false;
+    }
 }
-
-
-
-
-
-
-
-
-
-
 
 // ================================================== //
 // WEAPON DATA - Configuration

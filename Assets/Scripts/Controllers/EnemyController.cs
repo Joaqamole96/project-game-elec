@@ -208,6 +208,7 @@ public class EnemyController : MonoBehaviour
     public virtual void TakeDamage(int damageAmount)
     {
         if (isDead) return;
+        Debug.LogError("This enemy took damage!");
         
         CurrentHealth -= damageAmount;
         CurrentHealth = Mathf.Max(0, CurrentHealth);

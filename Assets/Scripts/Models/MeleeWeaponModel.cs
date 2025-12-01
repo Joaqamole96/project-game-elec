@@ -2,6 +2,8 @@
 // MELEE WEAPON - Combo System
 // ================================================== //
 
+using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class MeleeWeaponModel : WeaponModel
@@ -16,6 +18,8 @@ public class MeleeWeaponModel : WeaponModel
     private float lastComboTime = 0f;
     private float comboWindow = 0.5f;
     private bool comboQueued = false;
+
+    private Coroutine attackTimeoutCoroutine;
     
     void Update()
     {
@@ -35,26 +39,40 @@ public class MeleeWeaponModel : WeaponModel
     
     public override void Attack(Vector3 attackPosition, Vector3 attackDirection)
     {
-        if (!CanAttack())
-        {
-            Debug.LogError("Cannot attack.");
-            // Queue next combo attack if within window
-            if (isAttacking && Time.time <= lastComboTime + comboWindow)
-            {
-            Debug.Log("Attack is queued into combo.");
-                comboQueued = true;
-            }
-            else
-            {
-                Debug.LogError("Cannot queue into combo either.");
-            }
-            return;
-        }
+        // if (!CanAttack())
+        // {
+        //     Debug.LogError("Cannot attack.");
+        //     if (isAttacking && Time.time <= lastComboTime + comboWindow)
+        //     {
+        //         Debug.Log("Attack is queued into combo.");
+        //         comboQueued = true;
+        //     }
+        //     return;
+        // }
+
+        StartAttack();
+
+        // Start a timeout to ensure isAttacking gets reset
+        if (attackTimeoutCoroutine != null)
+            StopCoroutine(attackTimeoutCoroutine);
+        attackTimeoutCoroutine = StartCoroutine(AttackTimeout());
         
         if (currentCombo == 0)
         {
             Debug.Log("Combo index is 0. Starting combo...");
             StartCombo();
+        }
+    }
+
+    private IEnumerator AttackTimeout()
+    {
+        // Wait for maximum reasonable attack duration (2x attackCooldown)
+        yield return new WaitForSeconds(attackCooldown * 2f);
+        
+        if (isAttacking)
+        {
+            Debug.LogWarning($"Attack timeout - forcing isAttacking to false");
+            isAttacking = false;
         }
     }
     
@@ -129,9 +147,28 @@ public class MeleeWeaponModel : WeaponModel
     }
     
     // Called by animation event
-    public void OnAttackComplete()
+    public override void OnAttackComplete()
     {
         isAttacking = false;
+        
+        // Stop the timeout coroutine
+        if (attackTimeoutCoroutine != null)
+        {
+            StopCoroutine(attackTimeoutCoroutine);
+            attackTimeoutCoroutine = null;
+        }
+        
+        Debug.Log("Attack animation completed");
+    }
+
+    void OnDisable()
+    {
+        // Clean up
+        if (attackTimeoutCoroutine != null)
+        {
+            StopCoroutine(attackTimeoutCoroutine);
+            attackTimeoutCoroutine = null;
+        }
     }
     
     protected virtual void DamageTarget(GameObject target)
