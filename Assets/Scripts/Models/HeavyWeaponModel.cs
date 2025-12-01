@@ -30,7 +30,7 @@ public class HeavyWeaponModel : WeaponModel
     
     public override void Attack(Vector3 attackPosition, Vector3 attackDirection)
     {
-        if (!CanAttack) return;
+        if (!CanAttack()) return;
         
         // Start charging
         isCharging = true;

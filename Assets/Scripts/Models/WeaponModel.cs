@@ -23,9 +23,17 @@ public abstract class WeaponModel : MonoBehaviour
     protected float lastAttackTime = 0f;
     protected bool isEquipped = false;
     protected bool isAttacking = false;
-    
-    public bool CanAttack => Time.time >= lastAttackTime + attackCooldown && !isAttacking;
-    
+
+    // public bool CanAttack => Time.time >= lastAttackTime + attackCooldown && !isAttacking;
+    public bool CanAttack()
+    {
+        Debug.Log($"Time: {Time.time}");
+        Debug.Log($"Cooldown: {lastAttackTime + attackCooldown}");
+        Debug.Log($"Able to attack: {Time.time >= lastAttackTime + attackCooldown}");
+        Debug.Log($"Is attacking: {isAttacking}");
+        return Time.time >= lastAttackTime + attackCooldown && !isAttacking;
+    }
+
     public virtual void Equip()
     {
         isEquipped = true;
@@ -47,6 +55,7 @@ public abstract class WeaponModel : MonoBehaviour
     
     protected void RegisterAttack()
     {
+        Debug.Log($"Attack registered on {lastAttackTime}");
         lastAttackTime = Time.time;
     }
 }

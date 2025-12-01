@@ -14,7 +14,7 @@ public class LightWeaponModel : WeaponModel
     
     public override void Attack(Vector3 attackPosition, Vector3 attackDirection)
     {
-        if (!CanAttack) return;
+        if (!CanAttack()) return;
         
         isAttacking = true;
         attackCount++;

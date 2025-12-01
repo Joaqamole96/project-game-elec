@@ -1,5 +1,5 @@
 // ================================================== //
-// Scripts/Managers/WeaponManager.cs (ENHANCED)
+// Scripts/Managers/WeaponManager.cs (FIXED)
 // ================================================== //
 
 using UnityEngine;
@@ -11,40 +11,42 @@ public class WeaponManager : MonoBehaviour
     public GameObject currentWeaponInstance;
     
     [Header("Settings")]
-    public Transform weaponHolder; // Child transform where weapon visual appears
+    public Transform weaponHolder;
     private float lastAttackTime = 0f;
     
     private PlayerController player;
+    private Camera mainCamera;
     
     void Start()
     {
         player = GetComponent<PlayerController>();
+        mainCamera = Camera.main;
         
-        // Create weapon holder if doesn't exist
+        // CRITICAL FIX: Create weapon holder in front of camera view
         if (weaponHolder == null)
         {
             GameObject holder = new("WeaponHolder");
             holder.transform.SetParent(transform);
-            holder.transform.localPosition = new Vector3(0.8f, 0f, 0.4f);
+            // Position weapon in front and slightly to the right (FPS view)
+            holder.transform.SetLocalPositionAndRotation(new Vector3(0.8f, 0f, 0.6f), Quaternion.identity);
             weaponHolder = holder.transform;
         }
         
-        // Start with default sword
-        WeaponData starterWeapon = WeaponConfig.Instance?.GetRandomWeapon();
+        // Start with default weapon
+        WeaponData starterWeapon = WeaponConfig.Instance?.GetWeaponData("Sword");
         if (starterWeapon != null)
         {
             EquipWeapon(starterWeapon);
         }
     }
     
-    void Update()
+    void LateUpdate()
     {
-        // Weapon switching with number keys
-        // if (Input.GetKeyDown(KeyCode.Alpha1) && currentWeaponData != null)
-        // {
-        //     // Could switch to saved weapon slot 1
-        // }
-        // NOTE: You can only equip one weapon at a time.
+        // CRITICAL: Make weapon holder face camera direction
+        if (weaponHolder != null && mainCamera != null)
+        {
+            weaponHolder.rotation = mainCamera.transform.rotation;
+        }
     }
     
     public void PickupWeapon(WeaponData weaponData)
@@ -68,6 +70,16 @@ public class WeaponManager : MonoBehaviour
             currentWeaponInstance = Instantiate(weaponData.prefab, weaponHolder);
             currentWeaponInstance.transform.localPosition = Vector3.zero;
             currentWeaponInstance.transform.localRotation = Quaternion.identity;
+            
+            // Setup weapon script if it has one
+            WeaponModel weaponScript = currentWeaponInstance.GetComponent<WeaponModel>();
+            if (weaponScript != null)
+            {
+                weaponScript.baseDamage = weaponData.damage;
+                weaponScript.attackRange = weaponData.range;
+                weaponScript.attackCooldown = weaponData.attackSpeed;
+                weaponScript.Equip();
+            }
         }
         
         // Update player stats
@@ -83,32 +95,57 @@ public class WeaponManager : MonoBehaviour
     
     public void Attack(Vector3 attackPosition, Vector3 attackDirection)
     {
-        if (currentWeaponData == null) return;
-        if (Time.time < lastAttackTime + currentWeaponData.attackSpeed) return;
+        if (currentWeaponData == null)
+        {
+            Debug.LogError("Current weapon data is null.");
+            return;
+        }
+        if (Time.time < lastAttackTime + currentWeaponData.attackSpeed)
+        {
+            Debug.LogError($"Too early to attack, wait {lastAttackTime + currentWeaponData.attackSpeed - Time.time} more seconds.");
+            return;
+        }
         
         lastAttackTime = Time.time;
 
+        // Trigger weapon animation if exists
         if (currentWeaponInstance != null)
         {
+            WeaponModel weaponScript = currentWeaponInstance.GetComponent<WeaponModel>();
+            Debug.Log($"weaponScript assigned as {weaponScript.GetType()}.");
+            if (weaponScript != null)
+            {
+                Debug.Log($"Calling {weaponScript.GetType()}.Attack()...");
+                weaponScript.Attack(attackPosition, attackDirection);
+                return; // Let weapon handle its own attack
+            }
+            else
+            {
+                Debug.LogError($"WeaponModel is null.");
+            }
+            
             Animator weaponAnimator = currentWeaponInstance.GetComponentInChildren<Animator>();
             if (weaponAnimator != null)
             {
                 weaponAnimator.SetTrigger("Attack");
             }
+            else
+            {
+                Debug.LogError($"Animator is null.");
+            }
         }
         
+        // Fallback: Handle attack based on weapon type
         switch (currentWeaponData.weaponType)
         {
             case WeaponType.Melee:
+            case WeaponType.Charge:
                 PerformMeleeAttack(attackPosition, attackDirection);
                 break;
                 
             case WeaponType.Ranged:
-                PerformRangedAttack(attackPosition, attackDirection);
-                break;
-                
             case WeaponType.Magic:
-                PerformMagicAttack(attackPosition, attackDirection);
+                PerformRangedAttack(attackPosition, attackDirection);
                 break;
         }
     }
@@ -132,64 +169,79 @@ public class WeaponManager : MonoBehaviour
         
         // Visual effect
         SpawnMeleeEffect(attackCenter);
-        // currentWeaponInstance.animator.SetTrigger("Swing");
     }
     
     private void PerformRangedAttack(Vector3 position, Vector3 direction)
     {
-        GameObject projectile = CreateProjectile(position, direction, ProjectileType.Arrow);
+        // Check if weapon has projectile prefab
+        WeaponModel weaponScript = currentWeaponInstance?.GetComponent<WeaponModel>();
+        GameObject projectilePrefab = null;
         
-        Rigidbody rb = projectile.GetComponent<Rigidbody>();
-        if (rb != null)
+        if (weaponScript is RangedWeaponModel ranged)
         {
-            rb.velocity = direction * currentWeaponData.projectileSpeed;
+            projectilePrefab = ranged.projectilePrefab;
         }
+        else if (weaponScript is MagicWeaponModel magic)
+        {
+            projectilePrefab = magic.spellPrefabs != null && magic.spellPrefabs.Length > 0 
+                ? magic.spellPrefabs[magic.currentSpellType] 
+                : null;
+        }
+        
+        GameObject projectile;
+        
+        if (projectilePrefab != null)
+        {
+            // Use weapon's projectile
+            projectile = Instantiate(projectilePrefab, position, Quaternion.LookRotation(direction));
+        }
+        else
+        {
+            // Create fallback projectile
+            projectile = CreateFallbackProjectile(position, direction);
+        }
+        
+        // Setup projectile physics
+        Rigidbody rb = projectile.GetComponent<Rigidbody>();
+        if (rb == null)
+        {
+            rb = projectile.AddComponent<Rigidbody>();
+            rb.useGravity = false;
+            rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
+        }
+        rb.velocity = direction * currentWeaponData.projectileSpeed;
+        
+        // Setup projectile damage
+        ProjectileController projController = projectile.GetComponent<ProjectileController>();
+        if (projController == null)
+        {
+            projController = projectile.AddComponent<ProjectileController>();
+        }
+        projController.damage = currentWeaponData.damage;
+        projController.owner = player.gameObject;
+        projController.targetLayer = player.enemyLayer;
+        
+        // Auto-destroy
+        Destroy(projectile, 5f);
     }
     
-    private void PerformMagicAttack(Vector3 position, Vector3 direction)
-    {
-        // Check mana (if implemented)
-        // For now, just spawn magic projectile
-        
-        GameObject projectile = CreateProjectile(position, direction, ProjectileType.Magic);
-        
-        Rigidbody rb = projectile.GetComponent<Rigidbody>();
-        if (rb != null)
-        {
-            rb.velocity = direction * currentWeaponData.projectileSpeed;
-        }
-    }
-    
-    private GameObject CreateProjectile(Vector3 position, Vector3 direction, ProjectileType type)
+    private GameObject CreateFallbackProjectile(Vector3 position, Vector3 direction)
     {
         GameObject projectile = GameObject.CreatePrimitive(PrimitiveType.Sphere);
         projectile.transform.position = position;
         projectile.transform.localScale = Vector3.one * 0.3f;
-        projectile.name = $"Projectile_{type}";
-        
-        // Setup physics
-        Rigidbody rb = projectile.AddComponent<Rigidbody>();
-        rb.useGravity = false;
-        rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
+        projectile.name = "Projectile";
         
         // Visual
         Renderer renderer = projectile.GetComponent<Renderer>();
+        Color projectileColor = currentWeaponData.weaponType == WeaponType.Magic ? Color.magenta : Color.yellow;
         Material mat = new(Shader.Find("Standard"))
         {
-            color = type == ProjectileType.Magic ? Color.magenta : Color.yellow
+            color = projectileColor
         };
         mat.EnableKeyword("_EMISSION");
-        mat.SetColor("_EmissionColor", mat.color * 2f);
+        mat.SetColor("_EmissionColor", projectileColor * 2f);
         renderer.material = mat;
-        
-        // Add projectile script
-        ProjectileController projController = projectile.AddComponent<ProjectileController>();
-        projController.damage = currentWeaponData.damage;
-        projController.owner = player.gameObject;
-        projController.enemyLayer = player.enemyLayer;
-        
-        // Auto-destroy after 5 seconds
-        Destroy(projectile, 5f);
         
         return projectile;
     }
@@ -230,8 +282,9 @@ public class WeaponManager : MonoBehaviour
             {
                 player.powerManager.OnDamageDealt(finalDamage);
             }
+            
+            // Show damage number
+            UIManager.Instance?.ShowDamageDisplay(enemy.transform.position + Vector3.up, finalDamage, false, false);
         }
     }
-    
-    private enum ProjectileType { Arrow, Magic }
 }

@@ -57,6 +57,7 @@ MonoBehaviour:
   swingAngle: 60
   slashEffectPrefab: {fileID: 0}
   maxCombo: 3
+  currentCombo: 0
 --- !u!1001 &2139295075264701470
 PrefabInstance:
   m_ObjectHideFlags: 0

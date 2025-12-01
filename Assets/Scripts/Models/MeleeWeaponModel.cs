@@ -12,7 +12,7 @@ public class MeleeWeaponModel : WeaponModel
     
     [Header("Combo System")]
     public int maxCombo = 3;
-    private int currentCombo = 0;
+    public int currentCombo = 0;
     private float lastComboTime = 0f;
     private float comboWindow = 0.5f;
     private bool comboQueued = false;
@@ -26,7 +26,7 @@ public class MeleeWeaponModel : WeaponModel
         }
         
         // Process queued combo
-        if (comboQueued && !isAttacking && CanAttack)
+        if (comboQueued && !isAttacking && CanAttack())
         {
             comboQueued = false;
             ContinueCombo();
@@ -35,18 +35,25 @@ public class MeleeWeaponModel : WeaponModel
     
     public override void Attack(Vector3 attackPosition, Vector3 attackDirection)
     {
-        if (!CanAttack)
+        if (!CanAttack())
         {
+            Debug.LogError("Cannot attack.");
             // Queue next combo attack if within window
             if (isAttacking && Time.time <= lastComboTime + comboWindow)
             {
+            Debug.Log("Attack is queued into combo.");
                 comboQueued = true;
+            }
+            else
+            {
+                Debug.LogError("Cannot queue into combo either.");
             }
             return;
         }
         
         if (currentCombo == 0)
         {
+            Debug.Log("Combo index is 0. Starting combo...");
             StartCombo();
         }
     }
@@ -55,14 +62,19 @@ public class MeleeWeaponModel : WeaponModel
     {
         currentCombo = 1;
         lastComboTime = Time.time;
-        isAttacking = true;
+        // isAttacking = true;
         
         if (animator != null)
         {
             animator.SetInteger("ComboIndex", currentCombo);
             animator.SetTrigger("Attack");
         }
+        else
+        {
+            Debug.LogError("Animator is null.");
+        }
         
+        Debug.Log("Registering attack...");
         RegisterAttack();
     }
     
@@ -75,7 +87,7 @@ public class MeleeWeaponModel : WeaponModel
         }
         
         lastComboTime = Time.time;
-        isAttacking = true;
+        // isAttacking = true;
         
         if (animator != null)
         {

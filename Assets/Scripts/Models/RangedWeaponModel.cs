@@ -31,7 +31,7 @@ public class RangedWeaponModel : WeaponModel
     
     public override void Attack(Vector3 attackPosition, Vector3 attackDirection)
     {
-        if (!CanAttack) return;
+        if (!CanAttack()) return;
         
         // Start drawing
         isDrawing = true;

@@ -20,7 +20,7 @@ public class PlayerController : MonoBehaviour
 
     [Header("Components")]
     public Rigidbody rb;
-    public Animator animator;
+    // public Animator animator;
     public WeaponManager weaponManager;
     public PowerManager powerManager;
     public InventoryManager inventory;
@@ -31,7 +31,6 @@ public class PlayerController : MonoBehaviour
     public static PlayerController Instance { get; private set; }
     public int CurrentHealth { get; private set; }
     
-    private Vector3 movement;
     private Vector3 moveDirection;
     private bool isMoving;
     private float lastAttackTime = 0f;
@@ -172,14 +171,23 @@ public class PlayerController : MonoBehaviour
     
     private void PerformAttack()
     {
-        if (Time.time < lastAttackTime + attackCooldown) return;
+        if (Time.time < lastAttackTime + attackCooldown)
+        {
+            Debug.LogError($"Too early to attack, wait {lastAttackTime + attackCooldown - Time.time} more seconds.");
+            return;
+        }
+        Debug.Log("Attacking...");
         
         lastAttackTime = Time.time;
         
-        if (animator != null)
-        {
-            animator.SetTrigger("Attack");
-        }
+        // if (animator != null)
+        // {
+        //     animator.SetTrigger("Attack");
+        // }
+        // else
+        // {
+        //     Debug.LogError($"Animator is null.");
+        // }
         
         // CRITICAL FIX: Use camera forward direction for attacks
         Vector3 attackDirection = mainCamera != null ? mainCamera.transform.forward : transform.forward;
@@ -188,10 +196,12 @@ public class PlayerController : MonoBehaviour
         
         if (weaponManager != null && weaponManager.currentWeaponData != null)
         {
+            Debug.Log("Calling WeaponManager.Attack()...");
             weaponManager.Attack(transform.position + Vector3.up, attackDirection);
         }
         else
         {
+            Debug.LogError($"WeaponManager or current weapon data is null.");
             PerformBasicMeleeAttack(attackDirection);
         }
     }
@@ -225,11 +235,11 @@ public class PlayerController : MonoBehaviour
     
     private void UpdateAnimations()
     {
-        if (animator != null)
-        {
-            animator.SetBool("IsMoving", isMoving);
-            animator.SetFloat("MoveSpeed", moveDirection.magnitude);
-        }
+        // if (animator != null)
+        // {
+        //     animator.SetBool("IsMoving", isMoving);
+        //     animator.SetFloat("MoveSpeed", moveDirection.magnitude);
+        // }
     }
     
     private void UpdateRoomDetection()
@@ -257,10 +267,10 @@ public class PlayerController : MonoBehaviour
         CurrentHealth -= damage;
         CurrentHealth = Mathf.Max(0, CurrentHealth);
         
-        if (animator != null)
-        {
-            animator.SetTrigger("TakeDamage");
-        }
+        // if (animator != null)
+        // {
+        //     animator.SetTrigger("TakeDamage");
+        // }
 
         UIManager.Instance?.ShowDamageDisplay(transform.position + Vector3.up, damage, false, false);
         
@@ -286,10 +296,10 @@ public class PlayerController : MonoBehaviour
         
         isDead = true;
         
-        if (animator != null)
-        {
-            animator.SetTrigger("Die");
-        }
+        // if (animator != null)
+        // {
+        //     animator.SetTrigger("Die");
+        // }
         
         rb.velocity = Vector3.zero;
         rb.isKinematic = true;
