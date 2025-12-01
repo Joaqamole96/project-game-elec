@@ -291,7 +291,7 @@ public static class ResourceService
     
     // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
     public static GameObject LoadBowPrefab()
-        => LoadCategoryPrefab(CATEGORY_WEAPONS, "BowPrefab");
+        => LoadCategoryPrefab(CATEGORY_WEAPONS, "pf_Bow");
     
     // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
     public static GameObject LoadStaffPrefab()

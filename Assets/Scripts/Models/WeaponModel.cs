@@ -1,12 +1,11 @@
-// -------------------------------------------------- //
-// Scripts/Models/WeaponModel.cs
-// -------------------------------------------------- //
+// ================================================== //
+// Scripts/Models/WeaponModel.cs (UPDATED)
+// ================================================== //
 
 using UnityEngine;
 
 /// <summary>
-/// Base class for all weapons in the game
-/// Provides common functionality for weapon behavior and state management
+/// Base weapon class with animator integration
 /// </summary>
 public abstract class WeaponModel : MonoBehaviour
 {
@@ -17,156 +16,267 @@ public abstract class WeaponModel : MonoBehaviour
     public float attackRange = 2f;
     public LayerMask targetLayer;
     
-    [Header("State")]
+    [Header("Animation")]
+    public Animator animator;
+    public RuntimeAnimatorController animatorController;
+    
     protected float lastAttackTime = 0f;
     protected bool isEquipped = false;
+    protected bool isAttacking = false;
     
-    /// <summary>
-    /// Checks if the weapon can currently attack based on cooldown
-    /// </summary>
-    public bool CanAttack => Time.time >= lastAttackTime + attackCooldown;
+    public bool CanAttack => Time.time >= lastAttackTime + attackCooldown && !isAttacking;
     
-    /// <summary>
-    /// Equips the weapon and activates its GameObject
-    /// </summary>
     public virtual void Equip()
     {
-        try
+        isEquipped = true;
+        gameObject.SetActive(true);
+        
+        if (animator == null)
         {
-            isEquipped = true;
-            gameObject.SetActive(true);
-            Debug.Log($"WeaponModel: Equipped {weaponName}");
-        }
-        catch (System.Exception ex)
-        {
-            Debug.LogError($"WeaponModel: Error equipping weapon {weaponName}: {ex.Message}");
+            animator = GetComponentInChildren<Animator>();
         }
     }
     
-    /// <summary>
-    /// Unequips the weapon and deactivates its GameObject
-    /// </summary>
     public virtual void Unequip()
     {
-        try
-        {
-            isEquipped = false;
-            gameObject.SetActive(false);
-            Debug.Log($"WeaponModel: Unequipped {weaponName}");
-        }
-        catch (System.Exception ex)
-        {
-            Debug.LogError($"WeaponModel: Error unequipping weapon {weaponName}: {ex.Message}");
-        }
+        isEquipped = false;
+        gameObject.SetActive(false);
     }
     
-    /// <summary>
-    /// Performs attack at specified position and direction
-    /// Must be implemented by derived classes
-    /// </summary>
-    /// <param name="attackPosition">World position to attack from</param>
-    /// <param name="attackDirection">Direction of the attack</param>
     public abstract void Attack(Vector3 attackPosition, Vector3 attackDirection);
     
-    /// <summary>
-    /// Registers that an attack has occurred and updates cooldown timer
-    /// </summary>
     protected void RegisterAttack()
     {
-        try
-        {
-            lastAttackTime = Time.time;
-        }
-        catch (System.Exception ex)
-        {
-            Debug.LogError($"WeaponModel: Error registering attack: {ex.Message}");
-        }
+        lastAttackTime = Time.time;
     }
 }
 
-/// <summary>
-/// Melee weapon implementation for close-range combat (sword, axe, etc.)
-/// Uses cone-based attack detection for swing mechanics
-/// </summary>
+// ================================================== //
+// MELEE WEAPON - Combo System
+// ================================================== //
+
 public class MeleeWeapon : WeaponModel
 {
     [Header("Melee Settings")]
     public float swingAngle = 60f;
     public GameObject slashEffectPrefab;
     
-    /// <summary>
-    /// Performs a melee attack in a cone-shaped area
-    /// </summary>
-    /// <param name="attackPosition">World position to attack from</param>
-    /// <param name="attackDirection">Direction of the melee swing</param>
-    public override void Attack(Vector3 attackPosition, Vector3 attackDirection)
+    [Header("Combo System")]
+    public int maxCombo = 3;
+    private int currentCombo = 0;
+    private float lastComboTime = 0f;
+    private float comboWindow = 0.5f;
+    private bool comboQueued = false;
+    
+    void Update()
     {
-        try
+        // Reset combo if window expired
+        if (Time.time > lastComboTime + comboWindow && currentCombo > 0)
         {
-            if (!CanAttack) 
-            {
-                Debug.Log($"MeleeWeapon: Cannot attack - cooldown active for {weaponName}");
-                return;
-            }
-            
-            RegisterAttack();
-            
-            // Spawn visual effect
-            if (slashEffectPrefab != null)
-            {
-                GameObject slash = Instantiate(slashEffectPrefab, attackPosition, Quaternion.LookRotation(attackDirection));
-                Destroy(slash, 0.5f);
-                Debug.Log($"MeleeWeapon: Spawned slash effect for {weaponName}");
-            }
-            else Debug.LogWarning($"MeleeWeapon: No slash effect prefab assigned for {weaponName}");
-            
-            // Attack in cone
-            Vector3 attackCenter = attackPosition + attackDirection * (attackRange * 0.5f);
-            Collider[] hits = Physics.OverlapSphere(attackCenter, attackRange, targetLayer);
-            
-            Debug.Log($"MeleeWeapon: {weaponName} attack found {hits.Length} potential targets in range");
-            
-            foreach (Collider hit in hits)
-            {
-                // Check if in swing cone
-                Vector3 dirToTarget = (hit.transform.position - attackPosition).normalized;
-                float angleToTarget = Vector3.Angle(attackDirection, dirToTarget);
-                
-                if (angleToTarget <= swingAngle / 2f) DamageTarget(hit.gameObject);
-            }
+            ResetCombo();
         }
-        catch (System.Exception ex)
+        
+        // Process queued combo
+        if (comboQueued && !isAttacking && CanAttack)
         {
-            Debug.LogError($"MeleeWeapon: Error during attack with {weaponName}: {ex.Message}");
+            comboQueued = false;
+            ContinueCombo();
         }
     }
     
-    /// <summary>
-    /// Applies damage to a valid target
-    /// </summary>
-    /// <param name="target">The target GameObject to damage</param>
+    public override void Attack(Vector3 attackPosition, Vector3 attackDirection)
+    {
+        if (!CanAttack)
+        {
+            // Queue next combo attack if within window
+            if (isAttacking && Time.time <= lastComboTime + comboWindow)
+            {
+                comboQueued = true;
+            }
+            return;
+        }
+        
+        if (currentCombo == 0)
+        {
+            StartCombo();
+        }
+    }
+    
+    private void StartCombo()
+    {
+        currentCombo = 1;
+        lastComboTime = Time.time;
+        isAttacking = true;
+        
+        if (animator != null)
+        {
+            animator.SetInteger("ComboIndex", currentCombo);
+            animator.SetTrigger("Attack");
+        }
+        
+        RegisterAttack();
+    }
+    
+    private void ContinueCombo()
+    {
+        currentCombo++;
+        if (currentCombo > maxCombo)
+        {
+            currentCombo = 1; // Loop back
+        }
+        
+        lastComboTime = Time.time;
+        isAttacking = true;
+        
+        if (animator != null)
+        {
+            animator.SetInteger("ComboIndex", currentCombo);
+            animator.SetTrigger("Attack");
+        }
+        
+        RegisterAttack();
+    }
+    
+    private void ResetCombo()
+    {
+        currentCombo = 0;
+        comboQueued = false;
+        
+        if (animator != null)
+        {
+            animator.SetInteger("ComboIndex", 0);
+        }
+    }
+    
+    // Called by animation event
+    public void OnDealDamage()
+    {
+        // Damage detection in cone
+        Vector3 attackCenter = transform.position + transform.forward * (attackRange * 0.5f);
+        Collider[] hits = Physics.OverlapSphere(attackCenter, attackRange, targetLayer);
+        
+        foreach (Collider hit in hits)
+        {
+            Vector3 dirToTarget = (hit.transform.position - transform.position).normalized;
+            float angleToTarget = Vector3.Angle(transform.forward, dirToTarget);
+            
+            if (angleToTarget <= swingAngle / 2f)
+            {
+                DamageTarget(hit.gameObject);
+            }
+        }
+    }
+    
+    // Called by animation event
+    public void OnAttackComplete()
+    {
+        isAttacking = false;
+    }
+    
     protected virtual void DamageTarget(GameObject target)
     {
-        try
+        if (target.TryGetComponent<EnemyController>(out var enemy))
         {
-            if (target.TryGetComponent<EnemyController>(out var enemy))
-            {
-                enemy.TakeDamage(baseDamage);
-                Debug.Log($"{weaponName} hit {target.name} for {baseDamage} damage");
-            }
-            else Debug.Log($"MeleeWeapon: {weaponName} hit {target.name} but no EnemyController found");
-        }
-        catch (System.Exception ex)
-        {
-            Debug.LogError($"MeleeWeapon: Error damaging target {target.name}: {ex.Message}");
+            enemy.TakeDamage(baseDamage);
+            Debug.Log($"{weaponName} hit {target.name} for {baseDamage} damage");
         }
     }
 }
 
-/// <summary>
-/// Ranged weapon implementation for projectile-based attacks (bow, gun, etc.)
-/// Spawns and launches projectiles toward targets
-/// </summary>
+// ================================================== //
+// CHARGE WEAPON - Hold to charge
+// ================================================== //
+
+public class ChargeWeapon : WeaponModel
+{
+    [Header("Charge Settings")]
+    public float maxChargeTime = 2f;
+    public float chargeMultiplier = 2f;
+    
+    private bool isCharging = false;
+    private float chargeStartTime = 0f;
+    private float currentCharge = 0f;
+    
+    void Update()
+    {
+        if (isCharging)
+        {
+            float chargeTime = Time.time - chargeStartTime;
+            currentCharge = Mathf.Clamp01(chargeTime / maxChargeTime);
+            
+            if (animator != null)
+            {
+                animator.SetFloat("ChargeLevel", currentCharge);
+            }
+        }
+    }
+    
+    public override void Attack(Vector3 attackPosition, Vector3 attackDirection)
+    {
+        if (!CanAttack) return;
+        
+        // Start charging
+        isCharging = true;
+        chargeStartTime = Time.time;
+        
+        if (animator != null)
+        {
+            animator.SetBool("IsCharging", true);
+            animator.SetTrigger("Attack");
+        }
+    }
+    
+    public void ReleaseAttack()
+    {
+        if (!isCharging) return;
+        
+        isCharging = false;
+        
+        if (animator != null)
+        {
+            animator.SetBool("IsCharging", false);
+        }
+        
+        RegisterAttack();
+    }
+    
+    // Called by animation event
+    public void OnDealDamage()
+    {
+        int finalDamage = Mathf.RoundToInt(baseDamage * (1f + currentCharge * chargeMultiplier));
+        
+        Vector3 attackCenter = transform.position + transform.forward * (attackRange * 0.5f);
+        Collider[] hits = Physics.OverlapSphere(attackCenter, attackRange, targetLayer);
+        
+        foreach (Collider hit in hits)
+        {
+            if (hit.TryGetComponent<EnemyController>(out var enemy))
+            {
+                enemy.TakeDamage(finalDamage);
+                
+                // Knockback on charged attacks
+                if (currentCharge > 0.5f && hit.TryGetComponent<Rigidbody>(out var rb))
+                {
+                    Vector3 knockback = (hit.transform.position - transform.position).normalized * 10f;
+                    rb.AddForce(knockback, ForceMode.Impulse);
+                }
+            }
+        }
+        
+        currentCharge = 0f;
+    }
+    
+    // Called by animation event
+    public void OnAttackComplete()
+    {
+        isAttacking = false;
+    }
+}
+
+// ================================================== //
+// RANGED WEAPON - Draw and release
+// ================================================== //
+
 public class RangedWeapon : WeaponModel
 {
     [Header("Ranged Settings")]
@@ -174,57 +284,207 @@ public class RangedWeapon : WeaponModel
     public float projectileSpeed = 20f;
     public Transform firePoint;
     
-    /// <summary>
-    /// Performs a ranged attack by spawning and launching a projectile
-    /// </summary>
-    /// <param name="attackPosition">World position to attack from</param>
-    /// <param name="attackDirection">Direction to fire the projectile</param>
+    private bool isDrawing = false;
+    private float drawStartTime = 0f;
+    private float drawAmount = 0f;
+    private float drawTime = 0.5f;
+    
+    void Update()
+    {
+        if (isDrawing)
+        {
+            drawAmount += Time.deltaTime * 2f; // 0.5s to full draw
+            
+            if (animator != null)
+            {
+                animator.SetFloat("DrawAmount", drawAmount);
+            }
+        }
+    }
+    
     public override void Attack(Vector3 attackPosition, Vector3 attackDirection)
     {
-        try
+        if (!CanAttack) return;
+        
+        // Start drawing
+        isDrawing = true;
+        drawStartTime = Time.time;
+        
+        if (animator != null)
         {
-            if (!CanAttack) 
-            {
-                Debug.Log($"RangedWeapon: Cannot attack - cooldown active for {weaponName}");
-                return;
-            }
-            
-            RegisterAttack();
-            
-            // Spawn projectile
-            if (projectilePrefab != null)
-            {
-                Vector3 spawnPos = firePoint != null ? firePoint.position : attackPosition;
-                GameObject projectile = Instantiate(projectilePrefab, spawnPos, Quaternion.LookRotation(attackDirection));
-                
-                Debug.Log($"RangedWeapon: Fired projectile from {weaponName} at position {spawnPos}");
-                
-                // Setup projectile
-                if (projectile.TryGetComponent<Rigidbody>(out var rb)) rb.velocity = attackDirection * projectileSpeed;
-                else Debug.LogWarning($"RangedWeapon: Projectile from {weaponName} has no Rigidbody component");
-
-                if (projectile.TryGetComponent<ProjectileModel>(out var proj))
-                {
-                    proj.damage = baseDamage;
-                    proj.targetLayer = targetLayer;
-                }
-                else Debug.LogWarning($"RangedWeapon: Projectile from {weaponName} has no ProjectileModel component");
-
-                Destroy(projectile, 5f);
-            }
-            else Debug.LogError($"RangedWeapon: No projectile prefab assigned for {weaponName}");
+            animator.SetBool("IsDrawing", true);
+            animator.SetTrigger("Attack");
         }
-        catch (System.Exception ex)
+    }
+    
+    public void ReleaseAttack()
+    {
+        if (!isDrawing) return;
+        
+        isDrawing = false;
+        
+        if (animator != null)
         {
-            Debug.LogError($"RangedWeapon: Error during attack with {weaponName}: {ex.Message}");
+            animator.SetBool("IsDrawing", false);
         }
+        
+        RegisterAttack();
+    }
+    
+    // Called by animation event
+    public void OnSpawnProjectile()
+    {
+        if (projectilePrefab == null) return;
+        
+        Vector3 spawnPos = firePoint != null ? firePoint.position : transform.position;
+        GameObject projectile = Instantiate(projectilePrefab, spawnPos, Quaternion.LookRotation(transform.forward));
+        
+        if (projectile.TryGetComponent<Rigidbody>(out var rb))
+        {
+            rb.velocity = transform.forward * projectileSpeed * (0.5f + drawAmount * 0.5f);
+        }
+        
+        if (projectile.TryGetComponent<ProjectileModel>(out var proj))
+        {
+            proj.damage = Mathf.RoundToInt(baseDamage * (0.5f + drawAmount * 0.5f));
+            proj.targetLayer = targetLayer;
+        }
+        
+        Destroy(projectile, 5f);
+        drawAmount = 0f;
+    }
+    
+    // Called by animation event
+    public void OnAttackComplete()
+    {
+        isAttacking = false;
     }
 }
 
-/// <summary>
-/// Serializable data container for weapon properties and configuration
-/// Used for weapon definition and data storage separate from MonoBehaviour logic
-/// </summary>
+// ================================================== //
+// MAGIC WEAPON - Spell types
+// ================================================== //
+
+public class MagicWeapon : WeaponModel
+{
+    [Header("Magic Settings")]
+    public GameObject[] spellPrefabs; // 0:Fireball, 1:Lightning, 2:Ice
+    public float projectileSpeed = 15f;
+    public Transform firePoint;
+    public int currentSpellType = 0;
+    
+    public override void Attack(Vector3 attackPosition, Vector3 attackDirection)
+    {
+        if (!CanAttack) return;
+        
+        isAttacking = true;
+        
+        if (animator != null)
+        {
+            animator.SetInteger("SpellType", currentSpellType);
+            animator.SetTrigger("Attack");
+        }
+        
+        RegisterAttack();
+    }
+    
+    public void SetSpellType(int spellType)
+    {
+        currentSpellType = Mathf.Clamp(spellType, 0, spellPrefabs.Length - 1);
+    }
+    
+    // Called by animation event
+    public void OnSpawnProjectile()
+    {
+        if (spellPrefabs[currentSpellType] == null) return;
+        
+        Vector3 spawnPos = firePoint != null ? firePoint.position : transform.position;
+        GameObject spell = Instantiate(spellPrefabs[currentSpellType], spawnPos, Quaternion.LookRotation(transform.forward));
+        
+        if (spell.TryGetComponent<Rigidbody>(out var rb))
+        {
+            rb.velocity = transform.forward * projectileSpeed;
+        }
+        
+        if (spell.TryGetComponent<ProjectileModel>(out var proj))
+        {
+            proj.damage = baseDamage;
+            proj.targetLayer = targetLayer;
+        }
+        
+        Destroy(spell, 5f);
+    }
+    
+    // Called by animation event
+    public void OnAttackComplete()
+    {
+        isAttacking = false;
+    }
+}
+
+// ================================================== //
+// RAPID WEAPON - Fast alternating attacks
+// ================================================== //
+
+public class RapidWeapon : WeaponModel
+{
+    [Header("Rapid Settings")]
+    public float attackSpeedMultiplier = 1.5f;
+    
+    private int attackCount = 0;
+    private int finisherThreshold = 3;
+    
+    public override void Attack(Vector3 attackPosition, Vector3 attackDirection)
+    {
+        if (!CanAttack) return;
+        
+        isAttacking = true;
+        attackCount++;
+        
+        if (animator != null)
+        {
+            animator.SetInteger("AttackCount", attackCount % 2); // Alternate 0/1
+            animator.SetTrigger("Attack");
+            
+            // Speed up animation
+            animator.speed = attackSpeedMultiplier;
+        }
+        
+        RegisterAttack();
+        
+        // Reset count after finisher
+        if (attackCount >= finisherThreshold)
+        {
+            attackCount = 0;
+        }
+    }
+    
+    // Called by animation event
+    public void OnDealDamage()
+    {
+        Vector3 attackCenter = transform.position + transform.forward * (attackRange * 0.5f);
+        Collider[] hits = Physics.OverlapSphere(attackCenter, attackRange, targetLayer);
+        
+        foreach (Collider hit in hits)
+        {
+            if (hit.TryGetComponent<EnemyController>(out var enemy))
+            {
+                enemy.TakeDamage(baseDamage);
+            }
+        }
+    }
+    
+    // Called by animation event
+    public void OnAttackComplete()
+    {
+        isAttacking = false;
+    }
+}
+
+// ================================================== //
+// WEAPON DATA - Configuration
+// ================================================== //
+
 [System.Serializable]
 public class WeaponData
 {
@@ -241,4 +501,16 @@ public class WeaponData
     
     [Header("Prefab")]
     public GameObject prefab;
+    
+    [Header("Animation")]
+    public RuntimeAnimatorController animatorController;
+}
+
+public enum WeaponType
+{
+    Melee,      // Sword - combo system
+    Charge,     // Axe - hold to charge
+    Ranged,     // Bow - draw and release
+    Magic,      // Staff - spell types
+    Rapid       // Daggers - fast attacks
 }

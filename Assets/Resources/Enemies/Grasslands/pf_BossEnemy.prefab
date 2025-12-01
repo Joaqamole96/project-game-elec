@@ -332,6 +332,7 @@ GameObject:
   - component: {fileID: 1077356410}
   - component: {fileID: 1077356409}
   - component: {fileID: 14319899595867306}
+  - component: {fileID: -7544677498373624369}
   m_Layer: 9
   m_Name: pf_BossEnemy
   m_TagString: Enemy
@@ -366,7 +367,7 @@ Animator:
   m_GameObject: {fileID: 1077356408}
   m_Enabled: 1
   m_Avatar: {fileID: 9000000, guid: 0f2c5202b918687408ac5bc7429a03ea, type: 3}
-  m_Controller: {fileID: 9100000, guid: 64e2ef14a02f69a4b94edbee54ca296a, type: 2}
+  m_Controller: {fileID: 9100000, guid: eb8119aa8b1031e4eb27233e4fd78888, type: 2}
   m_CullingMode: 1
   m_UpdateMode: 0
   m_ApplyRootMotion: 0
@@ -399,6 +400,32 @@ NavMeshAgent:
   m_BaseOffset: 0
   m_WalkableMask: 4294967295
   m_ObstacleAvoidanceType: 4
+--- !u!114 &-7544677498373624369
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1077356408}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a3804a7dd2bc52545a36c3338b185f1c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  maxHealth: 200
+  damage: 25
+  moveSpeed: 3
+  attackRange: 2.5
+  detectionRange: 15
+  attackCooldown: 2
+  agent: {fileID: 14319899595867306}
+  animator: {fileID: 1077356409}
+  bossName: Golem
+  isEnraged: 0
+  enrageThreshold: 0.5
+  enrageDamageMultiplier: 1.5
+  enrageSpeedMultiplier: 1.3
+  enrageEffect: {fileID: 0}
 --- !u!1 &1099011281
 GameObject:
   m_ObjectHideFlags: 0

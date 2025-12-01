@@ -1,23 +1,28 @@
 // ================================================== //
-// Scripts/Controllers/MeleeEnemyController.cs
+// Scripts/Controllers/MeleeEnemyController.cs (UPDATED)
 // ================================================== //
 
 using UnityEngine;
 
-/// <summary>
-/// Standard melee enemy - balanced stats, straightforward behavior
-/// </summary>
 public class MeleeEnemyController : EnemyController
 {
     protected override void OnStart()
     {
-        // Melee enemy defaults (already set in base, can override here)
         maxHealth = 30;
         damage = 10;
         moveSpeed = 2.5f;
         attackRange = 1.5f;
         detectionRange = 8f;
-        attackCooldown = 1.5f;
+        attackCooldown = 2f;
+    }
+    
+    protected override void OnStateChanged(EnemyState oldState, EnemyState newState)
+    {
+        if (animator == null) return;
+        
+        // Update animator based on state
+        animator.SetBool("IsMoving", newState == EnemyState.Chasing || newState == EnemyState.Patrolling);
+        animator.SetBool("IsAttacking", newState == EnemyState.Attacking);
     }
     
     protected override void PerformAttack()
@@ -29,12 +34,31 @@ public class MeleeEnemyController : EnemyController
             animator.SetTrigger("Attack");
         }
         
-        // Simple melee swing
         if (PlayerInRange(attackRange))
         {
             DealDamageToPlayer(damage);
             Debug.Log($"Melee enemy dealt {damage} damage");
         }
+    }
+    
+    public override void TakeDamage(int damageAmount)
+    {
+        base.TakeDamage(damageAmount);
+        
+        if (!isDead && animator != null)
+        {
+            animator.SetTrigger("TakeDamage");
+        }
+    }
+    
+    protected override void Die()
+    {
+        if (animator != null)
+        {
+            animator.SetTrigger("Die");
+        }
+        
+        base.Die();
     }
     
     protected override void DropLoot()
@@ -55,6 +79,3 @@ public class MeleeEnemyController : EnemyController
         }
     }
 }
-
-
-

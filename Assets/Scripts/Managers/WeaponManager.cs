@@ -32,7 +32,7 @@ public class WeaponManager : MonoBehaviour
         }
         
         // Start with default sword
-        WeaponData starterWeapon = WeaponConfig.Instance?.GetWeaponData("Sword");
+        WeaponData starterWeapon = WeaponConfig.Instance?.GetRandomWeapon();
         if (starterWeapon != null)
         {
             EquipWeapon(starterWeapon);

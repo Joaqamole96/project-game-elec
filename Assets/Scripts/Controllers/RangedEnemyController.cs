@@ -1,12 +1,9 @@
 // ================================================== //
-// Scripts/Controllers/RangedEnemyController.cs
+// Scripts/Controllers/RangedEnemyController.cs (UPDATED)
 // ================================================== //
 
 using UnityEngine;
 
-/// <summary>
-/// Ranged enemy - shoots projectiles, maintains distance
-/// </summary>
 public class RangedEnemyController : EnemyController
 {
     [Header("Ranged Settings")]
@@ -15,7 +12,6 @@ public class RangedEnemyController : EnemyController
     
     protected override void OnStart()
     {
-        // Ranged enemy stats
         maxHealth = 20;
         damage = 8;
         moveSpeed = 2f;
@@ -30,7 +26,6 @@ public class RangedEnemyController : EnemyController
     {
         float distanceToPlayer = Vector3.Distance(transform.position, player.position);
         
-        // Custom state logic for ranged enemy
         if (distanceToPlayer < minDistance)
         {
             SetState(EnemyState.Retreating);
@@ -47,6 +42,16 @@ public class RangedEnemyController : EnemyController
         {
             SetState(EnemyState.Patrolling);
         }
+    }
+    
+    protected override void OnStateChanged(EnemyState oldState, EnemyState newState)
+    {
+        if (animator == null) return;
+        
+        animator.SetBool("IsMoving", newState == EnemyState.Chasing || 
+                                      newState == EnemyState.Patrolling || 
+                                      newState == EnemyState.Retreating);
+        animator.SetBool("IsAttacking", newState == EnemyState.Attacking);
     }
     
     protected override void PerformAttack()
@@ -69,15 +74,13 @@ public class RangedEnemyController : EnemyController
         GameObject projectile = GameObject.CreatePrimitive(PrimitiveType.Sphere);
         projectile.transform.position = spawnPosition;
         projectile.transform.localScale = Vector3.one * 0.3f;
-        projectile.name = "EnemyProjectileModel";
+        projectile.name = "EnemyProjectile";
         
-        // Physics
         Rigidbody rb = projectile.AddComponent<Rigidbody>();
         rb.useGravity = false;
         rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
         rb.velocity = direction * projectileSpeed;
         
-        // Visual
         Renderer renderer = projectile.GetComponent<Renderer>();
         Material mat = new(Shader.Find("Standard"))
         {
@@ -87,13 +90,32 @@ public class RangedEnemyController : EnemyController
         mat.SetColor("_EmissionColor", Color.red * 2f);
         renderer.material = mat;
         
-        // Damage component
         EnemyProjectileModel projScript = projectile.AddComponent<EnemyProjectileModel>();
         projScript.damage = damage;
         
         Destroy(projectile, 5f);
         
         Debug.Log("Ranged enemy shot projectile");
+    }
+    
+    public override void TakeDamage(int damageAmount)
+    {
+        base.TakeDamage(damageAmount);
+        
+        if (!isDead && animator != null)
+        {
+            animator.SetTrigger("TakeDamage");
+        }
+    }
+    
+    protected override void Die()
+    {
+        if (animator != null)
+        {
+            animator.SetTrigger("Die");
+        }
+        
+        base.Die();
     }
     
     protected override void DropLoot()

@@ -1,12 +1,9 @@
 // ================================================== //
-// Scripts/Controllers/TankEnemyController.cs
+// Scripts/Controllers/TankEnemyController.cs (UPDATED)
 // ================================================== //
 
 using UnityEngine;
 
-/// <summary>
-/// Tank enemy - high HP, slow, heavy damage with area attack
-/// </summary>
 public class TankEnemyController : EnemyController
 {
     [Header("Tank Settings")]
@@ -15,13 +12,20 @@ public class TankEnemyController : EnemyController
     
     protected override void OnStart()
     {
-        // Tank enemy stats
         maxHealth = 60;
         damage = 20;
         moveSpeed = 1.5f;
-        attackRange = 2f;
+        attackRange = 1f;
         detectionRange = 8f;
         attackCooldown = 2.5f;
+    }
+    
+    protected override void OnStateChanged(EnemyState oldState, EnemyState newState)
+    {
+        if (animator == null) return;
+        
+        animator.SetBool("IsMoving", newState == EnemyState.Chasing || newState == EnemyState.Patrolling);
+        animator.SetBool("IsAttacking", newState == EnemyState.Attacking);
     }
     
     protected override void PerformAttack()
@@ -38,7 +42,6 @@ public class TankEnemyController : EnemyController
     
     private void HeavyAreaAttack()
     {
-        // Area attack in front of tank
         Collider[] hits = Physics.OverlapSphere(transform.position, areaAttackRadius);
         
         foreach (Collider hit in hits)
@@ -61,6 +64,27 @@ public class TankEnemyController : EnemyController
         }
     }
     
+    public override void TakeDamage(int damageAmount)
+    {
+        base.TakeDamage(damageAmount);
+        
+        // Tank has minimal flinch reaction
+        if (!isDead && animator != null)
+        {
+            animator.SetTrigger("TakeDamage");
+        }
+    }
+    
+    protected override void Die()
+    {
+        if (animator != null)
+        {
+            animator.SetTrigger("Die");
+        }
+        
+        base.Die();
+    }
+    
     protected override void DropLoot()
     {
         int goldAmount = Random.Range(15, 30);
@@ -81,10 +105,6 @@ public class TankEnemyController : EnemyController
     
     void OnDrawGizmosSelected()
     {
-        // NOTE: Apparently inaccessible due to protection level, thus commented out.
-        // base.OnDrawGizmosSelected();
-        
-        // Draw area attack radius
         Gizmos.color = Color.magenta;
         Gizmos.DrawWireSphere(transform.position, areaAttackRadius);
     }

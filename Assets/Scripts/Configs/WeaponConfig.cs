@@ -47,23 +47,12 @@ public class WeaponConfig : MonoBehaviour
             { "Axe", new WeaponData
             {
                 weaponName = "Battle Axe",
-                weaponType = WeaponType.Melee,
+                weaponType = WeaponType.Charge,
                 damage = 25,
                 attackSpeed = 1.5f,
                 range = 2.5f,
                 description = "Heavy weapon with devastating power",
                 prefab = ResourceService.LoadAxePrefab(),
-            }},
-            
-            { "Dagger", new WeaponData
-            {
-                weaponName = "Swift Dagger",
-                weaponType = WeaponType.Melee,
-                damage = 10,
-                attackSpeed = 0.5f,
-                range = 1.5f,
-                description = "Fast strikes with lower damage",
-                prefab = daggerPrefab
             }},
 
             { "Bow", new WeaponData
@@ -75,20 +64,31 @@ public class WeaponConfig : MonoBehaviour
                 range = 15f,
                 projectileSpeed = 20f,
                 description = "Long range with precision",
-                prefab = bowPrefab
+                prefab = ResourceService.LoadBowPrefab(),
             }},
             
-            { "Crossbow", new WeaponData
-            {
-                weaponName = "Heavy Crossbow",
-                weaponType = WeaponType.Ranged,
-                damage = 30,
-                attackSpeed = 2.0f,
-                range = 20f,
-                projectileSpeed = 30f,
-                description = "Powerful but slow",
-                prefab = crossbowPrefab
-            }},
+            // { "Dagger", new WeaponData
+            // {
+            //     weaponName = "Swift Dagger",
+            //     weaponType = WeaponType.Melee,
+            //     damage = 10,
+            //     attackSpeed = 0.5f,
+            //     range = 1.5f,
+            //     description = "Fast strikes with lower damage",
+            //     prefab = daggerPrefab
+            // }},
+            
+            // { "Crossbow", new WeaponData
+            // {
+            //     weaponName = "Heavy Crossbow",
+            //     weaponType = WeaponType.Ranged,
+            //     damage = 30,
+            //     attackSpeed = 2.0f,
+            //     range = 20f,
+            //     projectileSpeed = 30f,
+            //     description = "Powerful but slow",
+            //     prefab = crossbowPrefab
+            // }},
             
             { "Staff", new WeaponData
             {
@@ -103,18 +103,18 @@ public class WeaponConfig : MonoBehaviour
                 prefab = staffPrefab
             }},
             
-            { "Wand", new WeaponData
-            {
-                weaponName = "Lightning Wand",
-                weaponType = WeaponType.Magic,
-                damage = 12,
-                attackSpeed = 0.8f,
-                range = 10f,
-                projectileSpeed = 25f,
-                manaCost = 3,
-                description = "Rapid magical bolts",
-                prefab = wandPrefab
-            }}
+            // { "Wand", new WeaponData
+            // {
+            //     weaponName = "Lightning Wand",
+            //     weaponType = WeaponType.Magic,
+            //     damage = 12,
+            //     attackSpeed = 0.8f,
+            //     range = 10f,
+            //     projectileSpeed = 25f,
+            //     manaCost = 3,
+            //     description = "Rapid magical bolts",
+            //     prefab = wandPrefab
+            // }}
         };
         
         Debug.Log($"WeaponConfig: Initialized {weaponRegistry.Count} weapons");

@@ -442,12 +442,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: aa9d36d7bbc745a4893023bea13ffefc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  maxHealth: 30
-  damage: 10
+  maxHealth: 20
+  damage: 8
   moveSpeed: 2
-  attackRange: 1.5
-  detectionRange: 8
-  attackCooldown: 2
+  attackRange: 8
+  detectionRange: 12
+  attackCooldown: 2.5
   agent: {fileID: -8088324483484706421}
   animator: {fileID: 8035681660144644490}
   minDistance: 4
