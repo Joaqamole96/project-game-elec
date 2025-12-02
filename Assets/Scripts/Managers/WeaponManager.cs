@@ -29,12 +29,12 @@ public class WeaponManager : MonoBehaviour
             GameObject holder = new("WeaponHolder");
             holder.transform.SetParent(transform);
             // Position weapon in camera view
-            holder.transform.localPosition = new Vector3(0.8f, -0.4f, 0.8f);
+            holder.transform.localPosition = new Vector3(1f, -0.5f, 1f);
             weaponHolder = holder.transform;
         }
         
         // Start with default weapon
-        WeaponData starterWeapon = WeaponConfig.Instance?.GetWeaponData("Sword");
+        WeaponData starterWeapon = WeaponConfig.Instance?.GetRandomWeapon();
         if (starterWeapon != null)
         {
             EquipWeapon(starterWeapon);
@@ -80,12 +80,12 @@ public class WeaponManager : MonoBehaviour
             }
             else
             {
-                Debug.Log($"Found Animator on {weaponAnimator.gameObject.name}");
+                Debug.LogWarning($"Found Animator on {weaponAnimator.gameObject.name}");
                 
                 // Optional: Log animator parameters for debugging
                 foreach (AnimatorControllerParameter param in weaponAnimator.parameters)
                 {
-                    Debug.Log($"Animator Parameter: {param.name} (Type: {param.type})");
+                    Debug.LogWarning($"Animator Parameter: {param.name} (Type: {param.type})");
                 }
             }
         }
@@ -114,6 +114,7 @@ public class WeaponManager : MonoBehaviour
         // Simple weapon swing animation (optional visual feedback - keep as backup)
         if (currentWeaponInstance != null && weaponAnimator == null)
         {
+            Debug.Log("Stupid ass swing incoming..");
             StartCoroutine(SimpleWeaponSwing());
         }
         
@@ -148,7 +149,9 @@ public class WeaponManager : MonoBehaviour
         {
             // Trigger the "Attack" parameter in the animator
             // This assumes you have a trigger parameter named "Attack" in your animator
+            Debug.LogWarning("Triggering attack...");
             weaponAnimator.SetTrigger("Attack");
+            Debug.LogWarning("Triggered attack...");
             
             // Alternative: If using boolean parameter
             // weaponAnimator.SetBool("IsAttacking", true);
@@ -164,16 +167,6 @@ public class WeaponManager : MonoBehaviour
             {
                 weaponAnimator.SetTrigger("Attack");
             }
-        }
-    }
-    
-    // If using boolean parameter instead of trigger
-    private System.Collections.IEnumerator ResetAttackAnimation()
-    {
-        yield return new WaitForSeconds(0.1f);
-        if (weaponAnimator != null)
-        {
-            weaponAnimator.SetBool("IsAttacking", false);
         }
     }
     
@@ -200,9 +193,9 @@ public class WeaponManager : MonoBehaviour
         }
         
         // Visual feedback
-        // TriggerAttackAnimation();
+        TriggerAttackAnimation();
         
-        SpawnMeleeEffect(attackCenter);
+        // SpawnMeleeEffect(attackCenter);
         
         Debug.Log($"Melee attack: range={range}, damage={damage}");
     }
