@@ -1,5 +1,5 @@
 // ================================================== //
-// Scripts/Managers/WeaponManager.cs (FIXED)
+// Scripts/Managers/WeaponManager.cs (WITH ANIMATION SUPPORT)
 // ================================================== //
 
 using UnityEngine;
@@ -10,25 +10,26 @@ public class WeaponManager : MonoBehaviour
     public WeaponData currentWeaponData;
     public GameObject currentWeaponInstance;
     
-    [Header("Settings")]
+    [Header("Weapon Holder")]
     public Transform weaponHolder;
-    private float lastAttackTime = 0f;
     
     private PlayerController player;
     private Camera mainCamera;
+    private float lastAttackTime = 0f;
+    private Animator weaponAnimator; // Reference to weapon's animator
     
     void Start()
     {
         player = GetComponent<PlayerController>();
         mainCamera = Camera.main;
         
-        // CRITICAL FIX: Create weapon holder in front of camera view
+        // Create weapon holder in front of camera view
         if (weaponHolder == null)
         {
             GameObject holder = new("WeaponHolder");
             holder.transform.SetParent(transform);
-            // Position weapon in front and slightly to the right (FPS view)
-            holder.transform.SetLocalPositionAndRotation(new Vector3(0.8f, 0f, 0.6f), Quaternion.identity);
+            // Position weapon in camera view
+            holder.transform.localPosition = new Vector3(0.8f, -0.4f, 0.8f);
             weaponHolder = holder.transform;
         }
         
@@ -42,7 +43,7 @@ public class WeaponManager : MonoBehaviour
     
     void LateUpdate()
     {
-        // CRITICAL: Make weapon holder face camera direction
+        // Make weapon holder always face camera direction
         if (weaponHolder != null && mainCamera != null)
         {
             weaponHolder.rotation = mainCamera.transform.rotation;
@@ -71,22 +72,21 @@ public class WeaponManager : MonoBehaviour
             currentWeaponInstance.transform.localPosition = Vector3.zero;
             currentWeaponInstance.transform.localRotation = Quaternion.identity;
             
-            // Setup weapon script if it has one
-            WeaponModel weaponScript = currentWeaponInstance.GetComponent<WeaponModel>();
-            if (weaponScript != null)
+            weaponAnimator = currentWeaponInstance.GetComponentInChildren<Animator>(true);
+        
+            if (weaponAnimator == null)
             {
-                weaponScript.baseDamage = weaponData.damage;
-                weaponScript.attackRange = weaponData.range;
-                weaponScript.attackCooldown = weaponData.attackSpeed;
+                Debug.LogWarning($"Weapon prefab {weaponData.weaponName} has no Animator component in children!");
+            }
+            else
+            {
+                Debug.Log($"Found Animator on {weaponAnimator.gameObject.name}");
                 
-                // CRITICAL FIX 1: Set targetLayer from player
-                weaponScript.targetLayer = player.enemyLayer;
-                
-                // CRITICAL FIX 2: Store attack direction reference
-                // You might need to add this to WeaponModel base class:
-                // weaponScript.attackDirectionOverride = attackDirection;
-                
-                weaponScript.Equip();
+                // Optional: Log animator parameters for debugging
+                foreach (AnimatorControllerParameter param in weaponAnimator.parameters)
+                {
+                    Debug.Log($"Animator Parameter: {param.name} (Type: {param.type})");
+                }
             }
         }
         
@@ -103,113 +103,120 @@ public class WeaponManager : MonoBehaviour
     
     public void Attack(Vector3 attackPosition, Vector3 attackDirection)
     {
-        if (currentWeaponData == null)
-        {
-            Debug.LogError("Current weapon data is null.");
-            return;
-        }
-        if (Time.time < lastAttackTime + currentWeaponData.attackSpeed)
-        {
-            Debug.LogError($"Too early to attack, wait {lastAttackTime + currentWeaponData.attackSpeed - Time.time} more seconds.");
-            return;
-        }
+        if (currentWeaponData == null) return;
+        if (Time.time < lastAttackTime + currentWeaponData.attackSpeed) return;
         
         lastAttackTime = Time.time;
-
-        // Trigger weapon animation if exists
-        if (currentWeaponInstance != null)
+        
+        // Trigger weapon attack animation
+        TriggerAttackAnimation();
+        
+        // Simple weapon swing animation (optional visual feedback - keep as backup)
+        if (currentWeaponInstance != null && weaponAnimator == null)
         {
-            WeaponModel weaponScript = currentWeaponInstance.GetComponent<WeaponModel>();
-            Debug.Log($"weaponScript assigned as {weaponScript.GetType()}.");
-            if (weaponScript != null)
-            {
-                Debug.Log($"Calling {weaponScript.GetType()}.Attack()...");
-                weaponScript.Attack(attackPosition, attackDirection);
-                return; // Let weapon handle its own attack
-            }
-            else
-            {
-                Debug.LogError($"WeaponModel is null.");
-            }
-            
-            Animator weaponAnimator = currentWeaponInstance.GetComponentInChildren<Animator>();
-            if (weaponAnimator != null)
-            {
-                weaponAnimator.SetTrigger("Attack");
-            }
-            else
-            {
-                Debug.LogError($"Animator is null.");
-            }
+            StartCoroutine(SimpleWeaponSwing());
         }
         
-        // Fallback: Handle attack based on weapon type
+        // Perform attack based on weapon type
         switch (currentWeaponData.weaponType)
         {
             case WeaponType.Melee:
+                PerformMeleeAttack(attackPosition, attackDirection, currentWeaponData.range, currentWeaponData.damage);
+                break;
+                
             case WeaponType.Charge:
-                PerformMeleeAttack(attackPosition, attackDirection);
+                PerformMeleeAttack(attackPosition, attackDirection, currentWeaponData.range * 1.5f, currentWeaponData.damage);
                 break;
                 
             case WeaponType.Ranged:
+                PerformRangedAttack(attackPosition, attackDirection, currentWeaponData.damage, currentWeaponData.projectileSpeed);
+                break;
+                
             case WeaponType.Magic:
-                PerformRangedAttack(attackPosition, attackDirection);
+                PerformRangedAttack(attackPosition, attackDirection, currentWeaponData.damage, currentWeaponData.projectileSpeed);
                 break;
         }
     }
     
-    private void PerformMeleeAttack(Vector3 position, Vector3 direction)
+    // ==========================================
+    // ANIMATION METHODS
+    // ==========================================
+    
+    private void TriggerAttackAnimation()
     {
-        Vector3 attackCenter = position + direction * (currentWeaponData.range * 0.5f);
+        if (weaponAnimator != null && weaponAnimator.isActiveAndEnabled)
+        {
+            // Trigger the "Attack" parameter in the animator
+            // This assumes you have a trigger parameter named "Attack" in your animator
+            weaponAnimator.SetTrigger("Attack");
+            
+            // Alternative: If using boolean parameter
+            // weaponAnimator.SetBool("IsAttacking", true);
+            // StartCoroutine(ResetAttackAnimation());
+            
+            Debug.Log("Attack animation triggered!");
+        }
+        else if (weaponAnimator == null && currentWeaponInstance != null)
+        {
+            // Try to find animator again (in case it was added after instantiation)
+            weaponAnimator = currentWeaponInstance.GetComponentInChildren<Animator>();
+            if (weaponAnimator != null)
+            {
+                weaponAnimator.SetTrigger("Attack");
+            }
+        }
+    }
+    
+    // If using boolean parameter instead of trigger
+    private System.Collections.IEnumerator ResetAttackAnimation()
+    {
+        yield return new WaitForSeconds(0.1f);
+        if (weaponAnimator != null)
+        {
+            weaponAnimator.SetBool("IsAttacking", false);
+        }
+    }
+    
+    // ==========================================
+    // MELEE ATTACK (Sword, Axe)
+    // ==========================================
+    
+    private void PerformMeleeAttack(Vector3 position, Vector3 direction, float range, int damage)
+    {
+        Vector3 attackCenter = position + direction * (range * 0.5f);
         
-        Collider[] hits = Physics.OverlapSphere(attackCenter, currentWeaponData.range, player.enemyLayer);
+        Collider[] hits = Physics.OverlapSphere(attackCenter, range, player.enemyLayer);
         
         foreach (Collider hit in hits)
         {
+            // Check if enemy is in front of player (60 degree cone)
             Vector3 dirToTarget = (hit.transform.position - position).normalized;
             float angleToTarget = Vector3.Angle(direction, dirToTarget);
             
             if (angleToTarget <= 60f)
             {
-                DealDamageToEnemy(hit.gameObject);
+                DealDamageToEnemy(hit.gameObject, damage);
             }
         }
         
-        // Visual effect
+        // Visual feedback
+        // TriggerAttackAnimation();
+        
         SpawnMeleeEffect(attackCenter);
+        
+        Debug.Log($"Melee attack: range={range}, damage={damage}");
     }
     
-    private void PerformRangedAttack(Vector3 position, Vector3 direction)
+    // ==========================================
+    // RANGED ATTACK (Bow, Staff)
+    // ==========================================
+    
+    private void PerformRangedAttack(Vector3 position, Vector3 direction, int damage, float speed)
     {
-        // Check if weapon has projectile prefab
-        WeaponModel weaponScript = currentWeaponInstance?.GetComponent<WeaponModel>();
-        GameObject projectilePrefab = null;
+        // Create projectile
+        GameObject projectile = CreateProjectile(position, direction);
         
-        if (weaponScript is RangedWeaponModel ranged)
-        {
-            projectilePrefab = ranged.projectilePrefab;
-        }
-        else if (weaponScript is MagicWeaponModel magic)
-        {
-            projectilePrefab = magic.spellPrefabs != null && magic.spellPrefabs.Length > 0 
-                ? magic.spellPrefabs[magic.currentSpellType] 
-                : null;
-        }
-        
-        GameObject projectile;
-        
-        if (projectilePrefab != null)
-        {
-            // Use weapon's projectile
-            projectile = Instantiate(projectilePrefab, position, Quaternion.LookRotation(direction));
-        }
-        else
-        {
-            // Create fallback projectile
-            projectile = CreateFallbackProjectile(position, direction);
-        }
-        
-        // Setup projectile physics
+        // Setup physics
         Rigidbody rb = projectile.GetComponent<Rigidbody>();
         if (rb == null)
         {
@@ -217,30 +224,63 @@ public class WeaponManager : MonoBehaviour
             rb.useGravity = false;
             rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
         }
-        rb.velocity = direction * currentWeaponData.projectileSpeed;
+        rb.velocity = direction * speed;
         
-        // Setup projectile damage
+        // Setup damage
         ProjectileController projController = projectile.GetComponent<ProjectileController>();
         if (projController == null)
         {
             projController = projectile.AddComponent<ProjectileController>();
         }
-        projController.damage = currentWeaponData.damage;
+        projController.damage = damage;
         projController.owner = player.gameObject;
-        projController.targetLayer = player.enemyLayer;
+        projController.isPlayerProjectile = true;
         
         // Auto-destroy
         Destroy(projectile, 5f);
+        
+        Debug.Log($"Ranged attack: damage={damage}, speed={speed}");
     }
     
-    private GameObject CreateFallbackProjectile(Vector3 position, Vector3 direction)
+    // ==========================================
+    // DAMAGE & EFFECTS
+    // ==========================================
+    
+    private void DealDamageToEnemy(GameObject enemy, int damage)
+    {
+        if (enemy.TryGetComponent<EnemyController>(out var enemyController))
+        {
+            int finalDamage = damage;
+            
+            // Apply power modifiers
+            if (player.powerManager != null)
+            {
+                finalDamage = player.powerManager.ModifyDamageDealt(finalDamage);
+            }
+            
+            enemyController.TakeDamage(finalDamage);
+            
+            // Trigger effects
+            if (player.powerManager != null)
+            {
+                player.powerManager.OnDamageDealt(finalDamage);
+            }
+            
+            // Show damage number
+            UIManager.Instance?.ShowDamageDisplay(enemy.transform.position + Vector3.up, finalDamage, false, false);
+            
+            Debug.Log($"Hit {enemy.name} for {finalDamage} damage!");
+        }
+    }
+    
+    private GameObject CreateProjectile(Vector3 position, Vector3 direction)
     {
         GameObject projectile = GameObject.CreatePrimitive(PrimitiveType.Sphere);
         projectile.transform.position = position;
         projectile.transform.localScale = Vector3.one * 0.3f;
         projectile.name = "Projectile";
         
-        // Visual
+        // Visual based on weapon type
         Renderer renderer = projectile.GetComponent<Renderer>();
         Color projectileColor = currentWeaponData.weaponType == WeaponType.Magic ? Color.magenta : Color.yellow;
         Material mat = new(Shader.Find("Standard"))
@@ -271,28 +311,34 @@ public class WeaponManager : MonoBehaviour
         Destroy(effect, 0.2f);
     }
     
-    private void DealDamageToEnemy(GameObject enemy)
+    private System.Collections.IEnumerator SimpleWeaponSwing()
     {
-        if (enemy.TryGetComponent<EnemyController>(out var enemyController))
+        if (currentWeaponInstance == null) yield break;
+        
+        // Simple forward swing animation (used only if no animator is present)
+        Vector3 originalPos = currentWeaponInstance.transform.localPosition;
+        Vector3 swingPos = originalPos + new Vector3(0.2f, -0.1f, 0.3f);
+        
+        float duration = 0.2f;
+        float elapsed = 0f;
+        
+        // Swing forward
+        while (elapsed < duration)
         {
-            int finalDamage = currentWeaponData.damage;
-            
-            // Apply power modifiers
-            if (player.powerManager != null)
-            {
-                finalDamage = player.powerManager.ModifyDamageDealt(finalDamage);
-            }
-            
-            enemyController.TakeDamage(finalDamage);
-            
-            // Trigger effects
-            if (player.powerManager != null)
-            {
-                player.powerManager.OnDamageDealt(finalDamage);
-            }
-            
-            // Show damage number
-            UIManager.Instance?.ShowDamageDisplay(enemy.transform.position + Vector3.up, finalDamage, false, false);
+            elapsed += Time.deltaTime;
+            currentWeaponInstance.transform.localPosition = Vector3.Lerp(originalPos, swingPos, elapsed / duration);
+            yield return null;
         }
+        
+        // Return to original position
+        elapsed = 0f;
+        while (elapsed < duration)
+        {
+            elapsed += Time.deltaTime;
+            currentWeaponInstance.transform.localPosition = Vector3.Lerp(swingPos, originalPos, elapsed / duration);
+            yield return null;
+        }
+        
+        currentWeaponInstance.transform.localPosition = originalPos;
     }
 }

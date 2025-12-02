@@ -90,7 +90,7 @@ public class RangedEnemyController : EnemyController
         mat.SetColor("_EmissionColor", Color.red * 2f);
         renderer.material = mat;
         
-        EnemyProjectileModel projScript = projectile.AddComponent<EnemyProjectileModel>();
+        ProjectileController projScript = projectile.AddComponent<ProjectileController>();
         projScript.damage = damage;
         
         Destroy(projectile, 5f);

@@ -1,5 +1,5 @@
 // -------------------------------------------------- //
-// Scripts/Controllers/PlayerController.cs (FIXED)
+// Scripts/Controllers/PlayerController.cs (CLEAN)
 // -------------------------------------------------- //
 
 using UnityEngine;
@@ -16,17 +16,17 @@ public class PlayerController : MonoBehaviour
     public int playerDamage = 15;
     public float attackRange = 2f;
     public float attackCooldown = 1f;
-    public LayerMask enemyLayer = 9;
+    public LayerMask enemyLayer = 1;
 
     [Header("Components")]
     public Rigidbody rb;
-    // public Animator animator;
+    public Animator animator;
     public WeaponManager weaponManager;
     public PowerManager powerManager;
     public InventoryManager inventory;
     
     [Header("Visual")]
-    public GameObject visualMesh; // Assign the capsule mesh in Inspector
+    public GameObject visualMesh;
     
     public static PlayerController Instance { get; private set; }
     public int CurrentHealth { get; private set; }
@@ -57,10 +57,10 @@ public class PlayerController : MonoBehaviour
         rb = GetComponent<Rigidbody>();
         mainCamera = Camera.main;
         
-        // CRITICAL: Hide visual mesh in first-person
+        // Hide visual mesh in first-person
         if (visualMesh != null)
         {
-            visualMesh.SetActive(false); // Player capsule should not be visible
+            visualMesh.SetActive(false);
         }
         
         weaponManager = GetComponent<WeaponManager>();
@@ -171,44 +171,31 @@ public class PlayerController : MonoBehaviour
     
     private void PerformAttack()
     {
-        if (Time.time < lastAttackTime + attackCooldown)
-        {
-            Debug.LogError($"Too early to attack, wait {lastAttackTime + attackCooldown - Time.time} more seconds.");
-            return;
-        }
-        Debug.Log("Attacking...");
+        if (Time.time < lastAttackTime + attackCooldown) return;
         
         lastAttackTime = Time.time;
         
-        // if (animator != null)
-        // {
-        //     animator.SetTrigger("Attack");
-        // }
-        // else
-        // {
-        //     Debug.LogError($"Animator is null.");
-        // }
+        if (animator != null)
+        {
+            animator.SetTrigger("Attack");
+        }
         
-        // CRITICAL FIX: Use camera forward direction for attacks
+        // Use camera forward direction for attacks
         Vector3 attackDirection = mainCamera != null ? mainCamera.transform.forward : transform.forward;
         attackDirection.y = 0;
         attackDirection.Normalize();
         
         if (weaponManager != null && weaponManager.currentWeaponData != null)
         {
-            Debug.Log("Calling WeaponManager.Attack()...");
             weaponManager.Attack(transform.position + Vector3.up, attackDirection);
-            // Trying this as well
-            PerformBasicMeleeAttack(attackDirection);
         }
         else
         {
-            Debug.LogError($"WeaponManager or current weapon data is null.");
             PerformBasicMeleeAttack(attackDirection);
         }
     }
     
-    private void PerformBasicMeleeAttack(Vector3 attackDirection)
+    public void PerformBasicMeleeAttack(Vector3 attackDirection)
     {
         Vector3 attackCenter = transform.position + attackDirection * (attackRange * 0.5f);
         
@@ -237,11 +224,11 @@ public class PlayerController : MonoBehaviour
     
     private void UpdateAnimations()
     {
-        // if (animator != null)
-        // {
-        //     animator.SetBool("IsMoving", isMoving);
-        //     animator.SetFloat("MoveSpeed", moveDirection.magnitude);
-        // }
+        if (animator != null)
+        {
+            animator.SetBool("IsMoving", isMoving);
+            animator.SetFloat("MoveSpeed", moveDirection.magnitude);
+        }
     }
     
     private void UpdateRoomDetection()
@@ -269,10 +256,10 @@ public class PlayerController : MonoBehaviour
         CurrentHealth -= damage;
         CurrentHealth = Mathf.Max(0, CurrentHealth);
         
-        // if (animator != null)
-        // {
-        //     animator.SetTrigger("TakeDamage");
-        // }
+        if (animator != null)
+        {
+            animator.SetTrigger("TakeDamage");
+        }
 
         UIManager.Instance?.ShowDamageDisplay(transform.position + Vector3.up, damage, false, false);
         
@@ -298,34 +285,33 @@ public class PlayerController : MonoBehaviour
         
         isDead = true;
         
-        // if (animator != null)
-        // {
-        //     animator.SetTrigger("Die");
-        // }
+        if (animator != null)
+        {
+            animator.SetTrigger("Die");
+        }
         
         rb.velocity = Vector3.zero;
         rb.isKinematic = true;
         
         Debug.Log("Player died - Game Over!");
         
+        // PROPER: Let UIManager handle game over screen
         Invoke(nameof(TriggerGameOver), 2f);
     }
 
     private void TriggerGameOver()
     {
-        // Find GameOverUI in scene
-        GameOverUI gameOverUI = FindObjectOfType<GameOverUI>();
-        if (gameOverUI != null)
+        if (UIManager.Instance != null)
         {
             LayoutManager layoutManager = GameDirector.Instance?.layoutManager;
             int floorReached = layoutManager?.LevelConfig?.FloorLevel ?? 1;
             int goldCollected = inventory?.gold ?? 0;
             
-            gameOverUI.ShowGameOver(false, floorReached, goldCollected, 0);
+            UIManager.Instance.ShowGameOver(false, floorReached, goldCollected, 0);
         }
         else
         {
-            Debug.LogError("PlayerController: GameOverUI not found in scene!");
+            Debug.LogError("PlayerController: UIManager.Instance not found!");
         }
     }
     

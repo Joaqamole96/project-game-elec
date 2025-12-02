@@ -1,20 +1,16 @@
 // ================================================== //
-// Scripts/Configs/WeaponConfig.cs
+// Scripts/Configs/WeaponConfig.cs (SIMPLIFIED)
 // ================================================== //
 
 using UnityEngine;
 using System.Collections.Generic;
 
+/// <summary>
+/// Simple weapon registry - no complex systems, just data
+/// </summary>
 public class WeaponConfig : MonoBehaviour
 {
     public static WeaponConfig Instance { get; private set; }
-    public GameObject swordPrefab;
-    public GameObject axePrefab;
-    public GameObject daggerPrefab;
-    public GameObject bowPrefab;
-    public GameObject crossbowPrefab;
-    public GameObject staffPrefab;
-    public GameObject wandPrefab;
     
     private Dictionary<string, WeaponData> weaponRegistry;
     
@@ -33,6 +29,7 @@ public class WeaponConfig : MonoBehaviour
     {
         weaponRegistry = new Dictionary<string, WeaponData>
         {
+            // MELEE - Fast swing, normal damage
             { "Sword", new WeaponData
             {
                 weaponName = "Iron Sword",
@@ -44,17 +41,19 @@ public class WeaponConfig : MonoBehaviour
                 prefab = ResourceService.LoadSwordPrefab(),
             }},
             
+            // HEAVY - Slow swing, high damage, larger area
             { "Axe", new WeaponData
             {
                 weaponName = "Battle Axe",
                 weaponType = WeaponType.Charge,
-                damage = 25,
+                damage = 30,
                 attackSpeed = 1.5f,
                 range = 2.5f,
                 description = "Heavy weapon with devastating power",
                 prefab = ResourceService.LoadAxePrefab(),
             }},
 
+            // RANGED - Projectile, medium damage
             { "Bow", new WeaponData
             {
                 weaponName = "Hunter's Bow",
@@ -67,54 +66,19 @@ public class WeaponConfig : MonoBehaviour
                 prefab = ResourceService.LoadBowPrefab(),
             }},
             
-            // { "Dagger", new WeaponData
-            // {
-            //     weaponName = "Swift Dagger",
-            //     weaponType = WeaponType.Melee,
-            //     damage = 10,
-            //     attackSpeed = 0.5f,
-            //     range = 1.5f,
-            //     description = "Fast strikes with lower damage",
-            //     prefab = daggerPrefab
-            // }},
-            
-            // { "Crossbow", new WeaponData
-            // {
-            //     weaponName = "Heavy Crossbow",
-            //     weaponType = WeaponType.Ranged,
-            //     damage = 30,
-            //     attackSpeed = 2.0f,
-            //     range = 20f,
-            //     projectileSpeed = 30f,
-            //     description = "Powerful but slow",
-            //     prefab = crossbowPrefab
-            // }},
-            
+            // MAGIC - Projectile, high damage, slow speed
             { "Staff", new WeaponData
             {
                 weaponName = "Fireball Staff",
                 weaponType = WeaponType.Magic,
-                damage = 18,
-                attackSpeed = 1.5f,
+                damage = 25,
+                attackSpeed = 1.8f,
                 range = 12f,
                 projectileSpeed = 15f,
                 manaCost = 5,
                 description = "Launches explosive fireballs",
-                prefab = staffPrefab
-            }},
-            
-            // { "Wand", new WeaponData
-            // {
-            //     weaponName = "Lightning Wand",
-            //     weaponType = WeaponType.Magic,
-            //     damage = 12,
-            //     attackSpeed = 0.8f,
-            //     range = 10f,
-            //     projectileSpeed = 25f,
-            //     manaCost = 3,
-            //     description = "Rapid magical bolts",
-            //     prefab = wandPrefab
-            // }}
+                prefab = ResourceService.LoadStaffPrefab()
+            }}
         };
         
         Debug.Log($"WeaponConfig: Initialized {weaponRegistry.Count} weapons");
@@ -133,17 +97,6 @@ public class WeaponConfig : MonoBehaviour
         var keys = new List<string>(weaponRegistry.Keys);
         string randomKey = keys[Random.Range(0, keys.Count)];
         return GetWeaponData(randomKey);
-    }
-    
-    public WeaponData GetRandomWeaponByType(WeaponType type)
-    {
-        var matching = new List<WeaponData>();
-        
-        foreach (var weapon in weaponRegistry.Values)
-            if (weapon.weaponType == type) matching.Add(weapon);
-        
-        if (matching.Count == 0) return null;
-        return matching[Random.Range(0, matching.Count)];
     }
     
     public GameObject SpawnWeaponPickup(string weaponKey, Vector3 position)
@@ -183,6 +136,7 @@ public class WeaponConfig : MonoBehaviour
         WeaponType.Melee => new Color(0.8f, 0.2f, 0.2f),
         WeaponType.Ranged => new Color(0.2f, 0.8f, 0.2f),
         WeaponType.Magic => new Color(0.5f, 0.2f, 1f),
+        WeaponType.Charge => new Color(1f, 0.5f, 0f),
         _ => Color.white
     };
 }
