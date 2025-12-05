@@ -1,14 +1,12 @@
 // ================================================== //
-// Scripts/UI/UIManager.cs (COMPLETE REWRITE)
+// Scripts/Manager/UIManager.cs
 // ================================================== //
 
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
-/// <summary>
-/// Central UI management system - spawns and manages all UI prefabs
-/// </summary>
+[RequireComponent(typeof(Canvas))]
 public class UIManager : MonoBehaviour
 {
     public static UIManager Instance { get; private set; }
@@ -37,8 +35,6 @@ public class UIManager : MonoBehaviour
     private TextMeshProUGUI healthText;
     private Slider manaBar;
     private TextMeshProUGUI manaText;
-    private TextMeshProUGUI goldText;
-    private TextMeshProUGUI floorText;
     
     private Canvas mainCanvas;
     private PlayerController player;
@@ -64,7 +60,7 @@ public class UIManager : MonoBehaviour
             
             CanvasScaler scaler = gameObject.AddComponent<CanvasScaler>();
             scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1920, 1080);
+            scaler.referenceResolution = new Vector2(1600, 900);
             
             gameObject.AddComponent<GraphicRaycaster>();
         }
@@ -75,6 +71,7 @@ public class UIManager : MonoBehaviour
         player = PlayerController.Instance;
         
         // Initialize UI
+        InitializePrefabs();
         InitializePlayerInterface();
         InitializeMobileControls();
         
@@ -94,6 +91,21 @@ public class UIManager : MonoBehaviour
         {
             TogglePauseMenu();
         }
+    }
+
+    // ==========================================
+    // PREFABS
+    // ==========================================
+
+    private void InitializePrefabs()
+    {
+        playerInterfacePrefab = ResourceService.LoadHUDPrefab();
+        // mobileControls;
+        // shopModal;
+        // pauseModal;
+        // settingsModal;
+        // gameOverModal;
+        // tooltipInstance;
     }
     
     // ==========================================
@@ -116,8 +128,8 @@ public class UIManager : MonoBehaviour
         healthText = FindComponentInChildren<TextMeshProUGUI>(playerInterface, "HealthText");
         manaBar = FindComponentInChildren<Slider>(playerInterface, "ManaBar");
         manaText = FindComponentInChildren<TextMeshProUGUI>(playerInterface, "ManaText");
-        goldText = FindComponentInChildren<TextMeshProUGUI>(playerInterface, "GoldText");
-        floorText = FindComponentInChildren<TextMeshProUGUI>(playerInterface, "FloorText");
+
+        playerInterface.transform.SetParent(mainCanvas.transform);
     }
     
     private void UpdatePlayerInterface()
@@ -136,22 +148,6 @@ public class UIManager : MonoBehaviour
         
         // Update mana (if implemented)
         // TODO: Add mana system to player
-        
-        // Update gold
-        if (goldText != null && player.inventory != null)
-        {
-            goldText.text = $"{player.inventory.gold}";
-        }
-        
-        // Update floor
-        if (floorText != null)
-        {
-            LayoutManager layoutManager = GameDirector.Instance?.layoutManager;
-            if (layoutManager?.LevelConfig != null)
-            {
-                floorText.text = $"Floor {layoutManager.LevelConfig.FloorLevel}";
-            }
-        }
     }
     
     // ==========================================
