@@ -17,7 +17,7 @@ public class CombatManager : MonoBehaviour
     public int enemiesRemaining = 0;
     
     [Header("Door References")]
-    private List<DoorController> roomDoors = new();
+    private readonly List<DoorController> roomDoors = new();
     
     [Header("Rewards")]
     public int goldRewardMin = 10;

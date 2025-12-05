@@ -54,8 +54,8 @@ public class LayoutManager : MonoBehaviour
     private BiomeManager _biomeManager;
     
     // Private Fields - Renderers
-    private ProBuilderRoomRenderer _proBuilderRenderer;
-    private LandmarkRenderer _specialRenderer;
+    private LayoutRenderer _layoutRenderer;
+    private LandmarkRenderer _landmarkRenderer;
     private CorridorRenderer _corridorRenderer;
     
     // Private Fields - Data
@@ -153,13 +153,9 @@ public class LayoutManager : MonoBehaviour
         try
         {
             // FIXED: Use GetLandmarkPrefab instead of deprecated method
-            _specialRenderer = new LandmarkRenderer(
-                ResourceService.LoadEntrancePrefab(), 
-                ResourceService.LoadExitPrefab(), 
-                _biomeManager
-            );
+            _landmarkRenderer = new LandmarkRenderer();
             
-            _proBuilderRenderer = new ProBuilderRoomRenderer(_biomeManager);
+            _layoutRenderer = new LayoutRenderer();
             _corridorRenderer = new CorridorRenderer();
             
             Debug.Log("Renderers initialized");
@@ -256,7 +252,7 @@ public class LayoutManager : MonoBehaviour
 
     private void RenderProBuilderMode(LevelModel layout, List<RoomModel> rooms, int floorLevel)
     {
-        if (_proBuilderRenderer == null || _corridorRenderer == null)
+        if (_layoutRenderer == null || _corridorRenderer == null)
         {
             Debug.LogError("ProBuilderRenderer or CorridorRenderer not initialized!");
             return;
@@ -266,7 +262,7 @@ public class LayoutManager : MonoBehaviour
         Debug.Log($"Rendering with ProBuilder for biome: {currentBiome}");
         
         // Render all rooms optimally (1 floor, 4 walls, 4 corners, N doorways per room)
-        _proBuilderRenderer.RenderAllRooms(layout, rooms, FloorsParent, currentBiome);
+        _layoutRenderer.RenderAllRooms(layout, rooms, FloorsParent, currentBiome);
         
         // Render corridors as stretched segments (NEW - replaces tile-by-tile)
         _corridorRenderer.RenderCorridors(layout, rooms, FloorsParent, currentBiome);
@@ -443,7 +439,7 @@ public class LayoutManager : MonoBehaviour
 
     private void RenderLandmarks(List<RoomModel> rooms)
     {
-        _specialRenderer.RenderLandmarks(rooms, LandmarksParent);
+        _landmarkRenderer.RenderLandmarks(rooms, LandmarksParent);
     }
 
     private void BakeNavMeshForDungeon()

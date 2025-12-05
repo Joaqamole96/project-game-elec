@@ -6,7 +6,7 @@ using System.Collections;
 
 public class LoadingDisplay : MonoBehaviour
 {
-    private static WaitForSecondsRealtime _waitForSecondsRealtime0_5 = new(0.5f);
+    private static readonly WaitForSecondsRealtime _waitForSecondsRealtime0_5 = new(0.5f);
     public Slider progressBar;
     public TextMeshProUGUI percentageText;
     public TextMeshProUGUI tipText;

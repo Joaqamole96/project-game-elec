@@ -9,6 +9,7 @@ public static class ResourceService
 {
     // Cache to avoid repeated Resources.Load calls
     private static readonly Dictionary<string, GameObject> _prefabCache = new();
+    private static readonly Dictionary<string, Material> _materialCache = new();
     // Biome constants
     public const string BIOME_GRASSLANDS = "Grasslands";
     public const string BIOME_DUNGEON = "Dungeon";
@@ -58,6 +59,37 @@ public static class ResourceService
             return null;
         }
     }
+
+    private static Material LoadMaterial(string materialName, string resource, string biome)
+    {
+        try
+        {
+            string path;
+            if (biome != null) path = $"{resource}/{biome}/{materialName}";
+            else path = $"{resource}/{materialName}";
+            
+            // Check cache first for performance
+            if (_materialCache.TryGetValue(path, out Material cached)) return cached;
+            
+            // Load from Resources
+            Material material = Resources.Load<Material>(path);
+            if (material != null)
+            {
+                _materialCache[path] = material;
+                return material;
+            }
+            else
+            {
+                Debug.LogWarning($"ResourceService: Failed to load {path} - resource not found");
+                return null;
+            }
+        }
+        catch (System.Exception ex)
+        {
+            Debug.LogError(ex.Message);
+            return null;
+        }
+    }
     
     // ------------------------- //
     // LAYOUT PREFABS
@@ -66,14 +98,34 @@ public static class ResourceService
     public static GameObject LoadFloorPrefab()
         => LoadPrefab("pf_Floor", CATEGORY_LAYOUT);
     
+    public static GameObject LoadCornerPrefab()
+        => LoadPrefab("pf_Corner", CATEGORY_LAYOUT);
+    
     public static GameObject LoadWallPrefab()
         => LoadPrefab("pf_Wall", CATEGORY_LAYOUT);
     
-    public static GameObject LoadDoorPrefab()
-        => LoadPrefab("pf_Door", CATEGORY_LAYOUT);
+    public static GameObject LoadDoorwayPrefab()
+        => LoadPrefab("pf_Doorway", CATEGORY_LAYOUT);
     
     public static GameObject LoadCeilingPrefab()
         => LoadPrefab("pf_Ceiling", CATEGORY_LAYOUT);
+    
+    // ------------------------- //
+    // LAYOUT MATERIALS
+    // ------------------------- //
+    
+    
+    public static Material LoadFloorMaterial(string biome)
+        => LoadMaterial("mat_Floor", CATEGORY_LAYOUT, biome);
+    
+    public static Material LoadWallMaterial(string biome)
+        => LoadMaterial("mat_Wall", CATEGORY_LAYOUT, biome);
+    
+    public static Material LoadDoorMaterial(string biome)
+        => LoadMaterial("mat_Door", CATEGORY_LAYOUT, biome);
+    
+    public static Material LoadCeilingMaterial(string biome)
+        => LoadMaterial("mat_Ceiling", CATEGORY_LAYOUT, biome);
     
     // ------------------------- //
     // PROPS PREFABS

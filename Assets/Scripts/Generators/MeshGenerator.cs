@@ -27,7 +27,7 @@ public class MeshGenerator
         }
     }
 
-    private Dictionary<Material, CombinedMeshData> _materialMeshes = new();
+    private readonly Dictionary<Material, CombinedMeshData> _materialMeshes = new();
     private const int MAX_VERTICES_PER_MESH = 60000;
 
     public void AddMesh(Mesh mesh, Vector3 position, Quaternion rotation, Vector3 scale, Material material)

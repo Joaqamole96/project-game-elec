@@ -7,14 +7,6 @@ using System.Collections.Generic;
 
 public class LandmarkRenderer
 {
-    private BiomeManager _biomeManager;
-
-    public LandmarkRenderer(GameObject entrancePrefab, GameObject exitPrefab, BiomeManager biomeManager)
-    {
-        // Legacy constructor - prefabs now loaded from Resources
-        _biomeManager = biomeManager;
-    }
-    
     public void RenderLandmarks(List<RoomModel> rooms, Transform parent)
     {
         if (rooms == null || parent == null) throw new System.Exception("Cannot render special objects: rooms or parent is null");
@@ -27,8 +19,7 @@ public class LandmarkRenderer
         => roomType == RoomType.Entrance || 
             roomType == RoomType.Exit || 
             roomType == RoomType.Shop || 
-            roomType == RoomType.Treasure || 
-            roomType == RoomType.Boss;
+            roomType == RoomType.Treasure;
 
     private bool RenderRoomLandmark(RoomModel room, Transform parent)
     {

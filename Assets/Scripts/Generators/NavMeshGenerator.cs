@@ -28,7 +28,7 @@ public class NavMeshGenerator : MonoBehaviour
     public LayerMask walkableLayers = ~0; // All layers by default
     
     private NavMeshSurface navMeshSurface;
-    private List<GameObject> temporaryColliders = new();
+    private readonly List<GameObject> temporaryColliders = new();
     
     void Awake()
     {

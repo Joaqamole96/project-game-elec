@@ -7,9 +7,9 @@ using UnityEngine;
 public class WeaponController : MonoBehaviour
 {
     public string weaponKey;
-    private float rotationSpeed = 50f;
-    private float bobSpeed = 2f;
-    private float bobAmount = 0.3f;
+    private readonly float rotationSpeed = 50f;
+    private readonly float bobSpeed = 2f;
+    private readonly float bobAmount = 0.3f;
     private Vector3 startPosition;
     
     void Start()

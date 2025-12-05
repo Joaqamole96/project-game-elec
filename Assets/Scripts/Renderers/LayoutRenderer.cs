@@ -1,32 +1,20 @@
 // ================================================== //
-// Scripts/Renderers/ProBuilderRoomRenderer.cs
+// Scripts/Renderers/LayoutRenderer.cs
 // ================================================== //
 
 using UnityEngine;
 using System.Collections.Generic;
 
-/// <summary>
-/// Renders rooms using stretched ProBuilder prefabs (1 floor, 4 walls, 4 corners, doorways)
-/// Much more efficient than tile-by-tile rendering
-/// </summary>
-public class ProBuilderRoomRenderer
+public class LayoutRenderer
 {
-    private BiomeManager _biomeManager;
     // Base prefab references (from Resources/Layout/)
     private GameObject _floorPrefab;
     private GameObject _wallPrefab;
     private GameObject _cornerPrefab;
     private GameObject _doorwayPrefab;
-    // Cache for biome materials to avoid repeated Resources.Load calls
-    private Dictionary<string, Material> _materialCache = new();
 
-    /// <summary>
-    /// Initializes a new instance of the ProBuilderRoomRenderer
-    /// </summary>
-    /// <param name="biomeManager">The biome manager for material lookups</param>
-    public ProBuilderRoomRenderer(BiomeManager biomeManager)
+    public LayoutRenderer()
     {
-        _biomeManager = biomeManager;
         LoadBasePrefabs();
     }
 
@@ -34,77 +22,52 @@ public class ProBuilderRoomRenderer
     {
         try
         {
-            _floorPrefab = Resources.Load<GameObject>("Layout/pf_Floor");
-            _wallPrefab = Resources.Load<GameObject>("Layout/pf_Wall");
-            _cornerPrefab = Resources.Load<GameObject>("Layout/pf_Corner");
-            _doorwayPrefab = Resources.Load<GameObject>("Layout/pf_Doorway");
-            // Validate prefab loading
-            if (_floorPrefab == null) Debug.LogError("ProBuilderRoomRenderer: pf_Floor prefab not found in Resources/Layout/!");
-            if (_wallPrefab == null) Debug.LogError("ProBuilderRoomRenderer: pf_Wall prefab not found in Resources/Layout/!");
-            if (_cornerPrefab == null) Debug.LogError("ProBuilderRoomRenderer: pf_Corner prefab not found in Resources/Layout/!");
-            if (_doorwayPrefab == null) Debug.LogError("ProBuilderRoomRenderer: pf_Doorway prefab not found in Resources/Layout/!");
-            Debug.Log("ProBuilderRoomRenderer: Base prefabs loaded successfully");
+            _floorPrefab = ResourceService.LoadFloorPrefab();
+            _wallPrefab = ResourceService.LoadWallPrefab();
+            _cornerPrefab = ResourceService.LoadCornerPrefab();
+            _doorwayPrefab = ResourceService.LoadDoorwayPrefab();
+            
+            Debug.Log("LayoutRenderer: Base prefabs loaded successfully");
         }
         catch (System.Exception ex)
         {
-            Debug.LogError($"ProBuilderRoomRenderer: Critical error loading base prefabs: {ex.Message}");
-            throw; // Re-throw for calling code to handle
+            Debug.LogError($"LayoutRenderer: Critical error loading base prefabs: {ex.Message}");
         }
     }
     
     // ==========================================
     // MAIN RENDERING METHOD
     // ==========================================
-    
-    /// <summary>
-    /// Renders all rooms in the level using ProBuilder prefabs
-    /// </summary>
-    /// <param name="layout">The level layout data</param>
-    /// <param name="rooms">List of rooms to render</param>
-    /// <param name="parent">Parent transform for room objects</param>
-    /// <param name="biome">Biome to use for materials</param>
+
     public void RenderAllRooms(LevelModel layout, List<RoomModel> rooms, Transform parent, string biome)
     {
-        if (rooms == null || parent == null)
-        {
-            Debug.LogError("ProBuilderRoomRenderer: Cannot render rooms - null rooms list or parent transform");
-            return;
-        }
-        if (layout == null)
-        {
-            Debug.LogError("ProBuilderRoomRenderer: Cannot render rooms - null layout");
-            return;
-        }
         try
         {
-            Debug.Log($"ProBuilderRoomRenderer: Starting room rendering for {rooms.Count} rooms in {biome} biome");
+            Debug.Log($"LayoutRenderer: Starting room rendering for {rooms.Count} rooms in {biome} biome");
             // Get biome materials with validation
-            Material floorMaterial = GetBiomeMaterial(biome, "Floor");
-            Material wallMaterial = GetBiomeMaterial(biome, "Wall");
-            Material doorMaterial = GetBiomeMaterial(biome, "Door");
-            if (floorMaterial == null || wallMaterial == null || doorMaterial == null)
-            {
-                Debug.LogError("ProBuilderRoomRenderer: One or more biome materials failed to load");
-                return;
-            }
+            Material floorMaterial = ResourceService.LoadFloorMaterial(biome);
+            Material wallMaterial = ResourceService.LoadWallMaterial(biome);
+            Material doorMaterial = ResourceService.LoadDoorMaterial(biome);
+            
             int roomsRendered = 0;
             int roomsFailed = 0;
+
             foreach (var room in rooms)
             {
                 if (room?.Bounds == null)
                 {
-                    Debug.LogWarning("ProBuilderRoomRenderer: Skipping room with null bounds");
+                    Debug.LogWarning("LayoutRenderer: Skipping room with null bounds");
                     roomsFailed++;
                     continue;
                 }
                 if (RenderRoom(room, layout, parent, floorMaterial, wallMaterial, doorMaterial)) roomsRendered++;
                 else roomsFailed++;
             }
-            Debug.Log($"ProBuilderRoomRenderer: Rendering completed - {roomsRendered} rooms rendered, {roomsFailed} failed");
+            Debug.Log($"LayoutRenderer: Rendering completed - {roomsRendered} rooms rendered, {roomsFailed} failed");
         }
         catch (System.Exception ex)
         {
-            Debug.LogError($"ProBuilderRoomRenderer: Critical error during room rendering: {ex.Message}");
+            Debug.LogError($"LayoutRenderer: Critical error during room rendering: {ex.Message}");
         }
     }
     
@@ -119,7 +82,7 @@ public class ProBuilderRoomRenderer
             // Validate prefabs before rendering
             if (_floorPrefab == null || _wallPrefab == null || _cornerPrefab == null || _doorwayPrefab == null)
             {
-                Debug.LogError($"ProBuilderRoomRenderer: Missing prefabs for room {room.ID}");
+                Debug.LogError($"LayoutRenderer: Missing prefabs for room {room.ID}");
                 return false;
             }
             // Create room container
@@ -131,12 +94,12 @@ public class ProBuilderRoomRenderer
             RenderRoomCorners(room, roomContainer.transform, wallMat);
             RenderRoomWalls(room, layout, roomContainer.transform, wallMat);
             RenderRoomDoorways(room, layout, roomContainer.transform, wallMat, doorMat);
-            Debug.Log($"ProBuilderRoomRenderer: Room {room.ID} rendered successfully");
+            Debug.Log($"LayoutRenderer: Room {room.ID} rendered successfully");
             return true;
         }
         catch (System.Exception ex)
         {
-            Debug.LogError($"ProBuilderRoomRenderer: Error rendering room {room.ID}: {ex.Message}");
+            Debug.LogError($"LayoutRenderer: Error rendering room {room.ID}: {ex.Message}");
             return false;
         }
     }
@@ -154,7 +117,7 @@ public class ProBuilderRoomRenderer
             int depth = room.Bounds.height - 2;
             if (width <= 0 || depth <= 0)
             {
-                Debug.LogWarning($"ProBuilderRoomRenderer: Room {room.ID} has invalid dimensions for floor: {width}x{depth}");
+                Debug.LogWarning($"LayoutRenderer: Room {room.ID} has invalid dimensions for floor: {width}x{depth}");
                 return;
             }
             // Spawn floor at room center (Y=0.5 for floor level)
@@ -168,11 +131,11 @@ public class ProBuilderRoomRenderer
             // Stretch floor - only X and Z, Y stays at 1
             floor.transform.localScale = new Vector3(width, 1, depth);
             ApplyMaterialToObject(floor, material);
-            Debug.Log($"ProBuilderRoomRenderer: Floor rendered for room {room.ID} at {centerPos} with scale {width}x1x{depth}");
+            Debug.Log($"LayoutRenderer: Floor rendered for room {room.ID} at {centerPos} with scale {width}x1x{depth}");
         }
         catch (System.Exception ex)
         {
-            Debug.LogError($"ProBuilderRoomRenderer: Error rendering floor for room {room.ID}: {ex.Message}");
+            Debug.LogError($"LayoutRenderer: Error rendering floor for room {room.ID}: {ex.Message}");
         }
     }
     
@@ -200,11 +163,11 @@ public class ProBuilderRoomRenderer
                 corner.name = cornerNames[i];
                 ApplyMaterialToObject(corner, material);
             }
-            Debug.Log($"ProBuilderRoomRenderer: 4 corners rendered for room {room.ID}");
+            Debug.Log($"LayoutRenderer: 4 corners rendered for room {room.ID}");
         }
         catch (System.Exception ex)
         {
-            Debug.LogError($"ProBuilderRoomRenderer: Error rendering corners for room {room.ID}: {ex.Message}");
+            Debug.LogError($"LayoutRenderer: Error rendering corners for room {room.ID}: {ex.Message}");
         }
     }
     
@@ -224,11 +187,11 @@ public class ProBuilderRoomRenderer
             RenderWallSide(bounds.xMax - 1, bounds.yMin + 1, bounds.yMax - 1, true, true, doorwayPositions, parent, material, "East");
             RenderWallSide(bounds.yMin, bounds.xMin + 1, bounds.xMax - 1, false, false, doorwayPositions, parent, material, "South");
             RenderWallSide(bounds.yMax - 1, bounds.xMin + 1, bounds.xMax - 1, false, true, doorwayPositions, parent, material, "North");
-            Debug.Log($"ProBuilderRoomRenderer: Walls rendered for room {room.ID} with {doorwayPositions.Count} doorways");
+            Debug.Log($"LayoutRenderer: Walls rendered for room {room.ID} with {doorwayPositions.Count} doorways");
         }
         catch (System.Exception ex)
         {
-            Debug.LogError($"ProBuilderRoomRenderer: Error rendering walls for room {room.ID}: {ex.Message}");
+            Debug.LogError($"LayoutRenderer: Error rendering walls for room {room.ID}: {ex.Message}");
         }
     }
     
@@ -239,7 +202,7 @@ public class ProBuilderRoomRenderer
             List<WallSegment> segments = CalculateWallSegments(fixedCoord, start, end, isVertical, doorways, isPositiveSide);
             if (segments.Count == 0)
             {
-                Debug.LogWarning($"ProBuilderRoomRenderer: No wall segments to render for {sideName} side");
+                Debug.LogWarning($"LayoutRenderer: No wall segments to render for {sideName} side");
                 return;
             }
             int segmentIndex = 0;
@@ -248,10 +211,10 @@ public class ProBuilderRoomRenderer
                 int baseLength = segment.end - segment.start;
                 int adjustedLength = baseLength;
                 Vector3 position = CalculateWallPosition(segment, isVertical, isPositiveSide, ref adjustedLength);
-                Quaternion rotation = GetWallRotation(isVertical, isPositiveSide);
+                Quaternion rotation = GetWallRotation(isVertical);
                 if (adjustedLength <= 0)
                 {
-                    Debug.LogWarning($"ProBuilderRoomRenderer: Skipping zero-length wall segment on {sideName} side");
+                    Debug.LogWarning($"LayoutRenderer: Skipping zero-length wall segment on {sideName} side");
                     continue;
                 }
                 GameObject wall = Object.Instantiate(_wallPrefab, position, rotation, parent);
@@ -260,11 +223,11 @@ public class ProBuilderRoomRenderer
                 wall.transform.localScale = new Vector3(adjustedLength, 1, 1);
                 ApplyMaterialToObject(wall, material);
             }
-            Debug.Log($"ProBuilderRoomRenderer: {sideName} wall rendered with {segments.Count} segments");
+            Debug.Log($"LayoutRenderer: {sideName} wall rendered with {segments.Count} segments");
         }
         catch (System.Exception ex)
         {
-            Debug.LogError($"ProBuilderRoomRenderer: Error rendering {sideName} wall: {ex.Message}");
+            Debug.LogError($"LayoutRenderer: Error rendering {sideName} wall: {ex.Message}");
         }
     }
     
@@ -278,17 +241,17 @@ public class ProBuilderRoomRenderer
         {
             if (layout.AllDoorTiles == null || layout.AllDoorTiles.Count == 0)
             {
-                Debug.LogWarning($"ProBuilderRoomRenderer: No door tiles found in layout for room {room.ID}");
+                Debug.LogWarning($"LayoutRenderer: No door tiles found in layout for room {room.ID}");
                 return;
             }
             var bounds = room.Bounds;
             int doorsRendered = 0;
             foreach (var doorPos in layout.AllDoorTiles) if (IsOnRoomPerimeter(doorPos, bounds) && RenderSingleDoorway(doorPos, bounds, parent, wallMat, doorMat)) doorsRendered++;
-            Debug.Log($"ProBuilderRoomRenderer: {doorsRendered} doorways rendered for room {room.ID}");
+            Debug.Log($"LayoutRenderer: {doorsRendered} doorways rendered for room {room.ID}");
         }
         catch (System.Exception ex)
         {
-            Debug.LogError($"ProBuilderRoomRenderer: Error rendering doorways for room {room.ID}: {ex.Message}");
+            Debug.LogError($"LayoutRenderer: Error rendering doorways for room {room.ID}: {ex.Message}");
         }
     }
     
@@ -308,7 +271,7 @@ public class ProBuilderRoomRenderer
         }
         catch (System.Exception ex)
         {
-            Debug.LogError($"ProBuilderRoomRenderer: Error rendering doorway at {doorPos}: {ex.Message}");
+            Debug.LogError($"LayoutRenderer: Error rendering doorway at {doorPos}: {ex.Message}");
             return false;
         }
     }
@@ -320,14 +283,14 @@ public class ProBuilderRoomRenderer
             Transform doorFrame = doorway.transform.Find("DoorFrame");
             if (doorFrame == null)
             {
-                Debug.LogWarning($"ProBuilderRoomRenderer: No 'DoorFrame' child found in doorway prefab at {doorPos}");
+                Debug.LogWarning($"LayoutRenderer: No 'DoorFrame' child found in doorway prefab at {doorPos}");
                 return;
             }
             // Ensure collider exists before adding DoorController
             if (doorFrame.GetComponent<Collider>() == null)
             {
                 doorFrame.gameObject.AddComponent<BoxCollider>();
-                Debug.Log($"ProBuilderRoomRenderer: Added BoxCollider to DoorFrame at {doorPos}");
+                Debug.Log($"LayoutRenderer: Added BoxCollider to DoorFrame at {doorPos}");
             }
             DoorController controller = doorFrame.GetComponent<DoorController>();
             if (controller == null) controller = doorFrame.gameObject.AddComponent<DoorController>();
@@ -336,13 +299,13 @@ public class ProBuilderRoomRenderer
             if (door != null)
             {
                 controller.doorModel = door.gameObject;
-                Debug.Log($"ProBuilderRoomRenderer: DoorController setup completed for door at {doorPos}");
+                Debug.Log($"LayoutRenderer: DoorController setup completed for door at {doorPos}");
             }
-            else Debug.LogWarning($"ProBuilderRoomRenderer: No 'Door' child found in doorway prefab at {doorPos}");
+            else Debug.LogWarning($"LayoutRenderer: No 'Door' child found in doorway prefab at {doorPos}");
         }
         catch (System.Exception ex)
         {
-            Debug.LogError($"ProBuilderRoomRenderer: Error setting up door controller at {doorPos}: {ex.Message}");
+            Debug.LogError($"LayoutRenderer: Error setting up door controller at {doorPos}: {ex.Message}");
         }
     }
     
@@ -396,7 +359,7 @@ public class ProBuilderRoomRenderer
         }
         catch (System.Exception ex)
         {
-            Debug.LogError($"ProBuilderRoomRenderer: Error calculating wall segments: {ex.Message}");
+            Debug.LogError($"LayoutRenderer: Error calculating wall segments: {ex.Message}");
             return new List<WallSegment>();
         }
     }
@@ -442,12 +405,12 @@ public class ProBuilderRoomRenderer
         }
         catch (System.Exception ex)
         {
-            Debug.LogError($"ProBuilderRoomRenderer: Error calculating wall position: {ex.Message}");
+            Debug.LogError($"LayoutRenderer: Error calculating wall position: {ex.Message}");
             return Vector3.zero;
         }
     }
     
-    private Quaternion GetWallRotation(bool isVertical, bool isPositiveSide)
+    private Quaternion GetWallRotation(bool isVertical)
         => isVertical ? Quaternion.Euler(0, 90, 0) : Quaternion.identity;
     
     private Quaternion GetDoorRotation(Vector2Int doorPos, RectInt bounds)
@@ -462,7 +425,7 @@ public class ProBuilderRoomRenderer
         }
         catch (System.Exception ex)
         {
-            Debug.LogError($"ProBuilderRoomRenderer: Error getting door rotation: {ex.Message}");
+            Debug.LogError($"LayoutRenderer: Error getting door rotation: {ex.Message}");
             return Quaternion.identity;
         }
     }
@@ -479,7 +442,7 @@ public class ProBuilderRoomRenderer
         }
         catch (System.Exception ex)
         {
-            Debug.LogError($"ProBuilderRoomRenderer: Error getting doorway positions: {ex.Message}");
+            Debug.LogError($"LayoutRenderer: Error getting doorway positions: {ex.Message}");
             return new HashSet<Vector2Int>();
         }
     }
@@ -494,43 +457,13 @@ public class ProBuilderRoomRenderer
                 pos.y >= bounds.yMin && 
                 pos.y < bounds.yMax;
     
-    // ==========================================
-    // MATERIAL MANAGEMENT
-    // ==========================================
-    
-    private Material GetBiomeMaterial(string biome, string type)
-    {
-        try
-        {
-            string cacheKey = $"{biome}_{type}";
-            // Check cache first
-            if (_materialCache.TryGetValue(cacheKey, out Material cachedMaterial)) return cachedMaterial;
-            string path = $"Layout/{biome}/{type}Material";
-            Material mat = Resources.Load<Material>(path);
-            if (mat == null)
-            {
-                Debug.LogWarning($"ProBuilderRoomRenderer: Material not found at {path}, using default Standard material");
-                mat = new Material(Shader.Find("Standard"));
-            }
-            // Add to cache
-            _materialCache[cacheKey] = mat;
-            Debug.Log($"ProBuilderRoomRenderer: Loaded and cached material {cacheKey}");
-            return mat;
-        }
-        catch (System.Exception ex)
-        {
-            Debug.LogError($"ProBuilderRoomRenderer: Error getting biome material {biome}/{type}: {ex.Message}");
-            return new Material(Shader.Find("Standard"));
-        }
-    }
-    
     private void ApplyMaterialToObject(GameObject obj, Material material)
     {
         try
         {
             if (obj == null || material == null)
             {
-                Debug.LogWarning("ProBuilderRoomRenderer: Cannot apply material - null object or material");
+                Debug.LogWarning("LayoutRenderer: Cannot apply material - null object or material");
                 return;
             }
             Renderer[] renderers = obj.GetComponentsInChildren<Renderer>();
@@ -538,7 +471,7 @@ public class ProBuilderRoomRenderer
         }
         catch (System.Exception ex)
         {
-            Debug.LogError($"ProBuilderRoomRenderer: Error applying material to object: {ex.Message}");
+            Debug.LogError($"LayoutRenderer: Error applying material to object: {ex.Message}");
         }
     }
     
@@ -557,28 +490,11 @@ public class ProBuilderRoomRenderer
             // Apply door material to door component
             Transform door = doorway.transform.Find("Door");
             if (door != null) ApplyMaterialToObject(door.gameObject, doorMat);
-            Debug.Log("ProBuilderRoomRenderer: Materials applied to doorway components");
+            Debug.Log("LayoutRenderer: Materials applied to doorway components");
         }
         catch (System.Exception ex)
         {
-            Debug.LogError($"ProBuilderRoomRenderer: Error applying materials to doorway: {ex.Message}");
+            Debug.LogError($"LayoutRenderer: Error applying materials to doorway: {ex.Message}");
         }
     }
-    
-    /// <summary>
-    /// Clears the material cache to free memory
-    /// </summary>
-    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
-    // public void ClearMaterialCache()
-    // {
-    //     try
-    //     {
-    //         _materialCache.Clear();
-    //         Debug.Log("ProBuilderRoomRenderer: Material cache cleared");
-    //     }
-    //     catch (System.Exception ex)
-    //     {
-    //         Debug.LogError($"ProBuilderRoomRenderer: Error clearing material cache: {ex.Message}");
-    //     }
-    // }
 }

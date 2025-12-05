@@ -215,7 +215,7 @@ public class BossSpawner : MonoBehaviour
                 BiomeManager biomeManager = layoutManager.GetComponent<BiomeManager>();
                 if (biomeManager != null)
                 {
-                    bossPrefab = biomeManager.GetBossEnemyPrefab();
+                    bossPrefab = ResourceService.LoadBossEnemyPrefab(biomeManager.CurrentBiome);
                 }
             }
         }
