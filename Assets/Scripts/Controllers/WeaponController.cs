@@ -35,7 +35,7 @@ public class WeaponController : MonoBehaviour
         }
         
         // Start with default weapon
-        WeaponModel starterWeapon = WeaponConfig.Instance.GetRandomWeapon();
+        WeaponModel starterWeapon = WeaponConfig.Instance.GetWeaponModel("Bow");
         if (starterWeapon != null)
         {
             EquipWeapon(starterWeapon);
@@ -120,11 +120,11 @@ public class WeaponController : MonoBehaviour
                 break;
                 
             case WeaponType.Ranged:
-                PerformRangedAttack(attackDirection, currentWeaponModel.damage, currentWeaponModel.projectileSpeed);
+                PerformRangedAttack(attackPosition, attackDirection, currentWeaponModel.damage, currentWeaponModel.projectileSpeed);
                 break;
                 
             case WeaponType.Magic:
-                PerformRangedAttack(attackDirection, currentWeaponModel.damage, currentWeaponModel.projectileSpeed);
+                PerformRangedAttack(attackPosition, attackDirection, currentWeaponModel.damage, currentWeaponModel.projectileSpeed);
                 break;
         }
     }
@@ -158,13 +158,51 @@ public class WeaponController : MonoBehaviour
     // RANGED ATTACK (Bow, Staff)
     // ==========================================
     
-    private void PerformRangedAttack(Vector3 direction, int damage, float speed)
+    // private void PerformRangedAttack(Vector3 direction, int damage, float speed)
+    // {
+    //     // Load projectile prefab and create an instance
+    //     GameObject projectilePrefab = ResourceService.LoadProjectilePrefab();
+    //     if (projectilePrefab == null)
+    //     {
+    //         Debug.LogError("Failed to load projectile prefab!");
+    //         return;
+    //     }
+        
+    //     // Create a new instance/copy of the projectile prefab
+    //     GameObject projectile = Instantiate(projectilePrefab);
+        
+    //     // Setup physics
+    //     if (!projectile.TryGetComponent<Rigidbody>(out var rb))
+    //     {
+    //         rb = projectile.AddComponent<Rigidbody>();
+    //         rb.useGravity = false;
+    //         rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
+    //     }
+    //     rb.velocity = direction * speed;
+        
+    //     // Setup damage
+    //     if (!projectile.TryGetComponent<ProjectileController>(out var projController))
+    //     {
+    //         projController = projectile.AddComponent<ProjectileController>();
+    //     }
+    //     projController.damage = damage;
+    //     projController.owner = player.gameObject;
+    //     projController.isPlayerProjectile = true;
+        
+    //     // Auto-destroy
+    //     Destroy(projectile, 5f);
+        
+    //     Debug.Log($"Ranged attack: damage={damage}, speed={speed}");
+    // }
+    
+    private void PerformRangedAttack(Vector3 position, Vector3 direction, int damage, float speed)
     {
         // Create projectile
-        GameObject projectile = ResourceService.LoadProjectilePrefab();
+        GameObject projectile = CreateProjectile(position, direction);
         
         // Setup physics
-        if (!projectile.TryGetComponent<Rigidbody>(out var rb))
+        Rigidbody rb = projectile.GetComponent<Rigidbody>();
+        if (rb == null)
         {
             rb = projectile.AddComponent<Rigidbody>();
             rb.useGravity = false;
@@ -173,7 +211,8 @@ public class WeaponController : MonoBehaviour
         rb.velocity = direction * speed;
         
         // Setup damage
-        if (!projectile.TryGetComponent<ProjectileController>(out var projController))
+        ProjectileController projController = projectile.GetComponent<ProjectileController>();
+        if (projController == null)
         {
             projController = projectile.AddComponent<ProjectileController>();
         }
@@ -186,7 +225,28 @@ public class WeaponController : MonoBehaviour
         
         Debug.Log($"Ranged attack: damage={damage}, speed={speed}");
     }
-    
+
+    private GameObject CreateProjectile(Vector3 position, Vector3 direction)
+    {
+        GameObject projectile = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        projectile.transform.position = position;
+        projectile.transform.localScale = Vector3.one * 0.3f;
+        projectile.name = "Projectile";
+        
+        // Visual based on weapon type
+        Renderer renderer = projectile.GetComponent<Renderer>();
+        Color projectileColor = currentWeaponModel.weaponType == WeaponType.Magic ? Color.magenta : Color.yellow;
+        Material mat = new(Shader.Find("Standard"))
+        {
+            color = projectileColor
+        };
+        mat.EnableKeyword("_EMISSION");
+        mat.SetColor("_EmissionColor", projectileColor * 2f);
+        renderer.material = mat;
+        
+        return projectile;
+    }
+
     // ==========================================
     // DAMAGE & EFFECTS
     // ==========================================

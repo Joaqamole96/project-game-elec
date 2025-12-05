@@ -71,8 +71,8 @@ public class WeaponConfig : MonoBehaviour
             {
                 weaponName = "Fireball Staff",
                 weaponType = WeaponType.Magic,
-                damage = 25,
-                attackSpeed = 1.8f,
+                damage = 8,
+                attackSpeed = 0.6f,
                 range = 12f,
                 projectileSpeed = 15f,
                 manaCost = 5,
