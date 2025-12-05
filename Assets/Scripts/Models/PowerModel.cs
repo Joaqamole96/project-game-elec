@@ -1,34 +1,10 @@
 // ================================================== //
-// Scripts/Systems/PowerSystem.cs - COMPLETE
+// Scripts/Models/PowerModel.cs
 // ================================================== //
 
 using UnityEngine;
-using System.Collections.Generic;
 
-/// <summary>
-/// PowerModel types available in the game
-/// </summary>
-public enum PowerType
-{
-    // Movement
-    SpeedBoost,      // +20% movement speed
-    Dash,            // Quick dash ability
-    
-    // Combat
-    AttackSpeed,     // +30% attack speed
-    Damage,          // +25% damage
-    CriticalHit,     // 15% chance for 2x damage
-    
-    // Defense
-    MaxHealth,       // +20 max HP
-    HealthRegen,     // Regenerate 1 HP per 5 seconds
-    DamageReduction, // Take 15% less damage
-    
-    // Utility
-    Vampire,         // Heal 10% of damage dealt
-    ExtraGold,       // +50% gold from enemies
-    LuckyFind        // Higher chance for rare drops
-}
+
 
 /// <summary>
 /// Individual power instance with stats
@@ -118,4 +94,3 @@ public class PowerModel
         }
     }
 }
-

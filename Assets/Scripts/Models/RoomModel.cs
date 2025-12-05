@@ -107,10 +107,12 @@ public class RoomModel
         int attempts = 0;
         Vector2Int spawnPos;
         
-        do {
+        do 
+        {
             spawnPos = availableTiles[Random.Range(0, availableTiles.Count)];
             attempts++;
-        } while (usedPositions.Contains(spawnPos) && attempts < 10);
+        } 
+        while (usedPositions.Contains(spawnPos) && attempts < 10);
         
         return attempts < 10 ? spawnPos : Vector2Int.zero;
     }
@@ -135,18 +137,4 @@ public class RoomModel
             _ => RoomAccess.Open 
         };
     }
-}
-
-public enum RoomAccess { Open, Closed, Locked }
-
-public enum RoomType 
-{
-    // Critical path
-    Entrance, Exit,
-
-    // Standard rooms
-    Empty, Combat, Shop, Treasure,
-
-    // Special rooms
-    Boss, Survival, Puzzle, Secret
 }

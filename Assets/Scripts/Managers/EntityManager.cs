@@ -1,5 +1,5 @@
 // ================================================== //
-// Scripts/Managers/EntityManager.cs (ENHANCED FOR BIOMES)
+// Scripts/Managers/EntityManager.cs
 // ================================================== //
 
 using UnityEngine;
@@ -21,21 +21,15 @@ public class EntityManager : MonoBehaviour
     
     [Header("Entity Tracking")]
     public List<GameObject> allEnemies = new();
-    public List<GameObject> allNPCs = new();
     
     [Header("Spawn Settings")]
     public float spawnHeight = 1f;
+    public int minEnemiesPerRoom = 4;
+    public int maxEnemiesPerRoom = 8;
     
-    [Header("Enemy Spawning Rules")]
-    public int minEnemiesPerRoom = 2;
-    public int maxEnemiesPerRoom = 4;
-    public int bossRoomEnemies = 1; // Just the boss
-    
-    private string currentBiome = ResourceService.BIOME_DEFAULT;
+    private string currentBiome;
     private System.Random spawnRandom;
-    private bool navMeshReady = false;
-    
-    // ------------------------- //
+    private bool hasSpawnedEnemies = false;
     
     void Awake()
     {
@@ -51,69 +45,52 @@ public class EntityManager : MonoBehaviour
     {
         // Subscribe to NavMesh ready event
         LayoutManager.OnNavMeshReady += OnNavMeshReady;
-        StartCoroutine(SpawnEntitiesAfterGeneration());
     }
 
     private void OnNavMeshReady()
     {
-        Debug.Log("EntityManager: Received NavMesh ready signal");
-        navMeshReady = true;
-        StartCoroutine(SpawnEntitiesAfterGeneration());
-    }
-    
-    private IEnumerator SpawnEntitiesAfterGeneration()
-    {
-        if (!navMeshReady)
+        // CRITICAL FIX: Only spawn once
+        if (hasSpawnedEnemies)
         {
-            Debug.LogWarning("EntityManager: NavMesh not ready, waiting...");
-            yield return new WaitUntil(() => navMeshReady);
+            Debug.LogWarning("EntityManager: Enemies already spawned, ignoring duplicate call");
+            return;
         }
         
-        // Additional safety wait
-        yield return new WaitForSeconds(1f);
+        Debug.Log("EntityManager: NavMesh ready, spawning entities");
+        StartCoroutine(SpawnEntitiesAfterDelay());
+    }
+    
+    private IEnumerator SpawnEntitiesAfterDelay()
+    {
+        // Wait 1 frame to ensure NavMesh is fully ready
+        yield return null;
         
-        // Triple-check NavMesh exists
         if (!IsNavMeshReady())
         {
-            Debug.LogError("EntityManager: NavMesh still not ready after event!");
+            Debug.LogError("EntityManager: NavMesh not ready after event!");
             yield break;
         }
         
-        Debug.Log("EntityManager: NavMesh confirmed ready, spawning entities...");
+        hasSpawnedEnemies = true; // CRITICAL: Mark as spawned
         SpawnAllEntitiesInDungeon();
     }
 
     private bool IsNavMeshReady()
     {
         NavMeshTriangulation triangulation = NavMesh.CalculateTriangulation();
-        bool ready = triangulation.vertices.Length > 0;
-        
-        if (!ready)
-        {
-            Debug.LogWarning("EntityManager: NavMesh has 0 vertices!");
-        }
-        
-        return ready;
+        return triangulation.vertices.Length > 0;
     }
-    
-    // ------------------------- //
-    // CONTAINER SETUP
-    // ------------------------- //
     
     private void InitializeContainers()
     {
         if (entitiesContainer == null)
         {
-            Debug.LogWarning("EntityManager: entitiesContainer not set, creating temporary");
             GameObject container = new("Entities");
             entitiesContainer = container.transform;
         }
         
-        playersContainer = CreateOrGetChildContainer("Players");
+        playersContainer = CreateOrGetChildContainer("Player");
         enemiesContainer = CreateOrGetChildContainer("Enemies");
-        npcsContainer = CreateOrGetChildContainer("NPCs");
-        
-        Debug.Log("EntityManager: Containers initialized");
     }
     
     private Transform CreateOrGetChildContainer(string containerName)
@@ -133,9 +110,9 @@ public class EntityManager : MonoBehaviour
         InitializeContainers();
     }
     
-    // ------------------------- //
+    // ==========================================
     // PLAYER MANAGEMENT
-    // ------------------------- //
+    // ==========================================
     
     public void SpawnPlayer(GameObject playerPrefab)
     {
@@ -163,7 +140,7 @@ public class EntityManager : MonoBehaviour
     
     private Vector3 GetPlayerSpawnPosition()
     {
-        LayoutManager layoutManager = GameDirector.Instance?.layoutManager;
+        LayoutManager layoutManager = GameDirector.Instance != null ? GameDirector.Instance.layoutManager : null;
         
         if (layoutManager != null && layoutManager.CurrentLayout != null)
         {
@@ -184,68 +161,30 @@ public class EntityManager : MonoBehaviour
     
     private void SetupCameraForPlayer()
     {
-        if (currentPlayer == null)
-        {
-            Debug.LogWarning("EntityManager: Cannot setup camera - player is null");
-            return;
-        }
+        if (currentPlayer == null) return;
         
-        if (currentCamera == null)
-        {
-            currentCamera = Camera.main?.GetComponent<CameraController>();
-        }
+        if (currentCamera == null) currentCamera = Camera.main?.GetComponent<CameraController>();
         
         if (currentCamera != null)
         {
             currentCamera.SetTarget(currentPlayer.transform);
             Debug.Log("EntityManager: Camera target set to player");
         }
-        else
-        {
-            Debug.LogWarning("EntityManager: Could not find CameraController");
-        }
     }
     
     public void RespawnPlayerAtEntrance()
     {
-        if (currentPlayer == null)
-        {
-            Debug.LogWarning("EntityManager: Cannot respawn player - no player exists");
-            return;
-        }
+        if (currentPlayer == null) return;
         
         Vector3 spawnPosition = GetPlayerSpawnPosition();
         currentPlayer.transform.position = spawnPosition;
         
-        PlayerController playerController = currentPlayer.GetComponent<PlayerController>();
-        if (playerController != null)
-        {
-            Debug.Log($"EntityManager: Player respawned at {spawnPosition}");
-        }
+        Debug.Log($"EntityManager: Player respawned at {spawnPosition}");
     }
     
-    // ------------------------- //
-    // ENHANCED ENEMY SPAWNING
-    // ------------------------- //
-
-    [ContextMenu("Debug NavMesh State")]
-    public void DebugNavMeshState()
-    {
-        NavMeshTriangulation triangulation = NavMesh.CalculateTriangulation();
-        Debug.Log($"=== NavMesh Debug ===");
-        Debug.Log($"Vertices: {triangulation.vertices.Length}");
-        Debug.Log($"Indices: {triangulation.indices.Length}");
-        Debug.Log($"Areas: {triangulation.areas.Length}");
-        
-        if (triangulation.vertices.Length > 0)
-        {
-            Debug.Log($"Sample position: {triangulation.vertices[0]}");
-        }
-        else
-        {
-            Debug.LogError("NavMesh has NO geometry!");
-        }
-    }
+    // ==========================================
+    // ENEMY SPAWNING (SIMPLIFIED)
+    // ==========================================
     
     public void SpawnAllEntitiesInDungeon()
     {
@@ -255,7 +194,7 @@ public class EntityManager : MonoBehaviour
             currentBiome = biomeManager.CurrentBiome;
         }
         
-        LayoutManager layoutManager = GameDirector.Instance?.layoutManager;
+        LayoutManager layoutManager = GameDirector.Instance != null ? GameDirector.Instance.layoutManager : null;
         if (layoutManager == null || layoutManager.CurrentLayout == null)
         {
             Debug.LogWarning("EntityManager: Cannot spawn entities - no layout available");
@@ -275,23 +214,14 @@ public class EntityManager : MonoBehaviour
     
     private int SpawnEntitiesInRoom(RoomModel room)
     {
-        switch (room.Type)
+        return room.Type switch
         {
-            case RoomType.Combat:
-                return SpawnCombatRoomEnemies(room);
-                
-            case RoomType.Boss:
-                return SpawnBossRoomEntities(room);
-                
-            case RoomType.Shop:
-                return SpawnShopKeeper(room);
-                
-            case RoomType.Treasure:
-                return SpawnTreasureChest(room);
-                
-            default:
-                return 0;
-        }
+            RoomType.Combat => SpawnCombatRoomEnemies(room),
+            RoomType.Boss => SpawnBossRoomEntities(room),
+            RoomType.Shop => SpawnShopKeeper(room),
+            RoomType.Treasure => SpawnTreasureChest(room),
+            _ => 0,
+        };
     }
     
     private int SpawnCombatRoomEnemies(RoomModel room)
@@ -307,7 +237,7 @@ public class EntityManager : MonoBehaviour
         }
         
         int successfulSpawns = 0;
-        int maxAttempts = enemyCount * 5; // More attempts
+        int maxAttempts = enemyCount * 10;
         int attempts = 0;
         
         while (successfulSpawns < enemyCount && attempts < maxAttempts)
@@ -315,30 +245,16 @@ public class EntityManager : MonoBehaviour
             attempts++;
             
             GameObject enemyPrefab = enemyPrefabs[spawnRandom.Next(0, enemyPrefabs.Count)];
-            
             Vector2Int spawnTile = room.GetRandomSpawnPosition();
             Vector3 spawnPosition = new(spawnTile.x + 0.5f, spawnHeight, spawnTile.y + 0.5f);
             
-            // CRITICAL: Validate position is on NavMesh
-            if (!NavMesh.SamplePosition(spawnPosition, out NavMeshHit hit, 10f, NavMesh.AllAreas))
-            {
-                Debug.LogWarning($"No NavMesh near {spawnTile}, trying another position...");
-                continue; // Skip this position, try another
-            }
+            // CRITICAL: Validate NavMesh position
+            if (!NavMesh.SamplePosition(spawnPosition, out NavMeshHit hit, 10f, NavMesh.AllAreas)) continue;
             
-            // Use the confirmed NavMesh position
             spawnPosition = hit.position;
             
             GameObject enemy = SpawnEnemy(enemyPrefab, spawnPosition);
-            if (enemy != null)
-            {
-                successfulSpawns++;
-            }
-        }
-        
-        if (successfulSpawns < enemyCount)
-        {
-            Debug.LogWarning($"Room {room.ID}: Only spawned {successfulSpawns}/{enemyCount} enemies (NavMesh constraints)");
+            if (enemy != null) successfulSpawns++;
         }
         
         return successfulSpawns;
@@ -346,7 +262,7 @@ public class EntityManager : MonoBehaviour
     
     private int SpawnBossRoomEntities(RoomModel room)
     {
-        // Spawn boss spawner landmark
+        // CRITICAL FIX: Only spawn ONE boss spawner
         Vector2Int centerTile = room.Center;
         Vector3 spawnerPosition = new(centerTile.x + 0.5f, 0f, centerTile.y + 0.5f);
         
@@ -355,20 +271,17 @@ public class EntityManager : MonoBehaviour
         
         BossSpawner spawnerComponent = bossSpawner.AddComponent<BossSpawner>();
         
-        // Set boss power reward
         PowerType[] bossRewards = new PowerType[]
         {
             PowerType.MaxHealth,
             PowerType.Damage,
-            PowerType.AttackSpeed,
-            PowerType.SpeedBoost,
-            PowerType.Vampire
+            PowerType.AttackSpeed
         };
         spawnerComponent.guaranteedPower = bossRewards[spawnRandom.Next(0, bossRewards.Length)];
         
         Debug.Log($"Boss room spawner created with reward: {spawnerComponent.guaranteedPower}");
         
-        return 1;
+        return 1; // One spawner (will create one boss)
     }
     
     private int SpawnShopKeeper(RoomModel room)
@@ -376,34 +289,26 @@ public class EntityManager : MonoBehaviour
         Vector2Int centerTile = room.Center;
         Vector3 shopPosition = new(centerTile.x + 0.5f, spawnHeight, centerTile.y + 0.5f);
         
-        // Create shop object
         GameObject shop = new("Shop");
         shop.transform.position = shopPosition;
         
-        // Visual (placeholder)
         GameObject visual = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
         visual.transform.SetParent(shop.transform);
         visual.transform.localPosition = Vector3.zero;
         visual.transform.localScale = new Vector3(2f, 1f, 2f);
         
         Renderer renderer = visual.GetComponent<Renderer>();
-        Material mat = new(Shader.Find("Standard"))
-        {
-            color = Color.blue
-        };
+        Material mat = new(Shader.Find("Standard")) { color = Color.blue };
         renderer.material = mat;
         
-        // Add trigger collider
         SphereCollider trigger = shop.AddComponent<SphereCollider>();
         trigger.isTrigger = true;
         trigger.radius = 3f;
         
-        // Add shop controller
         shop.AddComponent<ShopController>();
         
         Debug.Log($"Shop spawned in room {room.ID}");
-        
-        return 0; // Not an enemy
+        return 0;
     }
     
     private int SpawnTreasureChest(RoomModel room)
@@ -411,101 +316,47 @@ public class EntityManager : MonoBehaviour
         Vector2Int centerTile = room.Center;
         Vector3 chestPosition = new(centerTile.x + 0.5f, spawnHeight, centerTile.y + 0.5f);
         
-        // Create chest object
-        GameObject chest = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        chest.transform.position = chestPosition;
-        chest.transform.localScale = new Vector3(1f, 0.8f, 0.7f);
+        // GameObject chest = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        // chest.transform.position = chestPosition;
+        // chest.transform.localScale = new Vector3(1f, 0.8f, 0.7f);
+        
+        // Renderer renderer = chest.GetComponent<Renderer>();
+        // Material mat = new(Shader.Find("Standard")) { color = new Color(0.8f, 0.6f, 0.2f) };
+        // renderer.material = mat;
+        
+        GameObject chest = ResourceService.LoadTreasurePrefab();
         chest.name = "TreasureChest";
         
-        Renderer renderer = chest.GetComponent<Renderer>();
-        Material mat = new(Shader.Find("Standard"))
-        {
-            color = new Color(0.8f, 0.6f, 0.2f) // Gold color
-        };
-        renderer.material = mat;
-        
-        // Make trigger
         Collider collider = chest.GetComponent<Collider>();
         collider.isTrigger = true;
         
-        // Add treasure controller
-        TreasureChestController treasureController = chest.AddComponent<TreasureChestController>();
-        treasureController.treasureType = TreasureChestController.TreasureType.Random;
+        TreasureController treasureController = chest.AddComponent<TreasureController>();
+        treasureController.treasureType = TreasureController.TreasureType.Random;
         
         Debug.Log($"Treasure chest spawned in room {room.ID}");
-        
-        return 0; // Not an enemy
+        return 0;
     }
     
     private List<GameObject> GetBiomeEnemyPrefabs(string biome)
     {
         List<GameObject> prefabs = new();
         
-        // Try to load 3 enemy types per biome
-        // GameObject basic = ResourceService.LoadBasicEnemyPrefab(biome);
-        // GameObject elite = ResourceService.LoadEliteEnemyPrefab(biome);
-        GameObject boss = ResourceService.LoadBossEnemyPrefab(biome);
-        
         GameObject melee = ResourceService.LoadMeleeEnemyPrefab(biome);
         GameObject ranged = ResourceService.LoadRangedEnemyPrefab(biome);
         GameObject tank = ResourceService.LoadTankEnemyPrefab(biome);
         
-        // if (basic != null) prefabs.Add(basic);
-        // if (elite != null) prefabs.Add(elite);
-
         if (melee != null) prefabs.Add(melee);
         if (ranged != null) prefabs.Add(ranged);
         if (tank != null) prefabs.Add(tank);
         
-        // Don't add boss to regular combat rooms
-        
-        // If no enemies found, create placeholder
-        if (prefabs.Count == 0)
-        {
-            Debug.LogWarning($"No enemy prefabs found for biome '{biome}', using placeholder");
-            prefabs.Add(CreatePlaceholderEnemy());
-        }
+        if (prefabs.Count == 0) Debug.LogError($"No enemy prefabs found for biome '{biome}'");
         
         return prefabs;
     }
     
-    private GameObject CreatePlaceholderEnemy()
-    {
-        GameObject enemy = GameObject.CreatePrimitive(PrimitiveType.Capsule);
-        enemy.name = "PlaceholderEnemy";
-        enemy.tag = "Enemy";
-        enemy.layer = LayerMask.NameToLayer("Default");
-        
-        // Add enemy controller
-        EnemyController controller = enemy.AddComponent<EnemyController>();
-        controller.maxHealth = 30;
-        controller.damage = 10;
-        controller.moveSpeed = 2f;
-        
-        // Add NavMeshAgent
-        UnityEngine.AI.NavMeshAgent agent = enemy.AddComponent<UnityEngine.AI.NavMeshAgent>();
-        agent.speed = 2f;
-        agent.angularSpeed = 120f;
-        agent.acceleration = 8f;
-        
-        // Visual
-        Renderer renderer = enemy.GetComponent<Renderer>();
-        Material mat = new(Shader.Find("Standard"))
-        {
-            color = Color.red
-        };
-        renderer.material = mat;
-        
-        return enemy;
-    }
-    
     public GameObject SpawnEnemy(GameObject enemyPrefab, Vector3 position)
     {
-        if (enemyPrefab == null)
-        {
-            Debug.LogError("EntityManager: Cannot spawn enemy - prefab is null!");
-            return null;
-        }
+        if (enemyPrefab == null) return null;
         
         GameObject enemy = Instantiate(enemyPrefab, position, Quaternion.identity, enemiesContainer);
         allEnemies.Add(enemy);
@@ -513,104 +364,20 @@ public class EntityManager : MonoBehaviour
         return enemy;
     }
     
-    public void SpawnEnemiesInRoom(GameObject enemyPrefab, RoomModel room, int count)
-    {
-        if (enemyPrefab == null || room == null)
-        {
-            Debug.LogWarning("EntityManager: Cannot spawn enemies - invalid parameters");
-            return;
-        }
-        
-        for (int i = 0; i < count; i++)
-        {
-            Vector2Int spawnTile = room.GetRandomSpawnPosition();
-            Vector3 spawnPosition = new(spawnTile.x + 0.5f, spawnHeight, spawnTile.y + 0.5f);
-            SpawnEnemy(enemyPrefab, spawnPosition);
-        }
-        
-        Debug.Log($"EntityManager: Spawned {count} enemies in room {room.ID}");
-    }
-    
     public void ClearAllEnemies()
     {
         foreach (GameObject enemy in allEnemies)
         {
-            if (enemy != null)
-            {
-                Destroy(enemy);
-            }
+            if (enemy != null) Destroy(enemy);
         }
         
         allEnemies.Clear();
+        hasSpawnedEnemies = false; // CRITICAL: Reset flag
         Debug.Log("EntityManager: All enemies cleared");
     }
     
-    // ------------------------- //
-    // NPC MANAGEMENT
-    // ------------------------- //
-    
-    public GameObject SpawnNPC(GameObject npcPrefab, Vector3 position)
-    {
-        if (npcPrefab == null)
-        {
-            Debug.LogError("EntityManager: Cannot spawn NPC - prefab is null!");
-            return null;
-        }
-        
-        GameObject npc = Instantiate(npcPrefab, position, Quaternion.identity, npcsContainer);
-        allNPCs.Add(npc);
-        
-        Debug.Log($"EntityManager: NPC spawned at {position}");
-        return npc;
-    }
-    
-    public void ClearAllNPCs()
-    {
-        foreach (GameObject npc in allNPCs)
-        {
-            if (npc != null)
-            {
-                Destroy(npc);
-            }
-        }
-        
-        allNPCs.Clear();
-        Debug.Log("EntityManager: All NPCs cleared");
-    }
-    
-    // ------------------------- //
-    // ENTITY QUERIES
-    // ------------------------- //
-    
-    public int GetAliveEnemyCount()
-    {
-        allEnemies.RemoveAll(e => e == null);
-        return allEnemies.Count;
-    }
-    
-    public List<GameObject> GetEnemiesInRadius(Vector3 center, float radius)
-    {
-        List<GameObject> nearbyEnemies = new();
-        
-        foreach (GameObject enemy in allEnemies)
-        {
-            if (enemy != null && Vector3.Distance(enemy.transform.position, center) <= radius)
-            {
-                nearbyEnemies.Add(enemy);
-            }
-        }
-        
-        return nearbyEnemies;
-    }
-    
-    // ------------------------- //
-    // CLEANUP
-    // ------------------------- //
-    
     public void ClearAllEntities()
     {
-        Debug.Log("EntityManager: Clearing all entities...");
-        
         if (currentPlayer != null)
         {
             Destroy(currentPlayer);
@@ -618,29 +385,151 @@ public class EntityManager : MonoBehaviour
         }
         
         ClearAllEnemies();
-        ClearAllNPCs();
+        hasSpawnedEnemies = false; // CRITICAL: Reset flag
         
         Debug.Log("EntityManager: All entities cleared");
     }
 
     void OnDestroy()
     {
-        // Unsubscribe to prevent memory leaks
         LayoutManager.OnNavMeshReady -= OnNavMeshReady;
     }
-        
-    // ------------------------- //
-    // DEBUG
-    // ------------------------- //
+}
+
+public class BossSpawner : MonoBehaviour
+{
+    [Header("Boss Settings")]
+    public GameObject bossPrefab;
+    public bool hasSpawned = false;
+    public bool bossDefeated = false;
     
-    [ContextMenu("Print Entity Stats")]
-    public void PrintEntityStats()
+    [Header("Rewards")]
+    public PowerType guaranteedPower;
+    public int goldReward = 500;
+    
+    private GameObject currentBoss;
+    
+    void Start()
     {
-        Debug.Log("=== Entity Manager Stats ===");
-        Debug.Log($"Player: {(currentPlayer != null ? "Active" : "None")}");
-        Debug.Log($"Enemies: {GetAliveEnemyCount()}");
-        Debug.Log($"NPCs: {allNPCs.Count}");
-        Debug.Log($"Current Biome: {currentBiome}");
-        Debug.Log("===========================");
+        // Auto-spawn boss after short delay
+        if (!hasSpawned)
+        {
+            StartCoroutine(SpawnBossDelayed());
+        }
+    }
+    
+    private IEnumerator SpawnBossDelayed()
+    {
+        yield return new WaitForSeconds(2f);
+        SpawnBoss();
+    }
+    
+    private void SpawnBoss()
+    {
+        if (hasSpawned) return;
+        
+        hasSpawned = true;
+        
+        // Load boss prefab if not assigned
+        if (bossPrefab == null)
+        {
+            LayoutManager layoutManager = FindObjectOfType<LayoutManager>();
+            if (layoutManager != null)
+            {
+                BiomeManager biomeManager = layoutManager.GetComponent<BiomeManager>();
+                if (biomeManager != null)
+                {
+                    bossPrefab = ResourceService.LoadBossEnemyPrefab(biomeManager.CurrentBiome);
+                }
+            }
+        }
+        
+        if (bossPrefab == null)
+        {
+            Debug.LogError("BossSpawner: No boss prefab available!");
+            return;
+        }
+        
+        // Spawn boss at this position
+        Vector3 spawnPosition = transform.position + Vector3.up;
+        currentBoss = Instantiate(bossPrefab, spawnPosition, Quaternion.identity);
+        currentBoss.name = "Boss";
+        
+        // Make boss stronger
+        if (currentBoss.TryGetComponent<EnemyController>(out var bossController))
+        {
+            bossController.maxHealth = 200;
+            bossController.damage = 25;
+            bossController.moveSpeed = 3f;
+            
+            // Subscribe to boss death
+            StartCoroutine(WaitForBossDeath(bossController));
+        }
+        
+        Debug.Log("Boss spawned!");
+    }
+    
+    private IEnumerator WaitForBossDeath(EnemyController boss)
+    {
+        // Wait until boss is destroyed
+        while (currentBoss != null)
+        {
+            yield return new WaitForSeconds(0.5f);
+        }
+        
+        OnBossDefeated();
+    }
+    
+    private void OnBossDefeated()
+    {
+        if (bossDefeated) return;
+        
+        bossDefeated = true;
+        Debug.Log("BOSS DEFEATED!");
+        
+        // Spawn rewards
+        SpawnBossRewards();
+        
+        // Unlock exit if this is the boss room
+        UnlockExit();
+    }
+    
+    private void SpawnBossRewards()
+    {
+        // Spawn power pickup
+        Vector3 rewardPosition = transform.position + Vector3.up;
+        
+        // Create power pickup object
+        GameObject powerPickup = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        powerPickup.transform.position = rewardPosition;
+        powerPickup.transform.localScale = Vector3.one * 0.5f;
+        powerPickup.name = "BossPowerReward";
+        
+        // Make it glow
+        Renderer renderer = powerPickup.GetComponent<Renderer>();
+        Material glowMat = new(Shader.Find("Standard"))
+        {
+            color = Color.yellow
+        };
+        glowMat.EnableKeyword("_EMISSION");
+        glowMat.SetColor("_EmissionColor", Color.yellow * 2f);
+        renderer.material = glowMat;
+        
+        // Add pickup script
+        PowerPickup pickup = powerPickup.AddComponent<PowerPickup>();
+        pickup.powerType = guaranteedPower;
+        
+        Debug.Log($"Boss dropped power: {guaranteedPower}");
+    }
+    
+    private void UnlockExit()
+    {
+        // Find and unlock the exit portal
+        ProgressionManager progressionManager = FindObjectOfType<ProgressionManager>();
+        if (progressionManager != null)
+        {
+            // Enable exit portal
+            Debug.Log("Exit portal unlocked!");
+        }
     }
 }

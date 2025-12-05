@@ -232,7 +232,7 @@ public class UIManager : MonoBehaviour
         shopDisplay.closeButton = FindComponentInChildren<Button>(shopModal, "CloseButton");
         
         // Load item card prefab
-        shopDisplay.itemCardPrefab = Resources.Load<GameObject>("UI/comp_ShopItem");
+        shopDisplay.itemCardPrefab = Resources.Load<GameObject>("UI/comp_Commodity");
     }
     
     // ==========================================

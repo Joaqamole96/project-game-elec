@@ -49,13 +49,12 @@ public class LayoutManager : MonoBehaviour
     
     // Private Fields - Services
     private ConfigService _configService;
-    private MaterialService _materialService;
     
     // Private Fields - Managers (MonoBehaviours)
     private BiomeManager _biomeManager;
     
     // Private Fields - Renderers
-    private ProBuilderRoomRenderer _proBuilderRenderer;
+    private LayoutRenderer _layoutRenderer;
     private LandmarkRenderer _specialRenderer;
     private CorridorRenderer _corridorRenderer;
     
@@ -155,12 +154,12 @@ public class LayoutManager : MonoBehaviour
         {
             // FIXED: Use GetLandmarkPrefab instead of deprecated method
             _specialRenderer = new LandmarkRenderer(
-                _biomeManager.GetLandmarkPrefab(RoomType.Entrance), 
-                _biomeManager.GetLandmarkPrefab(RoomType.Exit), 
+                ResourceService.LoadEntrancePrefab(), 
+                ResourceService.LoadExitPrefab(), 
                 _biomeManager
             );
             
-            _proBuilderRenderer = new ProBuilderRoomRenderer(_biomeManager);
+            _layoutRenderer = new LayoutRenderer();
             _corridorRenderer = new CorridorRenderer();
             
             Debug.Log("Renderers initialized");
@@ -257,7 +256,7 @@ public class LayoutManager : MonoBehaviour
 
     private void RenderProBuilderMode(LevelModel layout, List<RoomModel> rooms, int floorLevel)
     {
-        if (_proBuilderRenderer == null || _corridorRenderer == null)
+        if (_layoutRenderer == null || _corridorRenderer == null)
         {
             Debug.LogError("ProBuilderRenderer or CorridorRenderer not initialized!");
             return;
@@ -267,7 +266,7 @@ public class LayoutManager : MonoBehaviour
         Debug.Log($"Rendering with ProBuilder for biome: {currentBiome}");
         
         // Render all rooms optimally (1 floor, 4 walls, 4 corners, N doorways per room)
-        _proBuilderRenderer.RenderAllRooms(layout, rooms, FloorsParent, currentBiome);
+        _layoutRenderer.RenderAllRooms(layout, rooms, FloorsParent, currentBiome);
         
         // Render corridors as stretched segments (NEW - replaces tile-by-tile)
         _corridorRenderer.RenderCorridors(layout, rooms, FloorsParent, currentBiome);
@@ -581,7 +580,6 @@ public class LayoutManager : MonoBehaviour
         
         ClearSpawnedContainers();
         ClearAllChildObjects();
-        CleanupMaterials();
     }
 
     private void ClearSpawnedContainers()
@@ -623,11 +621,6 @@ public class LayoutManager : MonoBehaviour
                 #endif
             }
         }
-    }
-
-    private void CleanupMaterials()
-    {
-        _materialService?.CleanupMaterialCache();
     }
 
     private void LogRenderingResults()

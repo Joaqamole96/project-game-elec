@@ -17,7 +17,3 @@ public class DoorModel
         RequiredKey = KeyType.None;
     }
 }
-
-public enum DoorState { Open, Closed, Locked, Broken }
-
-public enum KeyType { None, Key, }
