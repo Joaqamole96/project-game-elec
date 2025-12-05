@@ -9,14 +9,14 @@ using UnityEngine;
 
 public class LevelModel
 {
-    public List<RoomModel> Rooms { get; set; } = new List<RoomModel>();
-    public List<CorridorModel> Corridors { get; set; } = new List<CorridorModel>();
-    public HashSet<Vector2Int> AllFloorTiles { get; set; } = new HashSet<Vector2Int>();
-    public HashSet<Vector2Int> AllWallTiles { get; set; } = new HashSet<Vector2Int>();
-    public HashSet<Vector2Int> AllDoorTiles { get; set; } = new HashSet<Vector2Int>();
-    public Dictionary<Vector2Int, WallType> WallTypes { get; set; } = new Dictionary<Vector2Int, WallType>();
-    public Dictionary<Vector2Int, DoorModel> GameplayDoors { get; private set; } = new Dictionary<Vector2Int, DoorModel>();
-    public BoundsInt OverallBounds { get; private set; }
+    public List<RoomModel> Rooms = new();
+    public List<CorridorModel> Corridors = new();
+    public HashSet<Vector2Int> AllFloorTiles = new();
+    public HashSet<Vector2Int> AllWallTiles = new();
+    public HashSet<Vector2Int> AllDoorTiles = new();
+    public Dictionary<Vector2Int, WallType> WallTypes = new();
+    public Dictionary<Vector2Int, DoorModel> GameplayDoors = new();
+    public BoundsInt OverallBounds;
     private Dictionary<Vector2Int, RoomModel> _tileToRoomMap;
     private Dictionary<Vector2Int, CorridorModel> _tileToCorridorMap;
     private Dictionary<RoomModel, List<RoomModel>> _roomGraph;

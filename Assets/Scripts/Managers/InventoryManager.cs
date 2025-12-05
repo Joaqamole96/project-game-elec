@@ -13,9 +13,6 @@ public class InventoryManager : MonoBehaviour
     [Header("Currency")]
     public int gold = 0;
     
-    [Header("Keys")]
-    public List<KeyType> keys = new();
-    
     [Header("Items")]
     public List<ItemModel> items = new();
     public int maxInventorySize = 20;
@@ -48,33 +45,6 @@ public class InventoryManager : MonoBehaviour
         
         Debug.Log("Not enough gold!");
         return false;
-    }
-    
-    // ------------------------- //
-    // KEYS
-    // ------------------------- //
-    
-    public void AddKey(KeyType keyType)
-    {
-        if (!keys.Contains(keyType))
-        {
-            keys.Add(keyType);
-            Debug.Log($"Acquired {keyType} key");
-        }
-    }
-    
-    public bool HasKey(KeyType keyType)
-    {
-        return keys.Contains(keyType);
-    }
-    
-    public void UseKey(KeyType keyType)
-    {
-        if (keys.Contains(keyType))
-        {
-            keys.Remove(keyType);
-            Debug.Log($"Used {keyType} key");
-        }
     }
     
     // ------------------------- //
@@ -111,7 +81,6 @@ public class InventoryManager : MonoBehaviour
     public void ClearInventory()
     {
         gold = 0;
-        keys.Clear();
         items.Clear();
         Debug.Log("Inventory cleared");
     }
@@ -121,7 +90,6 @@ public class InventoryManager : MonoBehaviour
     {
         Debug.Log("=== INVENTORY ===");
         Debug.Log($"Gold: {gold}");
-        Debug.Log($"Keys: {string.Join(", ", keys)}");
         Debug.Log($"Items: {items.Count}/{maxInventorySize}");
         foreach (var item in items)
         {

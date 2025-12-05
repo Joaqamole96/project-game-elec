@@ -10,7 +10,6 @@ public class DoorController : MonoBehaviour
     [Header("Door State")]
     public bool isLocked = false;
     public bool isOpen = false;
-    public KeyType requiredKey = KeyType.None;
     
     [Header("References")]
     public GameObject doorModel;

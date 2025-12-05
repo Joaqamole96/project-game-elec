@@ -108,10 +108,6 @@ public class SaveManager : MonoBehaviour
         if (inventory == null) return;
         
         PlayerPrefs.SetInt(KEY_PLAYER_GOLD, inventory.gold);
-        
-        // Save keys (as comma-separated string)
-        string keysString = string.Join(",", inventory.keys);
-        PlayerPrefs.SetString("PlayerKeys", keysString);
     }
     
     private void SavePowerData(PowerManager powerManager)
@@ -209,23 +205,7 @@ public class SaveManager : MonoBehaviour
         
         inventory.gold = PlayerPrefs.GetInt(KEY_PLAYER_GOLD, 0);
         
-        // Load keys
-        string keysString = PlayerPrefs.GetString("PlayerKeys", "");
-        inventory.keys.Clear();
-        
-        if (!string.IsNullOrEmpty(keysString))
-        {
-            string[] keyStrings = keysString.Split(',');
-            foreach (string keyStr in keyStrings)
-            {
-                if (System.Enum.TryParse(keyStr, out KeyType keyType))
-                {
-                    inventory.keys.Add(keyType);
-                }
-            }
-        }
-        
-        Debug.Log($"SaveManager: Loaded {inventory.gold} gold, {inventory.keys.Count} keys");
+        Debug.Log($"SaveManager: Loaded {inventory.gold} gold");
     }
     
     private void LoadPowerData(PowerManager powerManager)

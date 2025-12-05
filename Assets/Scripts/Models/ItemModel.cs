@@ -3,22 +3,18 @@
 // -------------------------------------------------- //
 
 using UnityEngine;
-using System.Collections.Generic;
 
-public enum ItemType { Consumable, Key, Currency, Equipment }
 
 /// <summary>
 /// Base class for all collectible items
 /// </summary>
 public abstract class ItemModel : MonoBehaviour
 {
-    [Header("Item Info")]
     public string itemName = "Item";
     public ItemType itemType = ItemType.Consumable;
     public Sprite icon;
     public int stackSize = 1;
     
-    [Header("Pickup Settings")]
     public bool autoPickup = true;
     public GameObject pickupEffectPrefab;
     public AudioClip pickupSound;
@@ -52,12 +48,9 @@ public abstract class ItemModel : MonoBehaviour
 }
 
 // -------------------------------------------------- //
-// Scripts/Models/HealthPotion.cs
+// Scripts/Models/ItemModel.cs/HealthPotion
 // -------------------------------------------------- //
 
-/// <summary>
-/// Health restoration item
-/// </summary>
 public class HealthPotion : ItemModel
 {
     [Header("Heal Amount")]
@@ -69,54 +62,6 @@ public class HealthPotion : ItemModel
         {
             playerController.Heal(healAmount);
             Debug.Log($"Healed for {healAmount} HP");
-        }
-        
-        base.OnPickup(player);
-    }
-}
-
-// -------------------------------------------------- //
-// Scripts/Models/Coin.cs
-// -------------------------------------------------- //
-
-/// <summary>
-/// Currency item
-/// </summary>
-public class Coin : ItemModel
-{
-    [Header("Value")]
-    public int value = 1;
-    
-    protected override void OnPickup(GameObject player)
-    {
-        InventoryManager inventory = player.GetComponent<InventoryManager>();
-        if (inventory != null)
-        {
-            inventory.AddGold(value);
-        }
-        
-        base.OnPickup(player);
-    }
-}
-
-// -------------------------------------------------- //
-// Scripts/Models/Key.cs
-// -------------------------------------------------- //
-
-/// <summary>
-/// Key item for unlocking doors
-/// </summary>
-public class Key : ItemModel
-{
-    [Header("Key Type")]
-    public KeyType keyType = KeyType.Key;
-    
-    protected override void OnPickup(GameObject player)
-    {
-        InventoryManager inventory = player.GetComponent<InventoryManager>();
-        if (inventory != null)
-        {
-            inventory.AddKey(keyType);
         }
         
         base.OnPickup(player);
