@@ -21,7 +21,7 @@ public class PlayerController : MonoBehaviour
     [Header("Components")]
     public Rigidbody rb;
     public Animator animator;
-    public WeaponManager weaponManager;
+    public WeaponController weaponManager;
     public PowerManager powerManager;
     public InventoryManager inventory;
     
@@ -63,10 +63,10 @@ public class PlayerController : MonoBehaviour
             visualMesh.SetActive(false);
         }
         
-        weaponManager = GetComponent<WeaponManager>();
+        weaponManager = GetComponent<WeaponController>();
         if (weaponManager == null)
         {
-            weaponManager = gameObject.AddComponent<WeaponManager>();
+            weaponManager = gameObject.AddComponent<WeaponController>();
         }
 
         powerManager = GetComponent<PowerManager>();

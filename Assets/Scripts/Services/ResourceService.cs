@@ -228,6 +228,9 @@ public static class ResourceService
     public static GameObject LoadAxePrefab()
         => LoadPrefab("pf_Axe", CATEGORY_WEAPONS);
     
+    public static GameObject LoadProjectilePrefab()
+        => LoadPrefab("pf_Projectile", CATEGORY_WEAPONS);
+    
     // ------------------------- //
     // UI PREFABS
     // ------------------------- //

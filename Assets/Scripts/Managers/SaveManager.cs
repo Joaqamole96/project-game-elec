@@ -127,7 +127,7 @@ public class SaveManager : MonoBehaviour
         Debug.Log($"SaveManager: Saved {powerManager.activePowers.Count} powers");
     }
     
-    private void SaveWeaponModel(WeaponManager weaponManager)
+    private void SaveWeaponModel(WeaponController weaponManager)
     {
         if (weaponManager == null || weaponManager.currentWeaponModel == null) return;
         
@@ -231,7 +231,7 @@ public class SaveManager : MonoBehaviour
         Debug.Log($"SaveManager: Loaded {powerManager.activePowers.Count} powers");
     }
     
-    private void LoadWeaponModel(WeaponManager weaponManager)
+    private void LoadWeaponModel(WeaponController weaponManager)
     {
         if (weaponManager == null) return;
         

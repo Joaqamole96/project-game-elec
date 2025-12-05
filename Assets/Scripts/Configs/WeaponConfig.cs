@@ -36,7 +36,7 @@ public class WeaponConfig : MonoBehaviour
                 weaponType = WeaponType.Melee,
                 damage = 15,
                 attackSpeed = 1.0f,
-                range = 2f,
+                range = 1.5f,
                 description = "A reliable balanced blade",
                 prefab = ResourceService.LoadSwordPrefab(),
             }},
@@ -124,9 +124,6 @@ public class WeaponConfig : MonoBehaviour
         SphereCollider collider = pickup.AddComponent<SphereCollider>();
         collider.isTrigger = true;
         collider.radius = 0.5f;
-        
-        WeaponController pickupComponent = pickup.AddComponent<WeaponController>();
-        pickupComponent.weaponKey = weaponKey;
         
         return pickup;
     }

@@ -208,12 +208,9 @@ public class EnemyController : MonoBehaviour
     public virtual void TakeDamage(int damageAmount)
     {
         if (isDead) return;
-        Debug.LogError("This enemy took damage!");
         
         CurrentHealth -= damageAmount;
         CurrentHealth = Mathf.Max(0, CurrentHealth);
-        
-        StartCoroutine(FlashRed());
         
         // Force chase state if hit
         if (CurrentState != EnemyState.Chasing && CurrentState != EnemyState.Attacking)
@@ -309,15 +306,6 @@ public class EnemyController : MonoBehaviour
     {
         if (player == null) return false;
         return Vector3.Distance(transform.position, player.position) <= range;
-    }
-
-    protected IEnumerator FlashRed() 
-    {
-        Renderer rend = GetComponent<Renderer>();
-        Color original = rend.material.color;
-        rend.material.color = Color.red;
-        yield return new WaitForSeconds(0.2f);
-        rend.material.color = original;
     }
 
     protected IEnumerator WaitForNavMesh()
