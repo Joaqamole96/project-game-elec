@@ -33,7 +33,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: 0.000064375396}
+  m_AnchoredPosition: {x: 0, y: -0.000025555997}
   m_SizeDelta: {x: 0, y: 300}
   m_Pivot: {x: 0, y: 1}
 --- !u!1 &888819148119630637
@@ -699,7 +699,7 @@ GameObject:
   - component: {fileID: 7190036346161430038}
   - component: {fileID: 3321036371881511892}
   m_Layer: 5
-  m_Name: Items
+  m_Name: ItemsContainer
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -763,7 +763,7 @@ GameObject:
   - component: {fileID: 522544257414019205}
   - component: {fileID: 2426366698008834020}
   m_Layer: 5
-  m_Name: modal_Shop
+  m_Name: ui_Shop
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -858,10 +858,6 @@ MonoBehaviour:
     type: 3}
   playerGoldText: {fileID: 9038874714609661713}
   closeButton: {fileID: 1891321991762735195}
-  purchasePopup: {fileID: 0}
-  popupText: {fileID: 0}
-  confirmButton: {fileID: 0}
-  cancelButton: {fileID: 0}
 --- !u!1 &5833239541850172104
 GameObject:
   m_ObjectHideFlags: 0
@@ -874,7 +870,7 @@ GameObject:
   - component: {fileID: 3768661959631027710}
   - component: {fileID: 6627039396543796089}
   m_Layer: 5
-  m_Name: Modal
+  m_Name: ShopPanel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1062,7 +1058,7 @@ GameObject:
   - component: {fileID: 6917349101594110816}
   - component: {fileID: 9038874714609661713}
   m_Layer: 5
-  m_Name: Text
+  m_Name: GoldText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1396,7 +1392,7 @@ GameObject:
   - component: {fileID: 7875864322087308266}
   - component: {fileID: 1891321991762735195}
   m_Layer: 5
-  m_Name: Button
+  m_Name: CloseButton
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1515,7 +1511,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3850114387590362088}
   m_Layer: 5
-  m_Name: Exit
+  m_Name: Close
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

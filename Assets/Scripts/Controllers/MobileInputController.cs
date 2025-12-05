@@ -1,5 +1,5 @@
 // ================================================== //
-// Scripts/Input/MobileInputController.cs
+// Scripts/Controllers/MobileInputController.cs
 // ================================================== //
 
 using UnityEngine;
@@ -80,7 +80,7 @@ public class MobileInputController : MonoBehaviour
 }
 
 // ================================================== //
-// Scripts/Input/VirtualJoystick.cs
+// Scripts/Controllers/MobileInputController.cs/VirtualJoystick
 // ================================================== //
 
 /// <summary>

@@ -1,5 +1,5 @@
 // ================================================== //
-// FILE 1: ShopController.cs
+// Scripts/Controllers/ShopController
 // ================================================== //
 
 using UnityEngine;

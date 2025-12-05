@@ -1,11 +1,10 @@
 // -------------------------------------------------- //
-// Scripts/Displays/ShopDisplay.cs (DIRECT PURCHASE - NO POPUP)
+// Scripts/Displays/ShopDisplay.cs
 // -------------------------------------------------- //
 
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
-using System.Collections.Generic;
 
 public class ShopDisplay : MonoBehaviour
 {
@@ -25,11 +24,13 @@ public class ShopDisplay : MonoBehaviour
         {
             closeButton.onClick.AddListener(CloseShop);
         }
+        else Debug.LogWarning("CloseButton is null.");
         
         if (shopPanel != null)
         {
             shopPanel.SetActive(false);
         }
+        else Debug.LogWarning("ShopPanel is null.");
         
         player = PlayerController.Instance;
     }
@@ -91,7 +92,6 @@ public class ShopDisplay : MonoBehaviour
         var priceText = card.transform.Find("Price")?.GetComponent<TextMeshProUGUI>();
         var descText = card.transform.Find("Description")?.GetComponent<TextMeshProUGUI>();
         var icon = card.transform.Find("Icon")?.GetComponent<Image>();
-        var buyButton = card.transform.Find("BuyButton")?.GetComponent<Button>();
         
         // Set text
         if (nameText != null) nameText.text = item.itemName;
@@ -104,27 +104,25 @@ public class ShopDisplay : MonoBehaviour
             icon.color = GetItemColor(item.itemType);
         }
         
-        // Setup buy button - DIRECT PURCHASE
-        if (buyButton != null)
+        // Make entire card clickable for purchase
+        var cardButton = card.GetComponent<Button>();
+        if (cardButton == null)
         {
-            bool canAfford = player.inventory.gold >= item.price;
-            buyButton.interactable = canAfford;
-            
-            // Remove any existing listeners
-            buyButton.onClick.RemoveAllListeners();
-            
-            // Add direct purchase listener
-            buyButton.onClick.AddListener(() => OnDirectPurchase(itemIndex));
-            
-            var buttonText = buyButton.GetComponentInChildren<TextMeshProUGUI>();
-            if (buttonText != null)
-            {
-                buttonText.text = canAfford ? "Buy" : "Too Expensive";
-            }
+            cardButton = card.AddComponent<Button>();
         }
+        
+        // Remove any existing listeners
+        cardButton.onClick.RemoveAllListeners();
+        
+        // Check if player can afford
+        bool canAfford = player.inventory.gold >= item.price;
+        cardButton.interactable = canAfford;
+        
+        // Add purchase listener - clicking the card buys the item
+        cardButton.onClick.AddListener(() => OnItemPurchased(itemIndex));
     }
     
-    private void OnDirectPurchase(int itemIndex)
+    private void OnItemPurchased(int itemIndex)
     {
         if (currentShop == null) return;
         

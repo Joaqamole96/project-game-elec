@@ -11,20 +11,20 @@ public class UIManager : MonoBehaviour
     public static UIManager Instance { get; private set; }
     
     [Header("UI Prefab References")]
-    public GameObject playerInterfacePrefab;    // interface_Player
-    public GameObject mobileControlsPrefab;     // interface_MobileControls
-    public GameObject shopModalPrefab;          // modal_Shop
-    public GameObject pauseModalPrefab;         // modal_Pause
-    public GameObject settingsModalPrefab;      // modal_Settings
-    public GameObject gameOverModalPrefab;      // modal_GameOver
-    public GameObject damagePopupPrefab;        // popup_Damage
-    public GameObject tooltipPrefab;            // popup_Tooltip
+    public GameObject HUDUI;
+    public GameObject mobileControlsUI;
+    public GameObject shopUI;
+    public GameObject pauseUI;
+    public GameObject settingsUI;
+    public GameObject gameOverUI;
+    public GameObject damageUI;
+    public GameObject tooltipUI;
     
     [Header("Active UI Instances")]
-    private GameObject playerInterface;
-    private GameObject mobileControls;
-    private GameObject shopModal;
-    private GameObject pauseModal;
+    private GameObject HUDUIInstance;
+    private GameObject mobileControlsUIInstance;
+    private GameObject shopUIInstance;
+    private GameObject pauseUIInstance;
     private GameObject settingsModal;
     private GameObject gameOverModal;
     private GameObject tooltipInstance;
@@ -32,6 +32,7 @@ public class UIManager : MonoBehaviour
     [Header("Player Interface Components")]
     private Slider healthBar;
     private TextMeshProUGUI healthText;
+    private MobileInputController inputManager;
     
     private Canvas mainCanvas;
     private PlayerController player;
@@ -68,7 +69,7 @@ public class UIManager : MonoBehaviour
     
     void Update()
     {
-        if (playerInterface != null && player != null)
+        if (HUDUIInstance != null && player != null)
         {
             UpdatePlayerInterface();
         }
@@ -123,20 +124,25 @@ public class UIManager : MonoBehaviour
 
     private void InitializePrefabs()
     {
-        if (playerInterfacePrefab == null)
+        if (HUDUI == null)
         {
-            playerInterfacePrefab = ResourceService.LoadHUDUI();
+            HUDUI = ResourceService.LoadHUDUI();
         }
 
-        if (mobileControlsPrefab == null)
+        if (mobileControlsUI == null)
         {
-            mobileControlsPrefab = ResourceService.LoadMobileControlsUI();
+            mobileControlsUI = ResourceService.LoadMobileControlsUI();
+        }
+
+        if (shopUI == null)
+        {
+            shopUI = ResourceService.LoadShopUI();
         }
         
         // Load damage popup if not assigned
-        if (damagePopupPrefab == null)
+        if (damageUI == null)
         {
-            damagePopupPrefab = Resources.Load<GameObject>("UI/popup_Damage");
+            damageUI = Resources.Load<GameObject>("UI/popup_Damage");
         }
     }
     
@@ -146,11 +152,11 @@ public class UIManager : MonoBehaviour
     
     private void InitializePlayerInterface()
     {
-        if (playerInterfacePrefab != null)
+        if (HUDUI != null)
         {
             // Instantiate HUD prefab as child of main canvas
-            playerInterface = Instantiate(playerInterfacePrefab, mainCanvas.transform);
-            playerInterface.name = "PlayerInterface";
+            HUDUIInstance = Instantiate(HUDUI, mainCanvas.transform);
+            HUDUIInstance.name = "PlayerInterface";
             
             // Cache component references from prefab
             CacheHUDComponents();
@@ -166,8 +172,8 @@ public class UIManager : MonoBehaviour
     private void CacheHUDComponents()
     {
         // Try to find components by name in the HUD hierarchy
-        healthBar = FindComponentInChildren<Slider>(playerInterface, "HealthBar");
-        healthText = FindComponentInChildren<TextMeshProUGUI>(playerInterface, "HealthText");
+        healthBar = FindComponentInChildren<Slider>(HUDUIInstance, "HealthBar");
+        healthText = FindComponentInChildren<TextMeshProUGUI>(HUDUIInstance, "HealthText");
         
         // Log what we found
         Debug.Log($"UIManager: Cached HUD components - " +
@@ -196,7 +202,7 @@ public class UIManager : MonoBehaviour
     
     private void InitializeMobileControls()
     {
-        if (mobileControlsPrefab == null) return;
+        if (mobileControlsUI == null) return;
         
         // Only show on mobile platforms
         // bool isMobile = Application.isMobilePlatform;
@@ -204,51 +210,51 @@ public class UIManager : MonoBehaviour
         
         if (isMobile)
         {
-            mobileControls = Instantiate(mobileControlsPrefab, mainCanvas.transform);
-            mobileControls.name = "MobileControls";
+            mobileControlsUIInstance = Instantiate(mobileControlsUI, mainCanvas.transform);
+            mobileControlsUIInstance.name = "MobileControls";
             
             // Get MobileInputController component and initialize
-            MobileInputController inputManager = mobileControls.GetComponent<MobileInputController>();
+            inputManager = mobileControlsUIInstance.GetComponent<MobileInputController>();
             if (inputManager == null)
             {
-                inputManager = mobileControls.AddComponent<MobileInputController>();
+                inputManager = mobileControlsUIInstance.AddComponent<MobileInputController>();
             }
         }
     }
     
     // ==========================================
-    // SHOP MODAL
+    // SHOP UI
     // ==========================================
     
     public void ShowShopDisplay(ShopController shop)
     {
-        if (shopModalPrefab == null)
+        if (shopUI == null)
         {
             Debug.LogWarning("Shop modal prefab not assigned!");
             return;
         }
         
         // Instantiate if not exists
-        if (shopModal == null)
+        if (shopUIInstance == null)
         {
-            shopModal = Instantiate(shopModalPrefab, mainCanvas.transform);
-            shopModal.name = "ShopModal";
+            shopUIInstance = Instantiate(shopUI, mainCanvas.transform);
+            shopUIInstance.name = "ShopUI";
             
             // Add ShopDisplay component if not present
-            ShopDisplay shopDisplay = shopModal.GetComponent<ShopDisplay>();
+            ShopDisplay shopDisplay = shopUIInstance.GetComponent<ShopDisplay>();
             if (shopDisplay == null)
             {
-                shopDisplay = shopModal.AddComponent<ShopDisplay>();
+                shopDisplay = shopUIInstance.AddComponent<ShopDisplay>();
             }
             
             // Cache references
             CacheShopDisplayReferences(shopDisplay);
         }
         
-        shopModal.SetActive(true);
+        shopUIInstance.SetActive(true);
         
         // Open shop
-        ShopDisplay ui = shopModal.GetComponent<ShopDisplay>();
+        ShopDisplay ui = shopUIInstance.GetComponent<ShopDisplay>();
         if (ui != null)
         {
             ui.OpenShop(shop);
@@ -263,10 +269,10 @@ public class UIManager : MonoBehaviour
     private void CacheShopDisplayReferences(ShopDisplay shopDisplay)
     {
         // Find and assign UI components
-        shopDisplay.shopPanel = FindChildByName(shopModal, "ShopPanel");
-        shopDisplay.itemsContainer = FindChildByName(shopModal, "ItemsContainer")?.transform;
-        shopDisplay.playerGoldText = FindComponentInChildren<TextMeshProUGUI>(shopModal, "GoldText");
-        shopDisplay.closeButton = FindComponentInChildren<Button>(shopModal, "CloseButton");
+        shopDisplay.shopPanel = FindChildByName(shopUIInstance, "ShopPanel");
+        shopDisplay.itemsContainer = FindChildByName(shopUIInstance, "ItemsContainer")?.transform;
+        shopDisplay.playerGoldText = FindComponentInChildren<TextMeshProUGUI>(shopUIInstance, "GoldText");
+        shopDisplay.closeButton = FindComponentInChildren<Button>(shopUIInstance, "CloseButton");
         
         // Load item card prefab
         shopDisplay.itemCardPrefab = Resources.Load<GameObject>("UI/comp_ShopItem");
@@ -278,19 +284,19 @@ public class UIManager : MonoBehaviour
     
     public void TogglePauseMenu()
     {
-        if (pauseModalPrefab == null) return;
+        if (pauseUI == null) return;
         
-        if (pauseModal == null)
+        if (pauseUIInstance == null)
         {
-            pauseModal = Instantiate(pauseModalPrefab, mainCanvas.transform);
-            pauseModal.name = "PauseModal";
+            pauseUIInstance = Instantiate(pauseUI, mainCanvas.transform);
+            pauseUIInstance.name = "PauseModal";
             
             // Setup button listeners
             SetupPauseMenuButtons();
         }
         
-        bool isActive = !pauseModal.activeSelf;
-        pauseModal.SetActive(isActive);
+        bool isActive = !pauseUIInstance.activeSelf;
+        pauseUIInstance.SetActive(isActive);
         
         // Pause/unpause game
         Time.timeScale = isActive ? 0f : 1f;
@@ -300,9 +306,9 @@ public class UIManager : MonoBehaviour
     
     private void SetupPauseMenuButtons()
     {
-        Button resumeBtn = FindComponentInChildren<Button>(pauseModal, "ResumeButton");
-        Button settingsBtn = FindComponentInChildren<Button>(pauseModal, "SettingsButton");
-        Button quitBtn = FindComponentInChildren<Button>(pauseModal, "ExitButton");
+        Button resumeBtn = FindComponentInChildren<Button>(pauseUIInstance, "ResumeButton");
+        Button settingsBtn = FindComponentInChildren<Button>(pauseUIInstance, "SettingsButton");
+        Button quitBtn = FindComponentInChildren<Button>(pauseUIInstance, "ExitButton");
         
         if (resumeBtn != null) resumeBtn.onClick.AddListener(TogglePauseMenu);
         if (settingsBtn != null) settingsBtn.onClick.AddListener(ShowSettingsModal);
@@ -315,18 +321,18 @@ public class UIManager : MonoBehaviour
     
     private void ShowSettingsModal()
     {
-        if (settingsModalPrefab == null) return;
+        if (settingsUI == null) return;
         
         if (settingsModal == null)
         {
-            settingsModal = Instantiate(settingsModalPrefab, mainCanvas.transform);
+            settingsModal = Instantiate(settingsUI, mainCanvas.transform);
             settingsModal.name = "SettingsModal";
             
             SetupSettingsControls();
         }
         
         // Hide pause menu, show settings
-        if (pauseModal != null) pauseModal.SetActive(false);
+        if (pauseUIInstance != null) pauseUIInstance.SetActive(false);
         settingsModal.SetActive(true);
     }
     
@@ -368,7 +374,7 @@ public class UIManager : MonoBehaviour
         {
             backBtn.onClick.AddListener(() => {
                 settingsModal.SetActive(false);
-                if (pauseModal != null) pauseModal.SetActive(true);
+                if (pauseUIInstance != null) pauseUIInstance.SetActive(true);
             });
         }
     }
@@ -379,7 +385,7 @@ public class UIManager : MonoBehaviour
     
     public void ShowGameOver(bool victory, int floorReached, int goldCollected, int enemiesKilled)
     {
-        if (gameOverModalPrefab == null)
+        if (gameOverUI == null)
         {
             Debug.LogWarning("GameOver modal prefab not assigned, creating fallback");
             CreateFallbackGameOver(victory, floorReached, goldCollected, enemiesKilled);
@@ -388,7 +394,7 @@ public class UIManager : MonoBehaviour
         
         if (gameOverModal == null)
         {
-            gameOverModal = Instantiate(gameOverModalPrefab, mainCanvas.transform);
+            gameOverModal = Instantiate(gameOverUI, mainCanvas.transform);
             gameOverModal.name = "GameOverModal";
         }
         
@@ -483,14 +489,14 @@ public class UIManager : MonoBehaviour
     
     public void ShowDamageDisplay(Vector3 worldPosition, int damage, bool isCritical = false, bool isHeal = false)
     {
-        if (damagePopupPrefab == null)
+        if (damageUI == null)
         {
             Debug.LogWarning("UIManager: No damage popup prefab assigned");
             return;
         }
         
         // Spawn in world space (not as child of canvas)
-        GameObject popup = Instantiate(damagePopupPrefab, worldPosition, Quaternion.identity);
+        GameObject popup = Instantiate(damageUI, worldPosition, Quaternion.identity);
         
         DamageDisplay dmgNum = popup.GetComponent<DamageDisplay>();
         if (dmgNum == null)
@@ -507,11 +513,11 @@ public class UIManager : MonoBehaviour
     
     public void ShowTooltip(string text, Vector2 screenPosition)
     {
-        if (tooltipPrefab == null) return;
+        if (tooltipUI == null) return;
         
         if (tooltipInstance == null)
         {
-            tooltipInstance = Instantiate(tooltipPrefab, mainCanvas.transform);
+            tooltipInstance = Instantiate(tooltipUI, mainCanvas.transform);
             tooltipInstance.name = "Tooltip";
         }
         
@@ -544,20 +550,20 @@ public class UIManager : MonoBehaviour
     
     private void LoadModalPrefabs()
     {
-        if (shopModalPrefab == null)
-            shopModalPrefab = Resources.Load<GameObject>("UI/modal_Shop");
+        if (shopUI == null)
+            shopUI = Resources.Load<GameObject>("UI/modal_Shop");
         
-        if (pauseModalPrefab == null)
-            pauseModalPrefab = Resources.Load<GameObject>("UI/modal_Pause");
+        if (pauseUI == null)
+            pauseUI = Resources.Load<GameObject>("UI/modal_Pause");
         
-        if (settingsModalPrefab == null)
-            settingsModalPrefab = Resources.Load<GameObject>("UI/modal_Settings");
+        if (settingsUI == null)
+            settingsUI = Resources.Load<GameObject>("UI/modal_Settings");
         
-        if (gameOverModalPrefab == null)
-            gameOverModalPrefab = Resources.Load<GameObject>("UI/modal_GameOver");
+        if (gameOverUI == null)
+            gameOverUI = Resources.Load<GameObject>("UI/modal_GameOver");
         
-        if (tooltipPrefab == null)
-            tooltipPrefab = Resources.Load<GameObject>("UI/popup_Tooltip");
+        if (tooltipUI == null)
+            tooltipUI = Resources.Load<GameObject>("UI/popup_Tooltip");
     }
     
     private void SaveGame()

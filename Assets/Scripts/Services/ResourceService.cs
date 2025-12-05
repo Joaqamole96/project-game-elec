@@ -241,6 +241,9 @@ public static class ResourceService
     public static GameObject LoadMobileControlsUI()
         => LoadPrefab("ui_MobileControls", CATEGORY_UI);
     
+    public static GameObject LoadShopUI()
+        => LoadPrefab("ui_Shop", CATEGORY_UI);
+    
     // ------------------------- //
     // BATCH LOADING METHODS
     // ------------------------- //

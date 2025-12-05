@@ -4,10 +4,6 @@
 
 using UnityEngine;
 
-
-/// <summary>
-/// Base class for all collectible items
-/// </summary>
 public abstract class ItemModel : MonoBehaviour
 {
     public string itemName = "Item";
