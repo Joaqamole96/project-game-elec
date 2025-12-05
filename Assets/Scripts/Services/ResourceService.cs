@@ -22,7 +22,7 @@ public static class ResourceService
     private const string CATEGORY_PLAYERS = "Players";
     private const string CATEGORY_ITEMS = "Items";
     private const string CATEGORY_WEAPONS = "Weapons";
-    private const string CATEGORY_UI = "UI";
+    // private const string CATEGORY_UI = "UI";
     
     // ------------------------- //
     // CORE LOADING METHODS
@@ -89,7 +89,7 @@ public static class ResourceService
         => LoadPrefab("pf_LargeProp", CATEGORY_PROPS, biome);
     
     // ------------------------- //
-    // ENEMY PREFABS (Biome-Specific)
+    // ENEMY PREFABS
     // ------------------------- //
     
     public static GameObject LoadBossEnemyPrefab(string biome)
@@ -105,7 +105,7 @@ public static class ResourceService
         => LoadPrefab("pf_TankEnemy", CATEGORY_ENEMIES, biome);
     
     // ------------------------- //
-    // LANDMARK PREFABS (Biome-Independent)
+    // LANDMARK PREFABS
     // ------------------------- //
 
     public static GameObject LoadLandmarkPrefab(RoomType roomType)

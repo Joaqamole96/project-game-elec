@@ -49,7 +49,6 @@ public class LayoutManager : MonoBehaviour
     
     // Private Fields - Services
     private ConfigService _configService;
-    private MaterialService _materialService;
     
     // Private Fields - Managers (MonoBehaviours)
     private BiomeManager _biomeManager;
@@ -581,7 +580,6 @@ public class LayoutManager : MonoBehaviour
         
         ClearSpawnedContainers();
         ClearAllChildObjects();
-        CleanupMaterials();
     }
 
     private void ClearSpawnedContainers()
@@ -623,11 +621,6 @@ public class LayoutManager : MonoBehaviour
                 #endif
             }
         }
-    }
-
-    private void CleanupMaterials()
-    {
-        _materialService?.CleanupMaterialCache();
     }
 
     private void LogRenderingResults()

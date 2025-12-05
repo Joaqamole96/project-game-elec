@@ -5,20 +5,8 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>
-/// Service for applying Minimum Spanning Tree algorithm to create efficient room connectivity
-/// Uses Kruskal's algorithm with union-find data structure for optimal path selection
-/// Ensures all rooms are connected with minimal total corridor length
-/// </summary>
 public static class MSTService
 {
-    /// <summary>
-    /// Applies Minimum Spanning Tree to select the most efficient corridor connections
-    /// Uses Kruskal's algorithm to find minimal set of corridors connecting all rooms
-    /// </summary>
-    /// <param name="corridors">All possible corridors between rooms</param>
-    /// <param name="rooms">All rooms in the level</param>
-    /// <returns>Minimal set of corridors that connect all rooms efficiently</returns>
     public static List<CorridorModel> Apply(List<CorridorModel> corridors, List<RoomModel> rooms)
     {
         try
@@ -34,7 +22,9 @@ public static class MSTService
                 Debug.LogWarning("MSTService: Null corridors list provided - returning empty list");
                 return new List<CorridorModel>();
             }
+
             Debug.Log($"MSTService: Starting MST algorithm with {rooms.Count} rooms and {corridors.Count} possible corridors");
+
             var parentIds = InitializeUnionFind(rooms.Count);
             var spanningTreeCorridors = new List<CorridorModel>();
             // Sort corridors by distance (shorter corridors first for optimal MST)
@@ -57,9 +47,12 @@ public static class MSTService
                     return 0;
                 }
             });
+
             Debug.Log("MSTService: Corridors sorted by distance, building spanning tree...");
+
             int selectedCorridors = 0;
             int skippedCorridors = 0;
+
             foreach (var corridor in corridors)
             {
                 if (corridor?.StartRoom == null || corridor.EndRoom == null)
@@ -68,8 +61,10 @@ public static class MSTService
                     skippedCorridors++;
                     continue;
                 }
+
                 int roomAIndex = rooms.IndexOf(corridor.StartRoom);
                 int roomBIndex = rooms.IndexOf(corridor.EndRoom);
+
                 if (roomAIndex < 0 || roomBIndex < 0)
                 {
                     Debug.LogWarning("MSTService: Skipping corridor with rooms not in room list");
@@ -91,8 +86,10 @@ public static class MSTService
                 }
                 else skippedCorridors++;
             }
+
             Debug.Log($"MSTService: MST completed - {selectedCorridors} corridors selected, {skippedCorridors} skipped");
             Debug.Log($"MSTService: Final result: {spanningTreeCorridors.Count} corridors from {corridors.Count} possible");
+            
             return spanningTreeCorridors;
         }
         catch (System.Exception ex)
