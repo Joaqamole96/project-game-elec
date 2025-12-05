@@ -1,23 +1,18 @@
 // ================================================== //
-// Scripts/Input/MobileInputManager.cs
+// Scripts/Input/MobileInputController.cs
 // ================================================== //
 
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 
-/// <summary>
-/// Handles mobile touch controls for player movement and actions
-/// Automatically detects platform and shows/hides mobile controls
-/// </summary>
-public class MobileInputManager : MonoBehaviour
+public class MobileInputController : MonoBehaviour
 {
     [Header("Mobile UI Elements")]
     public GameObject mobileControlsCanvas;
     public VirtualJoystick movementJoystick;
     public Button attackButton;
     public Button dashButton;
-    public Button interactButton;
     
     [Header("Settings")]
     public bool forceMobileMode = false;
@@ -63,6 +58,10 @@ public class MobileInputManager : MonoBehaviour
         if (attackButton != null)
         {
             attackButton.onClick.AddListener(() => player?.OnAttackButtonPressed());
+            // attackButton.onClick.AddListener(() => {
+            //     // Trigger interact (open chests, talk to NPCs, etc.)
+            //     Debug.Log("Interact button pressed");
+            // });
         }
         
         if (dashButton != null)
@@ -73,14 +72,6 @@ public class MobileInputManager : MonoBehaviour
                 {
                     // Dash logic handled in PowerManager
                 }
-            });
-        }
-        
-        if (interactButton != null)
-        {
-            interactButton.onClick.AddListener(() => {
-                // Trigger interact (open chests, talk to NPCs, etc.)
-                Debug.Log("Interact button pressed");
             });
         }
         

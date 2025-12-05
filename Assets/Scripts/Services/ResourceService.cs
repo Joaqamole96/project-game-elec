@@ -235,20 +235,11 @@ public static class ResourceService
     // UI PREFABS
     // ------------------------- //
     
-    public static GameObject LoadHUDPrefab()
+    public static GameObject LoadHUDUI()
         => LoadPrefab("ui_HUD", CATEGORY_UI);
     
-    public static GameObject LoadMinimapPrefab()
-        => LoadPrefab(CATEGORY_UI, "MinimapPrefab");
-    
-    public static GameObject LoadMainMenuPrefab()
-        => LoadPrefab(CATEGORY_UI, "MainMenuPrefab");
-    
-    public static GameObject LoadPauseMenuPrefab()
-        => LoadPrefab(CATEGORY_UI, "PauseMenuPrefab");
-    
-    public static GameObject LoadGameOverScreenPrefab()
-        => LoadPrefab(CATEGORY_UI, "GameOverScreenPrefab");
+    public static GameObject LoadMobileControlsUI()
+        => LoadPrefab("ui_MobileControls", CATEGORY_UI);
     
     // ------------------------- //
     // BATCH LOADING METHODS

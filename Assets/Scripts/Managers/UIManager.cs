@@ -1,12 +1,11 @@
 // ================================================== //
-// Scripts/Manager/UIManager.cs
+// Scripts/Manager/UIManager.cs (FIXED)
 // ================================================== //
 
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
-[RequireComponent(typeof(Canvas))]
 public class UIManager : MonoBehaviour
 {
     public static UIManager Instance { get; private set; }
@@ -33,8 +32,6 @@ public class UIManager : MonoBehaviour
     [Header("Player Interface Components")]
     private Slider healthBar;
     private TextMeshProUGUI healthText;
-    private Slider manaBar;
-    private TextMeshProUGUI manaText;
     
     private Canvas mainCanvas;
     private PlayerController player;
@@ -44,6 +41,7 @@ public class UIManager : MonoBehaviour
         if (Instance == null)
         {
             Instance = this;
+            DontDestroyOnLoad(gameObject);
         }
         else
         {
@@ -51,19 +49,8 @@ public class UIManager : MonoBehaviour
             return;
         }
         
-        // Get or create main canvas
-        mainCanvas = GetComponent<Canvas>();
-        if (mainCanvas == null)
-        {
-            mainCanvas = gameObject.AddComponent<Canvas>();
-            mainCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
-            
-            CanvasScaler scaler = gameObject.AddComponent<CanvasScaler>();
-            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-            scaler.referenceResolution = new Vector2(1600, 900);
-            
-            gameObject.AddComponent<GraphicRaycaster>();
-        }
+        // CRITICAL: Setup canvas FIRST before any UI instantiation
+        SetupMainCanvas();
     }
     
     void Start()
@@ -94,18 +81,63 @@ public class UIManager : MonoBehaviour
     }
 
     // ==========================================
+    // CANVAS SETUP (CRITICAL FIX)
+    // ==========================================
+    
+    private void SetupMainCanvas()
+    {
+        // Get or create Canvas component
+        mainCanvas = GetComponent<Canvas>();
+        if (mainCanvas == null)
+        {
+            mainCanvas = gameObject.AddComponent<Canvas>();
+        }
+        
+        // CRITICAL: Set to Screen Space - Overlay (not World Space!)
+        mainCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        mainCanvas.sortingOrder = 0;
+        
+        // Add CanvasScaler for resolution independence
+        CanvasScaler scaler = GetComponent<CanvasScaler>();
+        if (scaler == null)
+        {
+            scaler = gameObject.AddComponent<CanvasScaler>();
+        }
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1920, 1080);
+        scaler.matchWidthOrHeight = 0.5f;
+        
+        // Add GraphicRaycaster for UI interaction
+        GraphicRaycaster raycaster = GetComponent<GraphicRaycaster>();
+        if (raycaster == null)
+        {
+            gameObject.AddComponent<GraphicRaycaster>();
+        }
+        
+        Debug.Log("UIManager: Canvas configured as Screen Space Overlay");
+    }
+
+    // ==========================================
     // PREFABS
     // ==========================================
 
     private void InitializePrefabs()
     {
-        playerInterfacePrefab = ResourceService.LoadHUDPrefab();
-        // mobileControls;
-        // shopModal;
-        // pauseModal;
-        // settingsModal;
-        // gameOverModal;
-        // tooltipInstance;
+        if (playerInterfacePrefab == null)
+        {
+            playerInterfacePrefab = ResourceService.LoadHUDUI();
+        }
+
+        if (mobileControlsPrefab == null)
+        {
+            mobileControlsPrefab = ResourceService.LoadMobileControlsUI();
+        }
+        
+        // Load damage popup if not assigned
+        if (damagePopupPrefab == null)
+        {
+            damagePopupPrefab = Resources.Load<GameObject>("UI/popup_Damage");
+        }
     }
     
     // ==========================================
@@ -114,40 +146,48 @@ public class UIManager : MonoBehaviour
     
     private void InitializePlayerInterface()
     {
-        if (playerInterfacePrefab == null)
+        if (playerInterfacePrefab != null)
         {
-            Debug.LogWarning("Player interface prefab not assigned!");
-            return;
+            // Instantiate HUD prefab as child of main canvas
+            playerInterface = Instantiate(playerInterfacePrefab, mainCanvas.transform);
+            playerInterface.name = "PlayerInterface";
+            
+            // Cache component references from prefab
+            CacheHUDComponents();
+            
+            Debug.Log("UIManager: Player interface initialized from prefab");
         }
-        
-        playerInterface = Instantiate(playerInterfacePrefab, transform);
-        playerInterface.name = "PlayerInterface";
-        
-        // Cache component references
+        else
+        {
+            Debug.LogError("UIManager: No HUD prefab found.");
+        }
+    }
+    
+    private void CacheHUDComponents()
+    {
+        // Try to find components by name in the HUD hierarchy
         healthBar = FindComponentInChildren<Slider>(playerInterface, "HealthBar");
         healthText = FindComponentInChildren<TextMeshProUGUI>(playerInterface, "HealthText");
-        manaBar = FindComponentInChildren<Slider>(playerInterface, "ManaBar");
-        manaText = FindComponentInChildren<TextMeshProUGUI>(playerInterface, "ManaText");
-
-        playerInterface.transform.SetParent(mainCanvas.transform);
+        
+        // Log what we found
+        Debug.Log($"UIManager: Cached HUD components - " +
+                  $"HealthBar: {healthBar != null}, " +
+                  $"HealthText: {healthText != null}, ");
     }
     
     private void UpdatePlayerInterface()
     {
         // Update health
+        if (healthText != null)
+        {
+            healthText.text = $"HP: {player.CurrentHealth}/{player.maxHealth}";
+        }
+        
         if (healthBar != null)
         {
             healthBar.maxValue = player.maxHealth;
             healthBar.value = player.CurrentHealth;
         }
-        
-        if (healthText != null)
-        {
-            healthText.text = $"{player.CurrentHealth}/{player.maxHealth}";
-        }
-        
-        // Update mana (if implemented)
-        // TODO: Add mana system to player
     }
     
     // ==========================================
@@ -159,18 +199,19 @@ public class UIManager : MonoBehaviour
         if (mobileControlsPrefab == null) return;
         
         // Only show on mobile platforms
-        bool isMobile = Application.isMobilePlatform;
+        // bool isMobile = Application.isMobilePlatform;
+        bool isMobile = true;
         
         if (isMobile)
         {
-            mobileControls = Instantiate(mobileControlsPrefab, transform);
+            mobileControls = Instantiate(mobileControlsPrefab, mainCanvas.transform);
             mobileControls.name = "MobileControls";
             
-            // Get MobileInputManager component and initialize
-            MobileInputManager inputManager = mobileControls.GetComponent<MobileInputManager>();
+            // Get MobileInputController component and initialize
+            MobileInputController inputManager = mobileControls.GetComponent<MobileInputController>();
             if (inputManager == null)
             {
-                inputManager = mobileControls.AddComponent<MobileInputManager>();
+                inputManager = mobileControls.AddComponent<MobileInputController>();
             }
         }
     }
@@ -190,7 +231,7 @@ public class UIManager : MonoBehaviour
         // Instantiate if not exists
         if (shopModal == null)
         {
-            shopModal = Instantiate(shopModalPrefab, transform);
+            shopModal = Instantiate(shopModalPrefab, mainCanvas.transform);
             shopModal.name = "ShopModal";
             
             // Add ShopDisplay component if not present
@@ -241,7 +282,7 @@ public class UIManager : MonoBehaviour
         
         if (pauseModal == null)
         {
-            pauseModal = Instantiate(pauseModalPrefab, transform);
+            pauseModal = Instantiate(pauseModalPrefab, mainCanvas.transform);
             pauseModal.name = "PauseModal";
             
             // Setup button listeners
@@ -278,7 +319,7 @@ public class UIManager : MonoBehaviour
         
         if (settingsModal == null)
         {
-            settingsModal = Instantiate(settingsModalPrefab, transform);
+            settingsModal = Instantiate(settingsModalPrefab, mainCanvas.transform);
             settingsModal.name = "SettingsModal";
             
             SetupSettingsControls();
@@ -338,11 +379,16 @@ public class UIManager : MonoBehaviour
     
     public void ShowGameOver(bool victory, int floorReached, int goldCollected, int enemiesKilled)
     {
-        if (gameOverModalPrefab == null) return;
+        if (gameOverModalPrefab == null)
+        {
+            Debug.LogWarning("GameOver modal prefab not assigned, creating fallback");
+            CreateFallbackGameOver(victory, floorReached, goldCollected, enemiesKilled);
+            return;
+        }
         
         if (gameOverModal == null)
         {
-            gameOverModal = Instantiate(gameOverModalPrefab, transform);
+            gameOverModal = Instantiate(gameOverModalPrefab, mainCanvas.transform);
             gameOverModal.name = "GameOverModal";
         }
         
@@ -377,14 +423,73 @@ public class UIManager : MonoBehaviour
         Cursor.visible = true;
     }
     
+    private void CreateFallbackGameOver(bool victory, int floorReached, int goldCollected, int enemiesKilled)
+    {
+        // Create simple game over screen
+        GameObject panel = new GameObject("GameOverPanel");
+        panel.transform.SetParent(mainCanvas.transform, false);
+        
+        Image bg = panel.AddComponent<Image>();
+        bg.color = new Color(0, 0, 0, 0.8f);
+        
+        RectTransform panelRect = panel.GetComponent<RectTransform>();
+        panelRect.anchorMin = Vector2.zero;
+        panelRect.anchorMax = Vector2.one;
+        panelRect.sizeDelta = Vector2.zero;
+        
+        // Title text
+        GameObject titleObj = new GameObject("Title");
+        titleObj.transform.SetParent(panel.transform, false);
+        
+        TextMeshProUGUI title = titleObj.AddComponent<TextMeshProUGUI>();
+        title.text = victory ? "VICTORY!" : "GAME OVER";
+        title.fontSize = 72;
+        title.color = victory ? Color.yellow : Color.red;
+        title.alignment = TextAlignmentOptions.Center;
+        
+        RectTransform titleRect = titleObj.GetComponent<RectTransform>();
+        titleRect.anchorMin = new Vector2(0.5f, 0.7f);
+        titleRect.anchorMax = new Vector2(0.5f, 0.7f);
+        titleRect.sizeDelta = new Vector2(600, 100);
+        
+        // Stats text
+        GameObject statsObj = new GameObject("Stats");
+        statsObj.transform.SetParent(panel.transform, false);
+        
+        TextMeshProUGUI stats = statsObj.AddComponent<TextMeshProUGUI>();
+        stats.text = $"Floor Reached: {floorReached}\nGold Collected: {goldCollected}\nEnemies Defeated: {enemiesKilled}";
+        stats.fontSize = 36;
+        stats.color = Color.white;
+        stats.alignment = TextAlignmentOptions.Center;
+        
+        RectTransform statsRect = statsObj.GetComponent<RectTransform>();
+        statsRect.anchorMin = new Vector2(0.5f, 0.5f);
+        statsRect.anchorMax = new Vector2(0.5f, 0.5f);
+        statsRect.sizeDelta = new Vector2(600, 150);
+        
+        gameOverModal = panel;
+        
+        // Pause game
+        Time.timeScale = 0f;
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+        
+        Debug.Log("UIManager: Created fallback game over screen");
+    }
+    
     // ==========================================
     // DAMAGE POPUP
     // ==========================================
     
     public void ShowDamageDisplay(Vector3 worldPosition, int damage, bool isCritical = false, bool isHeal = false)
     {
-        if (damagePopupPrefab == null) return;
+        if (damagePopupPrefab == null)
+        {
+            Debug.LogWarning("UIManager: No damage popup prefab assigned");
+            return;
+        }
         
+        // Spawn in world space (not as child of canvas)
         GameObject popup = Instantiate(damagePopupPrefab, worldPosition, Quaternion.identity);
         
         DamageDisplay dmgNum = popup.GetComponent<DamageDisplay>();
@@ -406,12 +511,17 @@ public class UIManager : MonoBehaviour
         
         if (tooltipInstance == null)
         {
-            tooltipInstance = Instantiate(tooltipPrefab, transform);
+            tooltipInstance = Instantiate(tooltipPrefab, mainCanvas.transform);
             tooltipInstance.name = "Tooltip";
         }
         
         tooltipInstance.SetActive(true);
-        tooltipInstance.transform.position = screenPosition;
+        
+        RectTransform rect = tooltipInstance.GetComponent<RectTransform>();
+        if (rect != null)
+        {
+            rect.position = screenPosition;
+        }
         
         TextMeshProUGUI tooltipText = tooltipInstance.GetComponentInChildren<TextMeshProUGUI>();
         if (tooltipText != null)
@@ -445,9 +555,6 @@ public class UIManager : MonoBehaviour
         
         if (gameOverModalPrefab == null)
             gameOverModalPrefab = Resources.Load<GameObject>("UI/modal_GameOver");
-        
-        if (damagePopupPrefab == null)
-            damagePopupPrefab = Resources.Load<GameObject>("UI/popup_Damage");
         
         if (tooltipPrefab == null)
             tooltipPrefab = Resources.Load<GameObject>("UI/popup_Tooltip");
@@ -504,10 +611,15 @@ public class UIManager : MonoBehaviour
     {
         if (parent == null) return null;
         
+        // Check direct children first
         foreach (Transform child in parent.transform)
         {
             if (child.name == name) return child.gameObject;
-            
+        }
+        
+        // Recursive search
+        foreach (Transform child in parent.transform)
+        {
             GameObject found = FindChildByName(child.gameObject, name);
             if (found != null) return found;
         }
