@@ -48,7 +48,7 @@ public class LayoutManager : MonoBehaviour
     private NavMeshGenerator _navMeshGenerator;
     
     // Private Fields - Services
-    private ConfigService _configService;
+    private ConfigRegistry _configService;
     
     // Private Fields - Managers (MonoBehaviours)
     private BiomeManager _biomeManager;
@@ -113,7 +113,7 @@ public class LayoutManager : MonoBehaviour
     {
         int seed = LevelConfig?.Seed ?? 0;
         
-        _configService = new ConfigService(GameConfig, LevelConfig, PartitionConfig, RoomConfig);
+        _configService = new ConfigRegistry(GameConfig, LevelConfig, PartitionConfig, RoomConfig);
         _random = new System.Random(seed);
         
         if (_biomeManager != null)
