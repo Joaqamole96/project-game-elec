@@ -5,16 +5,11 @@
 using UnityEngine;
 using System.Collections.Generic;
 
-/// <summary>
-/// Static service for managing resource loading and caching of game prefabs
-/// Provides biome-specific and biome-independent prefab loading with caching
-/// </summary>
 public static class ResourceService
 {
     // Cache to avoid repeated Resources.Load calls
-    private static Dictionary<string, GameObject> _prefabCache = new();
+    private static readonly Dictionary<string, GameObject> _prefabCache = new();
     // Biome constants
-    public const string BIOME_DEFAULT = "_Default";
     public const string BIOME_GRASSLANDS = "Grasslands";
     public const string BIOME_DUNGEON = "Dungeon";
     public const string BIOME_CAVES = "Caves";
@@ -33,19 +28,22 @@ public static class ResourceService
     // CORE LOADING METHODS
     // ------------------------- //
 
-    private static GameObject LoadBiomeSpecificPrefab(string category, string biome, string prefabName)
+    private static GameObject LoadPrefab(string prefabName, string resource, string biome = null)
     {
         try
         {
-            string path = $"{category}/{biome}/{prefabName}";
+            string path;
+            if (biome != null) path = $"{resource}/{biome}/{prefabName}";
+            else path = $"{resource}/{prefabName}";
+            
             // Check cache first for performance
             if (_prefabCache.TryGetValue(path, out GameObject cached)) return cached;
+            
             // Load from Resources
             GameObject prefab = Resources.Load<GameObject>(path);
             if (prefab != null)
             {
                 _prefabCache[path] = prefab;
-                Debug.Log($"ResourceService: Successfully loaded {path}");
                 return prefab;
             }
             else
@@ -56,130 +54,60 @@ public static class ResourceService
         }
         catch (System.Exception ex)
         {
-            Debug.LogError($"ResourceService: Error loading biome-specific prefab {prefabName}: {ex.Message}");
-            return null;
-        }
-    }
-    
-    private static GameObject LoadCategoryPrefab(string category, string prefabName)
-    {
-        try
-        {
-            string path = $"{category}/{prefabName}";
-            // Check cache first for performance
-            if (_prefabCache.TryGetValue(path, out GameObject cached)) return cached;
-            // Load from Resources
-            GameObject prefab = Resources.Load<GameObject>(path);
-            if (prefab != null)
-            {
-                _prefabCache[path] = prefab;
-                Debug.Log($"ResourceService: Successfully loaded {path}");
-                return prefab;
-            }
-            else
-            {
-                Debug.LogWarning($"ResourceService: Failed to load {path} - resource not found");
-                return null;
-            }
-        }
-        catch (System.Exception ex)
-        {
-            Debug.LogError($"ResourceService: Error loading category prefab {prefabName}: {ex.Message}");
-            return null;
-        }
-    }
-    
-    private static GameObject LoadWithFallback(string category, string biome, string prefabName)
-    {
-        try
-        {
-            GameObject prefab = LoadBiomeSpecificPrefab(category, biome, prefabName);
-            if (prefab == null && biome != BIOME_DEFAULT)
-            {
-                Debug.Log($"ResourceService: Falling back to {BIOME_DEFAULT} biome for {prefabName}");
-                prefab = LoadBiomeSpecificPrefab(category, BIOME_DEFAULT, prefabName);
-            }
-            return prefab;
-        }
-        catch (System.Exception ex)
-        {
-            Debug.LogError($"ResourceService: Error in fallback loading for {prefabName}: {ex.Message}");
+            Debug.LogError(ex.Message);
             return null;
         }
     }
     
     // ------------------------- //
-    // LAYOUT PREFABS (Biome-Specific)
+    // LAYOUT PREFABS
     // ------------------------- //
     
-    public static GameObject LoadFloorPrefab(string biome)
-        => LoadWithFallback(CATEGORY_LAYOUT, biome, "FloorPrefab");
+    public static GameObject LoadFloorPrefab()
+        => LoadPrefab("pf_Floor", CATEGORY_LAYOUT);
     
-    public static GameObject LoadWallPrefab(string biome)
-        => LoadWithFallback(CATEGORY_LAYOUT, biome, "WallPrefab");
+    public static GameObject LoadWallPrefab()
+        => LoadPrefab("pf_Wall", CATEGORY_LAYOUT);
     
-    public static GameObject LoadDoorPrefab(string biome)
-        => LoadWithFallback(CATEGORY_LAYOUT, biome, "DoorPrefab");
+    public static GameObject LoadDoorPrefab()
+        => LoadPrefab("pf_Door", CATEGORY_LAYOUT);
     
-    public static GameObject LoadDoorTopPrefab(string biome)
-        => LoadWithFallback(CATEGORY_LAYOUT, biome, "DoorTopPrefab");
-    
-    public static GameObject LoadCeilingPrefab(string biome)
-        => LoadWithFallback(CATEGORY_LAYOUT, biome, "CeilingPrefab");
+    public static GameObject LoadCeilingPrefab()
+        => LoadPrefab("pf_Ceiling", CATEGORY_LAYOUT);
     
     // ------------------------- //
-    // PROPS PREFABS (Biome-Specific)
+    // PROPS PREFABS
     // ------------------------- //
     
-    public static GameObject LoadProp(string biome, string propName)
-        => LoadWithFallback(CATEGORY_PROPS, biome, propName);
+    public static GameObject LoadSmallProp(string biome)
+        => LoadPrefab("pf_SmallProp", CATEGORY_PROPS, biome);
     
-    public static GameObject LoadTorchPrefab(string biome)
-        => LoadWithFallback(CATEGORY_PROPS, biome, "TorchPrefab");
+    public static GameObject LoadMediumProp(string biome)
+        => LoadPrefab("pf_MediumProp", CATEGORY_PROPS, biome);
     
-    public static GameObject LoadPillarPrefab(string biome)
-        => LoadWithFallback(CATEGORY_PROPS, biome, "PillarPrefab");
-    
-    public static GameObject LoadBarrelPrefab(string biome)
-        => LoadWithFallback(CATEGORY_PROPS, biome, "BarrelPrefab");
-    
-    public static GameObject LoadCratePrefab(string biome)
-        => LoadWithFallback(CATEGORY_PROPS, biome, "CratePrefab");
+    public static GameObject LoadLargeProp(string biome)
+        => LoadPrefab("pf_LargeProp", CATEGORY_PROPS, biome);
     
     // ------------------------- //
     // ENEMY PREFABS (Biome-Specific)
     // ------------------------- //
     
-    public static GameObject LoadEnemy(string biome, string enemyName)
-        => LoadWithFallback(CATEGORY_ENEMIES, biome, enemyName);
-    
-    // public static GameObject LoadBasicEnemyPrefab(string biome)
-    //     => LoadWithFallback(CATEGORY_ENEMIES, biome, "BasicEnemyPrefab");
-    
-    // public static GameObject LoadEliteEnemyPrefab(string biome)
-    //     => LoadWithFallback(CATEGORY_ENEMIES, biome, "EliteEnemyPrefab");
-    
     public static GameObject LoadBossEnemyPrefab(string biome)
-        => LoadWithFallback(CATEGORY_ENEMIES, biome, "pf_BossEnemy");
+        => LoadPrefab("pf_BossEnemy", CATEGORY_ENEMIES, biome);
     
     public static GameObject LoadMeleeEnemyPrefab(string biome)
-        => LoadWithFallback(CATEGORY_ENEMIES, biome, "pf_MeleeEnemy");
+        => LoadPrefab("pf_MeleeEnemy", CATEGORY_ENEMIES, biome);
     
     public static GameObject LoadRangedEnemyPrefab(string biome)
-        => LoadWithFallback(CATEGORY_ENEMIES, biome, "pf_RangedEnemy");
+        => LoadPrefab("pf_RangedEnemy", CATEGORY_ENEMIES, biome);
     
     public static GameObject LoadTankEnemyPrefab(string biome)
-        => LoadWithFallback(CATEGORY_ENEMIES, biome, "pf_TankEnemy");
+        => LoadPrefab("pf_TankEnemy", CATEGORY_ENEMIES, biome);
     
     // ------------------------- //
     // LANDMARK PREFABS (Biome-Independent)
     // ------------------------- //
-    
-    /// <summary>
-    /// Loads landmark prefab based on room type
-    /// </summary>
-    /// <param name="roomType">Type of room landmark to load</param>
-    /// <returns>Loaded landmark prefab or null if not found</returns>
+
     public static GameObject LoadLandmarkPrefab(RoomType roomType)
     {
         try
@@ -190,10 +118,9 @@ public static class ResourceService
                 RoomType.Exit => "pf_Exit",
                 RoomType.Shop => "pf_Shop",
                 RoomType.Treasure => "pf_Treasure",
-                RoomType.Boss => "BossPrefab",
                 _ => null
             };
-            if (prefabName != null) return LoadCategoryPrefab(CATEGORY_LANDMARKS, prefabName);
+            if (prefabName != null) return LoadPrefab(prefabName, CATEGORY_LANDMARKS);
             Debug.LogWarning($"ResourceService: No prefab mapping for room type {roomType}");
             return null;
         }
@@ -204,158 +131,84 @@ public static class ResourceService
         }
     }
     
-    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
     public static GameObject LoadEntrancePrefab()
-        => LoadCategoryPrefab(CATEGORY_LANDMARKS, "pf_Entrance");
+        => LoadPrefab("pf_Entrance", CATEGORY_LANDMARKS);
     
-    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
     public static GameObject LoadExitPrefab()
-        => LoadCategoryPrefab(CATEGORY_LANDMARKS, "pf_Exit");
+        => LoadPrefab("pf_Exit", CATEGORY_LANDMARKS);
     
-    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
     public static GameObject LoadShopPrefab()
-        => LoadCategoryPrefab(CATEGORY_LANDMARKS, "pf_Shop");
-    
-    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
+        => LoadPrefab("pf_Shop", CATEGORY_LANDMARKS);
+
     public static GameObject LoadTreasurePrefab()
-        => LoadCategoryPrefab(CATEGORY_LANDMARKS, "pf_Treasure");
-    
-    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
-    public static GameObject LoadBossPrefab()
-        => LoadCategoryPrefab(CATEGORY_LANDMARKS, "BossPrefab");
+        => LoadPrefab("pf_Treasure", CATEGORY_LANDMARKS);
     
     // ------------------------- //
-    // PLAYER PREFABS (Biome-Independent)
+    // PLAYER PREFABS
     // ------------------------- //
     
     public static GameObject LoadPlayerPrefab()
-        => LoadCategoryPrefab(CATEGORY_PLAYERS, "PlayerPrefab");
+        => LoadPrefab("pf_Player", CATEGORY_PLAYERS);
     
     public static GameObject LoadCameraPrefab()
-        => LoadCategoryPrefab(CATEGORY_PLAYERS, "CameraPrefab");
+        => LoadPrefab("pf_Camera", CATEGORY_PLAYERS);
     
     // ------------------------- //
-    // ITEM PREFABS (Biome-Independent)
+    // ITEM PREFABS
     // ------------------------- //
-    
-    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
-    public static GameObject LoadItemPrefab(string itemName)
-        => LoadCategoryPrefab(CATEGORY_ITEMS, itemName);
     
     public static GameObject LoadHealthPotionPrefab()
-        => LoadCategoryPrefab(CATEGORY_ITEMS, "HealthPotionPrefab");
-    
-    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
-    public static GameObject LoadCoinPrefab()
-        => LoadCategoryPrefab(CATEGORY_ITEMS, "CoinPrefab");
-    
-    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
-    public static GameObject LoadChestPrefab()
-        => LoadCategoryPrefab(CATEGORY_ITEMS, "ChestPrefab");
-    
-    /// <summary>
-    /// Loads key prefab based on key type
-    /// </summary>
-    /// <param name="keyType">Type of key to load</param>
-    /// <returns>Loaded key prefab or null if not found</returns>
-    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
-    public static GameObject LoadKeyPrefab(KeyType keyType)
-    {
-        try
-        {
-            string keyName = keyType switch
-            {
-                KeyType.Key => "Key",
-                _ => "Key" // Default fallback
-            };
-            return LoadCategoryPrefab(CATEGORY_ITEMS, keyName);
-        }
-        catch (System.Exception ex)
-        {
-            Debug.LogError($"ResourceService: Error loading key prefab for {keyType}: {ex.Message}");
-            return null;
-        }
-    }
+        => LoadPrefab("pf_HealthPotion", CATEGORY_ITEMS);
     
     // ------------------------- //
-    // WEAPON PREFABS (Biome-Independent)
+    // WEAPON PREFABS
     // ------------------------- //
     
-    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
-    public static GameObject LoadWeaponPrefab(string weaponName)
-        => LoadCategoryPrefab(CATEGORY_WEAPONS, weaponName);
-    
-    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
         public static GameObject LoadSwordPrefab()
-        => LoadCategoryPrefab(CATEGORY_WEAPONS, "pf_Sword");
+        => LoadPrefab("pf_Sword", CATEGORY_WEAPONS);
     
-    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
     public static GameObject LoadBowPrefab()
-        => LoadCategoryPrefab(CATEGORY_WEAPONS, "pf_Bow");
+        => LoadPrefab("pf_Bow", CATEGORY_WEAPONS);
     
-    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
     public static GameObject LoadStaffPrefab()
-        => LoadCategoryPrefab(CATEGORY_WEAPONS, "pf_Staff");
+        => LoadPrefab("pf_Staff", CATEGORY_WEAPONS);
     
-    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
     public static GameObject LoadAxePrefab()
-        => LoadCategoryPrefab(CATEGORY_WEAPONS, "pf_Axe");
+        => LoadPrefab("pf_Axe", CATEGORY_WEAPONS);
     
     // ------------------------- //
-    // UI PREFABS (Biome-Independent)
+    // UI PREFABS
     // ------------------------- //
     
-    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
-    public static GameObject LoadUIPrefab(string uiName)
-        => LoadCategoryPrefab(CATEGORY_UI, uiName);
+    // public static GameObject LoadHealthBarPrefab()
+    //     => LoadPrefab(CATEGORY_UI, "HealthBarPrefab");
     
-    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
-    public static GameObject LoadHealthBarPrefab()
-        => LoadCategoryPrefab(CATEGORY_UI, "HealthBarPrefab");
+    // public static GameObject LoadMinimapPrefab()
+    //     => LoadPrefab(CATEGORY_UI, "MinimapPrefab");
     
-    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
-    public static GameObject LoadMinimapPrefab()
-        => LoadCategoryPrefab(CATEGORY_UI, "MinimapPrefab");
+    // public static GameObject LoadMainMenuPrefab()
+    //     => LoadPrefab(CATEGORY_UI, "MainMenuPrefab");
     
-    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
-    public static GameObject LoadMainMenuPrefab()
-        => LoadCategoryPrefab(CATEGORY_UI, "MainMenuPrefab");
+    // public static GameObject LoadPauseMenuPrefab()
+    //     => LoadPrefab(CATEGORY_UI, "PauseMenuPrefab");
     
-    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
-    public static GameObject LoadPauseMenuPrefab()
-        => LoadCategoryPrefab(CATEGORY_UI, "PauseMenuPrefab");
-    
-    // NOTE TO CLAUDE: This currently has 0 references. Let's delete it if it is not planned for use now or in the future.
-    public static GameObject LoadGameOverScreenPrefab()
-        => LoadCategoryPrefab(CATEGORY_UI, "GameOverScreenPrefab");
+    // public static GameObject LoadGameOverScreenPrefab()
+    //     => LoadPrefab(CATEGORY_UI, "GameOverScreenPrefab");
     
     // ------------------------- //
     // BATCH LOADING METHODS
     // ------------------------- //
-    
-    /// <summary>
-    /// Preloads all essential prefabs for a specific biome to populate cache
-    /// </summary>
-    /// <param name="biome">Biome to preload</param>
+
     public static void PreloadBiome(string biome)
     {
         try
         {
             Debug.Log($"ResourceService: Preloading biome '{biome}'...");
-            // Layout prefabs
-            LoadFloorPrefab(biome);
-            LoadWallPrefab(biome);
-            LoadDoorPrefab(biome);
-            LoadDoorTopPrefab(biome);
-            LoadCeilingPrefab(biome);
             // Prop prefabs
-            LoadTorchPrefab(biome);
-            LoadPillarPrefab(biome);
-            LoadBarrelPrefab(biome);
-            LoadCratePrefab(biome);
+            LoadSmallProp(biome);
+            LoadMediumProp(biome);
+            LoadLargeProp(biome);
             // Enemy prefabs
-            // LoadBasicEnemyPrefab(biome);
-            // LoadEliteEnemyPrefab(biome);
             LoadMeleeEnemyPrefab(biome);
             LoadRangedEnemyPrefab(biome);
             LoadTankEnemyPrefab(biome);
@@ -368,10 +221,6 @@ public static class ResourceService
         }
     }
     
-    /// <summary>
-    /// Clears cached prefabs for a specific biome
-    /// </summary>
-    /// <param name="biome">Biome whose cached prefabs should be cleared</param>
     public static void ClearBiomeCache(string biome)
     {
         try

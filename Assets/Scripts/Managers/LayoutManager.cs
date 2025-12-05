@@ -155,8 +155,8 @@ public class LayoutManager : MonoBehaviour
         {
             // FIXED: Use GetLandmarkPrefab instead of deprecated method
             _specialRenderer = new LandmarkRenderer(
-                _biomeManager.GetLandmarkPrefab(RoomType.Entrance), 
-                _biomeManager.GetLandmarkPrefab(RoomType.Exit), 
+                ResourceService.LoadEntrancePrefab(), 
+                ResourceService.LoadExitPrefab(), 
                 _biomeManager
             );
             

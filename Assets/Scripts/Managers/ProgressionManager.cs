@@ -80,7 +80,7 @@ public class ProgressionManager : MonoBehaviour
         GameObject portalPrefab = exitPortalPrefab;
         if (portalPrefab == null)
         {
-            portalPrefab = ResourceService.LoadLandmarkPrefab(RoomType.Exit);
+            portalPrefab = ResourceService.LoadExitPrefab();
         }
         
         if (portalPrefab != null)

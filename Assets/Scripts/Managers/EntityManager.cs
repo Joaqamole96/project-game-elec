@@ -31,7 +31,7 @@ public class EntityManager : MonoBehaviour
     public int maxEnemiesPerRoom = 4;
     public int bossRoomEnemies = 1; // Just the boss
     
-    private string currentBiome = ResourceService.BIOME_DEFAULT;
+    private string currentBiome;
     private System.Random spawnRandom;
     private bool navMeshReady = false;
     
