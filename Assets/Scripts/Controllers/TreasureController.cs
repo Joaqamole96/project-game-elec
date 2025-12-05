@@ -1,10 +1,10 @@
 // ================================================== //
-// FILE 2: TreasureController.cs
+// FILE 2: TreasureChestController.cs
 // ================================================== //
 
 using UnityEngine;
 
-public class TreasureController : MonoBehaviour
+public class TreasureChestController : MonoBehaviour
 {
     [Header("Treasure Settings")]
     public bool isOpened = false;

@@ -86,7 +86,7 @@ public class SaveManager : MonoBehaviour
         SavePowerData(player.powerManager);
         
         // Save current weapon
-        SaveWeaponModel(player.weaponManager);
+        SaveWeaponData(player.weaponManager);
         
         // Save floor progress
         SaveFloorProgress();
@@ -131,11 +131,11 @@ public class SaveManager : MonoBehaviour
         Debug.Log($"SaveManager: Saved {powerManager.activePowers.Count} powers");
     }
     
-    private void SaveWeaponModel(WeaponManager weaponManager)
+    private void SaveWeaponData(WeaponManager weaponManager)
     {
-        if (weaponManager == null || weaponManager.currentWeaponModel == null) return;
+        if (weaponManager == null || weaponManager.currentWeaponData == null) return;
         
-        PlayerPrefs.SetString(KEY_CURRENT_WEAPON, weaponManager.currentWeaponModel.weaponName);
+        PlayerPrefs.SetString(KEY_CURRENT_WEAPON, weaponManager.currentWeaponData.weaponName);
     }
     
     private void SaveFloorProgress()
@@ -183,7 +183,7 @@ public class SaveManager : MonoBehaviour
         LoadPowerData(player.powerManager);
         
         // Load weapon
-        LoadWeaponModel(player.weaponManager);
+        LoadWeaponData(player.weaponManager);
         
         // Load floor progress
         LoadFloorProgress();
@@ -251,7 +251,7 @@ public class SaveManager : MonoBehaviour
         Debug.Log($"SaveManager: Loaded {powerManager.activePowers.Count} powers");
     }
     
-    private void LoadWeaponModel(WeaponManager weaponManager)
+    private void LoadWeaponData(WeaponManager weaponManager)
     {
         if (weaponManager == null) return;
         
@@ -261,7 +261,7 @@ public class SaveManager : MonoBehaviour
         if (WeaponConfig.Instance != null)
         {
             // Try to find by name (you may need to add a GetWeaponByName method)
-            WeaponModel weaponData = WeaponConfig.Instance.GetWeaponModel(weaponName);
+            WeaponData weaponData = WeaponConfig.Instance.GetWeaponData(weaponName);
             if (weaponData != null)
             {
                 weaponManager.PickupWeapon(weaponData);

@@ -9,7 +9,7 @@ using System.Collections;
 public class ShopController : MonoBehaviour
 {
     [Header("Shop Inventory")]
-    public List<Commodity> availableItems = new();
+    public List<ShopItem> availableItems = new();
     
     [Header("UI")]
     public ShopDisplay shopDisplay;
@@ -18,17 +18,17 @@ public class ShopController : MonoBehaviour
     private PlayerController player;
     
     [System.Serializable]
-    public class Commodity
+    public class ShopItem
     {
         public string itemName;
         public int price;
-        public CommodityType itemType;
+        public ShopItemType itemType;
         public PowerType powerType; // If power
         public GameObject weaponPrefab; // If weapon
         public int healAmount; // If potion
     }
     
-    public enum CommodityType
+    public enum ShopItemType
     {
         HealthPotion,
         ManaPotion,
@@ -54,30 +54,30 @@ public class ShopController : MonoBehaviour
         availableItems.Clear();
         
         // Always stock health potions
-        availableItems.Add(new Commodity
+        availableItems.Add(new ShopItem
         {
             itemName = "Health Potion",
             price = 50,
-            itemType = CommodityType.HealthPotion,
+            itemType = ShopItemType.HealthPotion,
             healAmount = 50
         });
         
-        availableItems.Add(new Commodity
+        availableItems.Add(new ShopItem
         {
             itemName = "Large Health Potion",
             price = 100,
-            itemType = CommodityType.HealthPotion,
+            itemType = ShopItemType.HealthPotion,
             healAmount = 100
         });
         
         // Random power
         PowerType randomPower = (PowerType)Random.Range(0, System.Enum.GetValues(typeof(PowerType)).Length);
         PowerModel powerPreview = new(randomPower);
-        availableItems.Add(new Commodity
+        availableItems.Add(new ShopItem
         {
             itemName = powerPreview.powerName,
             price = 200,
-            itemType = CommodityType.PowerModel,
+            itemType = ShopItemType.PowerModel,
             powerType = randomPower
         });
         
@@ -96,7 +96,7 @@ public class ShopController : MonoBehaviour
             Debug.Log("=== SHOP MENU ===");
             for (int i = 0; i < availableItems.Count; i++)
             {
-                Commodity item = availableItems[i];
+                ShopItem item = availableItems[i];
                 Debug.Log($"{i + 1}. {item.itemName} - {item.price} Gold");
             }
             Debug.Log("=================");
@@ -108,7 +108,7 @@ public class ShopController : MonoBehaviour
         if (itemIndex < 0 || itemIndex >= availableItems.Count) return false;
         if (player == null || player.inventory == null) return false;
         
-        Commodity item = availableItems[itemIndex];
+        ShopItem item = availableItems[itemIndex];
         
         // Check if player has enough gold
         if (player.inventory.gold < item.price)
@@ -122,12 +122,12 @@ public class ShopController : MonoBehaviour
         
         switch (item.itemType)
         {
-            case CommodityType.HealthPotion:
+            case ShopItemType.HealthPotion:
                 player.Heal(item.healAmount);
                 Debug.Log($"Bought and used {item.itemName}");
                 break;
                 
-            case CommodityType.PowerModel:
+            case ShopItemType.PowerModel:
                 if (player.powerManager != null)
                 {
                     player.powerManager.AddPower(item.powerType);
@@ -135,7 +135,7 @@ public class ShopController : MonoBehaviour
                 }
                 break;
                 
-            case CommodityType.Weapon:
+            case ShopItemType.Weapon:
                 // TODO: Add weapon to player
                 Debug.Log($"Bought weapon: {item.itemName}");
                 break;
@@ -165,7 +165,150 @@ public class ShopController : MonoBehaviour
     }
 }
 
+// ================================================== //
+// FILE 3: BossSpawner.cs (Move this to its own file)
+// ================================================== //
 
+// using UnityEngine;
+// using System.Collections;
+
+public class BossSpawner : MonoBehaviour
+{
+    [Header("Boss Settings")]
+    public GameObject bossPrefab;
+    public bool hasSpawned = false;
+    public bool bossDefeated = false;
+    
+    [Header("Rewards")]
+    public PowerType guaranteedPower;
+    public int goldReward = 500;
+    
+    private GameObject currentBoss;
+    
+    void Start()
+    {
+        // Auto-spawn boss after short delay
+        if (!hasSpawned)
+        {
+            StartCoroutine(SpawnBossDelayed());
+        }
+    }
+    
+    private IEnumerator SpawnBossDelayed()
+    {
+        yield return new WaitForSeconds(2f);
+        SpawnBoss();
+    }
+    
+    private void SpawnBoss()
+    {
+        if (hasSpawned) return;
+        
+        hasSpawned = true;
+        
+        // Load boss prefab if not assigned
+        if (bossPrefab == null)
+        {
+            LayoutManager layoutManager = FindObjectOfType<LayoutManager>();
+            if (layoutManager != null)
+            {
+                BiomeManager biomeManager = layoutManager.GetComponent<BiomeManager>();
+                if (biomeManager != null)
+                {
+                    bossPrefab = biomeManager.GetBossEnemyPrefab();
+                }
+            }
+        }
+        
+        if (bossPrefab == null)
+        {
+            Debug.LogError("BossSpawner: No boss prefab available!");
+            return;
+        }
+        
+        // Spawn boss at this position
+        Vector3 spawnPosition = transform.position + Vector3.up;
+        currentBoss = Instantiate(bossPrefab, spawnPosition, Quaternion.identity);
+        currentBoss.name = "Boss";
+        
+        // Make boss stronger
+        if (currentBoss.TryGetComponent<EnemyController>(out var bossController))
+        {
+            bossController.maxHealth = 200;
+            bossController.damage = 25;
+            bossController.moveSpeed = 3f;
+            
+            // Subscribe to boss death
+            StartCoroutine(WaitForBossDeath(bossController));
+        }
+        
+        Debug.Log("Boss spawned!");
+    }
+    
+    private IEnumerator WaitForBossDeath(EnemyController boss)
+    {
+        // Wait until boss is destroyed
+        while (currentBoss != null)
+        {
+            yield return new WaitForSeconds(0.5f);
+        }
+        
+        OnBossDefeated();
+    }
+    
+    private void OnBossDefeated()
+    {
+        if (bossDefeated) return;
+        
+        bossDefeated = true;
+        Debug.Log("BOSS DEFEATED!");
+        
+        // Spawn rewards
+        SpawnBossRewards();
+        
+        // Unlock exit if this is the boss room
+        UnlockExit();
+    }
+    
+    private void SpawnBossRewards()
+    {
+        // Spawn power pickup
+        Vector3 rewardPosition = transform.position + Vector3.up;
+        
+        // Create power pickup object
+        GameObject powerPickup = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        powerPickup.transform.position = rewardPosition;
+        powerPickup.transform.localScale = Vector3.one * 0.5f;
+        powerPickup.name = "BossPowerReward";
+        
+        // Make it glow
+        Renderer renderer = powerPickup.GetComponent<Renderer>();
+        Material glowMat = new(Shader.Find("Standard"))
+        {
+            color = Color.yellow
+        };
+        glowMat.EnableKeyword("_EMISSION");
+        glowMat.SetColor("_EmissionColor", Color.yellow * 2f);
+        renderer.material = glowMat;
+        
+        // Add pickup script
+        PowerPickup pickup = powerPickup.AddComponent<PowerPickup>();
+        pickup.powerType = guaranteedPower;
+        
+        Debug.Log($"Boss dropped power: {guaranteedPower}");
+    }
+    
+    private void UnlockExit()
+    {
+        // Find and unlock the exit portal
+        ProgressionManager progressionManager = FindObjectOfType<ProgressionManager>();
+        if (progressionManager != null)
+        {
+            // Enable exit portal
+            Debug.Log("Exit portal unlocked!");
+        }
+    }
+}
 
 // ================================================== //
 // FILE 4: PowerPickup.cs

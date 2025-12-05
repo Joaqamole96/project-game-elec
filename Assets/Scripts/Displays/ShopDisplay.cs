@@ -60,10 +60,10 @@ public class ShopDisplay : MonoBehaviour
         Cursor.visible = true;
         
         UpdateGoldDisplay();
-        PopulateCommoditys();
+        PopulateShopItems();
     }
     
-    private void PopulateCommoditys()
+    private void PopulateShopItems()
     {
         if (itemsContainer == null || itemCardPrefab == null) return;
         
@@ -84,7 +84,7 @@ public class ShopDisplay : MonoBehaviour
         }
     }
     
-    private void SetupItemCard(GameObject card, ShopController.Commodity item, int itemIndex)
+    private void SetupItemCard(GameObject card, ShopController.ShopItem item, int itemIndex)
     {
         // Get components
         var nameText = card.transform.Find("ItemName")?.GetComponent<TextMeshProUGUI>();
@@ -134,7 +134,7 @@ public class ShopDisplay : MonoBehaviour
         {
             // Update display
             UpdateGoldDisplay();
-            PopulateCommoditys(); // Refresh to update affordability
+            PopulateShopItems(); // Refresh to update affordability
             
             Debug.Log("Purchase successful!");
         }
@@ -144,14 +144,14 @@ public class ShopDisplay : MonoBehaviour
         }
     }
     
-    private string GetItemDescription(ShopController.Commodity item)
+    private string GetItemDescription(ShopController.ShopItem item)
     {
         return item.itemType switch
         {
-            ShopController.CommodityType.HealthPotion => $"Restores {item.healAmount} HP",
-            ShopController.CommodityType.ManaPotion => $"Restores {item.healAmount} MP",
-            ShopController.CommodityType.PowerModel => GetPowerDescription(item.powerType),
-            ShopController.CommodityType.Weapon => "Weapon upgrade",
+            ShopController.ShopItemType.HealthPotion => $"Restores {item.healAmount} HP",
+            ShopController.ShopItemType.ManaPotion => $"Restores {item.healAmount} MP",
+            ShopController.ShopItemType.PowerModel => GetPowerDescription(item.powerType),
+            ShopController.ShopItemType.Weapon => "Weapon upgrade",
             _ => "Item"
         };
     }
@@ -162,14 +162,14 @@ public class ShopDisplay : MonoBehaviour
         return preview.description;
     }
     
-    private Color GetItemColor(ShopController.CommodityType itemType)
+    private Color GetItemColor(ShopController.ShopItemType itemType)
     {
         return itemType switch
         {
-            ShopController.CommodityType.HealthPotion => Color.red,
-            ShopController.CommodityType.ManaPotion => Color.blue,
-            ShopController.CommodityType.PowerModel => Color.yellow,
-            ShopController.CommodityType.Weapon => Color.green,
+            ShopController.ShopItemType.HealthPotion => Color.red,
+            ShopController.ShopItemType.ManaPotion => Color.blue,
+            ShopController.ShopItemType.PowerModel => Color.yellow,
+            ShopController.ShopItemType.Weapon => Color.green,
             _ => Color.white
         };
     }

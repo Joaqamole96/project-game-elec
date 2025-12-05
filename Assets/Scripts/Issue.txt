@@ -194,7 +194,7 @@ public class PlayerController : MonoBehaviour
         attackDirection.y = 0;
         attackDirection.Normalize();
         
-        if (weaponManager != null && weaponManager.currentWeaponModel != null)
+        if (weaponManager != null && weaponManager.currentWeaponData != null)
         {
             Debug.Log("Calling WeaponManager.Attack()...");
             weaponManager.Attack(transform.position + Vector3.up, attackDirection);
@@ -396,7 +396,7 @@ using UnityEngine;
 public class WeaponManager : MonoBehaviour
 {
     [Header("Current Weapon")]
-    public WeaponModel currentWeaponModel;
+    public WeaponData currentWeaponData;
     public GameObject currentWeaponInstance;
     
     [Header("Settings")]
@@ -422,7 +422,7 @@ public class WeaponManager : MonoBehaviour
         }
         
         // Start with default weapon
-        WeaponModel starterWeapon = WeaponConfig.Instance?.GetWeaponModel("Sword");
+        WeaponData starterWeapon = WeaponConfig.Instance?.GetWeaponData("Sword");
         if (starterWeapon != null)
         {
             EquipWeapon(starterWeapon);
@@ -438,12 +438,12 @@ public class WeaponManager : MonoBehaviour
         }
     }
     
-    public void PickupWeapon(WeaponModel weaponData)
+    public void PickupWeapon(WeaponData weaponData)
     {
         EquipWeapon(weaponData);
     }
     
-    private void EquipWeapon(WeaponModel weaponData)
+    private void EquipWeapon(WeaponData weaponData)
     {
         // Destroy old weapon visual
         if (currentWeaponInstance != null)
@@ -451,7 +451,7 @@ public class WeaponManager : MonoBehaviour
             Destroy(currentWeaponInstance);
         }
         
-        currentWeaponModel = weaponData;
+        currentWeaponData = weaponData;
         
         // Create visual if prefab exists
         if (weaponData.prefab != null)
@@ -484,14 +484,14 @@ public class WeaponManager : MonoBehaviour
     
     public void Attack(Vector3 attackPosition, Vector3 attackDirection)
     {
-        if (currentWeaponModel == null)
+        if (currentWeaponData == null)
         {
             Debug.LogError("Current weapon data is null.");
             return;
         }
-        if (Time.time < lastAttackTime + currentWeaponModel.attackSpeed)
+        if (Time.time < lastAttackTime + currentWeaponData.attackSpeed)
         {
-            Debug.LogError($"Too early to attack, wait {lastAttackTime + currentWeaponModel.attackSpeed - Time.time} more seconds.");
+            Debug.LogError($"Too early to attack, wait {lastAttackTime + currentWeaponData.attackSpeed - Time.time} more seconds.");
             return;
         }
         
@@ -525,7 +525,7 @@ public class WeaponManager : MonoBehaviour
         }
         
         // Fallback: Handle attack based on weapon type
-        switch (currentWeaponModel.weaponType)
+        switch (currentWeaponData.weaponType)
         {
             case WeaponType.Melee:
             case WeaponType.Charge:
@@ -541,9 +541,9 @@ public class WeaponManager : MonoBehaviour
     
     private void PerformMeleeAttack(Vector3 position, Vector3 direction)
     {
-        Vector3 attackCenter = position + direction * (currentWeaponModel.range * 0.5f);
+        Vector3 attackCenter = position + direction * (currentWeaponData.range * 0.5f);
         
-        Collider[] hits = Physics.OverlapSphere(attackCenter, currentWeaponModel.range, player.enemyLayer);
+        Collider[] hits = Physics.OverlapSphere(attackCenter, currentWeaponData.range, player.enemyLayer);
         
         foreach (Collider hit in hits)
         {
@@ -598,7 +598,7 @@ public class WeaponManager : MonoBehaviour
             rb.useGravity = false;
             rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
         }
-        rb.velocity = direction * currentWeaponModel.projectileSpeed;
+        rb.velocity = direction * currentWeaponData.projectileSpeed;
         
         // Setup projectile damage
         ProjectileController projController = projectile.GetComponent<ProjectileController>();
@@ -606,7 +606,7 @@ public class WeaponManager : MonoBehaviour
         {
             projController = projectile.AddComponent<ProjectileController>();
         }
-        projController.damage = currentWeaponModel.damage;
+        projController.damage = currentWeaponData.damage;
         projController.owner = player.gameObject;
         projController.targetLayer = player.enemyLayer;
         
@@ -623,7 +623,7 @@ public class WeaponManager : MonoBehaviour
         
         // Visual
         Renderer renderer = projectile.GetComponent<Renderer>();
-        Color projectileColor = currentWeaponModel.weaponType == WeaponType.Magic ? Color.magenta : Color.yellow;
+        Color projectileColor = currentWeaponData.weaponType == WeaponType.Magic ? Color.magenta : Color.yellow;
         Material mat = new(Shader.Find("Standard"))
         {
             color = projectileColor
@@ -656,7 +656,7 @@ public class WeaponManager : MonoBehaviour
     {
         if (enemy.TryGetComponent<EnemyController>(out var enemyController))
         {
-            int finalDamage = currentWeaponModel.damage;
+            int finalDamage = currentWeaponData.damage;
             
             // Apply power modifiers
             if (player.powerManager != null)
@@ -755,7 +755,7 @@ public abstract class WeaponModel : MonoBehaviour
 // ================================================== //
 
 [System.Serializable]
-public class WeaponModel
+public class WeaponData
 {
     public string weaponName;
     public WeaponType weaponType;

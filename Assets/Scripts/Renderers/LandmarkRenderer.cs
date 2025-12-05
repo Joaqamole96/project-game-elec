@@ -32,7 +32,7 @@ public class LandmarkRenderer
 
     private bool RenderRoomLandmark(RoomModel room, Transform parent)
     {
-        GameObject prefab = ResourceService.LoadLandmarkPrefab(room.Type);
+        GameObject prefab = _biomeManager.GetLandmarkPrefab(room.Type);
         if (prefab != null)
         {
             Bounds prefabBounds = GetPrefabBounds(prefab);

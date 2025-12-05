@@ -12,6 +12,13 @@ using UnityEngine;
 /// </summary>
 public static class MSTService
 {
+    /// <summary>
+    /// Applies Minimum Spanning Tree to select the most efficient corridor connections
+    /// Uses Kruskal's algorithm to find minimal set of corridors connecting all rooms
+    /// </summary>
+    /// <param name="corridors">All possible corridors between rooms</param>
+    /// <param name="rooms">All rooms in the level</param>
+    /// <returns>Minimal set of corridors that connect all rooms efficiently</returns>
     public static List<CorridorModel> Apply(List<CorridorModel> corridors, List<RoomModel> rooms)
     {
         try
@@ -19,27 +26,25 @@ public static class MSTService
             // Validate input parameters
             if (rooms == null || rooms.Count == 0)
             {
-                Debug.LogWarning("No rooms provided - returning empty corridor list");
-                return new();
+                Debug.LogWarning("MSTService: No rooms provided - returning empty corridor list");
+                return new List<CorridorModel>();
             }
             if (corridors == null)
             {
-                Debug.LogWarning("Null corridors list provided - returning empty list");
-                return new();
+                Debug.LogWarning("MSTService: Null corridors list provided - returning empty list");
+                return new List<CorridorModel>();
             }
-            
+            Debug.Log($"MSTService: Starting MST algorithm with {rooms.Count} rooms and {corridors.Count} possible corridors");
             var parentIds = InitializeUnionFind(rooms.Count);
-            List<CorridorModel> spanningTreeCorridors = new();
-            
+            var spanningTreeCorridors = new List<CorridorModel>();
             // Sort corridors by distance (shorter corridors first for optimal MST)
             corridors.Sort((a, b) =>
             {
                 if (a == null || b == null) 
                 {
-                    Debug.LogWarning("Found null corridor during sorting");
+                    Debug.LogWarning("MSTService: Found null corridor during sorting");
                     return 0;
                 }
-
                 try
                 {
                     float distA = Vector2.Distance(a.StartRoom.Bounds.center, a.EndRoom.Bounds.center);
@@ -48,33 +53,29 @@ public static class MSTService
                 }
                 catch (System.Exception ex)
                 {
-                    Debug.LogError($"Error calculating corridor distance: {ex.Message}");
+                    Debug.LogError($"MSTService: Error calculating corridor distance: {ex.Message}");
                     return 0;
                 }
             });
-            
+            Debug.Log("MSTService: Corridors sorted by distance, building spanning tree...");
             int selectedCorridors = 0;
             int skippedCorridors = 0;
-
             foreach (var corridor in corridors)
             {
                 if (corridor?.StartRoom == null || corridor.EndRoom == null)
                 {
-                    Debug.LogWarning("Skipping corridor with null start or end room");
+                    Debug.LogWarning("MSTService: Skipping corridor with null start or end room");
                     skippedCorridors++;
                     continue;
                 }
-
                 int roomAIndex = rooms.IndexOf(corridor.StartRoom);
                 int roomBIndex = rooms.IndexOf(corridor.EndRoom);
-
                 if (roomAIndex < 0 || roomBIndex < 0)
                 {
-                    Debug.LogWarning("Skipping corridor with rooms not in room list");
+                    Debug.LogWarning("MSTService: Skipping corridor with rooms not in room list");
                     skippedCorridors++;
                     continue;
                 }
-
                 // Check if adding this corridor would create a cycle
                 if (FindRoot(roomAIndex, parentIds) != FindRoot(roomBIndex, parentIds))
                 {
@@ -82,17 +83,22 @@ public static class MSTService
                     UnionSets(roomAIndex, roomBIndex, parentIds);
                     selectedCorridors++;
                     // Early exit if we've connected all rooms (MST has n-1 edges for n nodes)
-                    if (selectedCorridors >= rooms.Count - 1) break;
+                    if (selectedCorridors >= rooms.Count - 1)
+                    {
+                        Debug.Log("MSTService: Early exit - all rooms connected");
+                        break;
+                    }
                 }
                 else skippedCorridors++;
             }
-            
+            Debug.Log($"MSTService: MST completed - {selectedCorridors} corridors selected, {skippedCorridors} skipped");
+            Debug.Log($"MSTService: Final result: {spanningTreeCorridors.Count} corridors from {corridors.Count} possible");
             return spanningTreeCorridors;
         }
         catch (System.Exception ex)
         {
-            Debug.LogError($"Error applying MST algorithm: {ex.Message}");
-            return new();
+            Debug.LogError($"MSTService: Error applying MST algorithm: {ex.Message}");
+            return new List<CorridorModel>(); // Return empty list on error
         }
     }
 
@@ -102,12 +108,12 @@ public static class MSTService
         {
             var parentIds = new int[roomCount];
             for (int i = 0; i < roomCount; i++) parentIds[i] = i;
-            
+            Debug.Log($"MSTService: Initialized union-find for {roomCount} rooms");
             return parentIds;
         }
         catch (System.Exception ex)
         {
-            Debug.LogError($"Error initializing union-find: {ex.Message}");
+            Debug.LogError($"MSTService: Error initializing union-find: {ex.Message}");
             return new int[0];
         }
     }
@@ -118,13 +124,12 @@ public static class MSTService
         {
             // Path compression: make nodes point directly to root
             if (parentIds[elementId] != elementId) parentIds[elementId] = FindRoot(parentIds[elementId], parentIds);
-
             return parentIds[elementId];
         }
         catch (System.Exception ex)
         {
-            Debug.LogError($"Error finding root for element {elementId}: {ex.Message}");
-            return elementId;
+            Debug.LogError($"MSTService: Error finding root for element {elementId}: {ex.Message}");
+            return elementId; // Return self as fallback
         }
     }
 
@@ -138,7 +143,7 @@ public static class MSTService
         }
         catch (System.Exception ex)
         {
-            Debug.LogError($"Error unioning sets {a} and {b}: {ex.Message}");
+            Debug.LogError($"MSTService: Error unioning sets {a} and {b}: {ex.Message}");
         }
     }
 }

@@ -3,6 +3,7 @@
 // -------------------------------------------------- //
 
 using UnityEngine;
+using System.Collections.Generic;
 
 public enum ItemType { Consumable, Key, Currency, Equipment }
 
@@ -68,6 +69,54 @@ public class HealthPotion : ItemModel
         {
             playerController.Heal(healAmount);
             Debug.Log($"Healed for {healAmount} HP");
+        }
+        
+        base.OnPickup(player);
+    }
+}
+
+// -------------------------------------------------- //
+// Scripts/Models/Coin.cs
+// -------------------------------------------------- //
+
+/// <summary>
+/// Currency item
+/// </summary>
+public class Coin : ItemModel
+{
+    [Header("Value")]
+    public int value = 1;
+    
+    protected override void OnPickup(GameObject player)
+    {
+        InventoryManager inventory = player.GetComponent<InventoryManager>();
+        if (inventory != null)
+        {
+            inventory.AddGold(value);
+        }
+        
+        base.OnPickup(player);
+    }
+}
+
+// -------------------------------------------------- //
+// Scripts/Models/Key.cs
+// -------------------------------------------------- //
+
+/// <summary>
+/// Key item for unlocking doors
+/// </summary>
+public class Key : ItemModel
+{
+    [Header("Key Type")]
+    public KeyType keyType = KeyType.Key;
+    
+    protected override void OnPickup(GameObject player)
+    {
+        InventoryManager inventory = player.GetComponent<InventoryManager>();
+        if (inventory != null)
+        {
+            inventory.AddKey(keyType);
         }
         
         base.OnPickup(player);

@@ -1,5 +1,5 @@
 // ================================================== //
-// Scripts/Managers/WeaponManager.cs
+// Scripts/Managers/WeaponManager.cs (WITH ANIMATION SUPPORT)
 // ================================================== //
 
 using UnityEngine;
@@ -7,7 +7,7 @@ using UnityEngine;
 public class WeaponManager : MonoBehaviour
 {
     [Header("Current Weapon")]
-    public WeaponModel currentWeaponModel;
+    public WeaponData currentWeaponData;
     public GameObject currentWeaponInstance;
     
     [Header("Weapon Holder")]
@@ -34,7 +34,7 @@ public class WeaponManager : MonoBehaviour
         }
         
         // Start with default weapon
-        WeaponModel starterWeapon = WeaponConfig.Instance?.GetRandomWeapon();
+        WeaponData starterWeapon = WeaponConfig.Instance?.GetRandomWeapon();
         if (starterWeapon != null)
         {
             EquipWeapon(starterWeapon);
@@ -44,20 +44,18 @@ public class WeaponManager : MonoBehaviour
     void LateUpdate()
     {
         // Make weapon holder always face camera direction
-        if (weaponHolder != null && mainCamera != null && player != null)
+        if (weaponHolder != null && mainCamera != null)
         {
-            // weaponHolder.rotation = mainCamera.transform.rotation;
-            float yRotation = player.transform.eulerAngles.y;
-            weaponHolder.rotation = Quaternion.Euler(0, yRotation + 180, 0);
+            weaponHolder.rotation = mainCamera.transform.rotation;
         }
     }
     
-    public void PickupWeapon(WeaponModel weaponData)
+    public void PickupWeapon(WeaponData weaponData)
     {
         EquipWeapon(weaponData);
     }
     
-    private void EquipWeapon(WeaponModel weaponData)
+    private void EquipWeapon(WeaponData weaponData)
     {
         // Destroy old weapon visual
         if (currentWeaponInstance != null)
@@ -65,7 +63,7 @@ public class WeaponManager : MonoBehaviour
             Destroy(currentWeaponInstance);
         }
         
-        currentWeaponModel = weaponData;
+        currentWeaponData = weaponData;
         
         // Create visual if prefab exists
         if (weaponData.prefab != null)
@@ -105,13 +103,12 @@ public class WeaponManager : MonoBehaviour
     
     public void Attack(Vector3 attackPosition, Vector3 attackDirection)
     {
-        if (currentWeaponModel == null) return;
-        if (Time.time < lastAttackTime + currentWeaponModel.attackSpeed) return;
+        if (currentWeaponData == null) return;
+        if (Time.time < lastAttackTime + currentWeaponData.attackSpeed) return;
         
         lastAttackTime = Time.time;
         
         // Trigger weapon attack animation
-        weaponAnimator.SetTrigger("Attack");
         TriggerAttackAnimation();
         
         // Simple weapon swing animation (optional visual feedback - keep as backup)
@@ -122,22 +119,22 @@ public class WeaponManager : MonoBehaviour
         }
         
         // Perform attack based on weapon type
-        switch (currentWeaponModel.weaponType)
+        switch (currentWeaponData.weaponType)
         {
             case WeaponType.Melee:
-                PerformMeleeAttack(attackPosition, attackDirection, currentWeaponModel.range, currentWeaponModel.damage);
+                PerformMeleeAttack(attackPosition, attackDirection, currentWeaponData.range, currentWeaponData.damage);
                 break;
                 
             case WeaponType.Charge:
-                PerformMeleeAttack(attackPosition, attackDirection, currentWeaponModel.range * 1.5f, currentWeaponModel.damage);
+                PerformMeleeAttack(attackPosition, attackDirection, currentWeaponData.range * 1.5f, currentWeaponData.damage);
                 break;
                 
             case WeaponType.Ranged:
-                PerformRangedAttack(attackPosition, attackDirection, currentWeaponModel.damage, currentWeaponModel.projectileSpeed);
+                PerformRangedAttack(attackPosition, attackDirection, currentWeaponData.damage, currentWeaponData.projectileSpeed);
                 break;
                 
             case WeaponType.Magic:
-                PerformRangedAttack(attackPosition, attackDirection, currentWeaponModel.damage, currentWeaponModel.projectileSpeed);
+                PerformRangedAttack(attackPosition, attackDirection, currentWeaponData.damage, currentWeaponData.projectileSpeed);
                 break;
         }
     }
@@ -278,7 +275,7 @@ public class WeaponManager : MonoBehaviour
         
         // Visual based on weapon type
         Renderer renderer = projectile.GetComponent<Renderer>();
-        Color projectileColor = currentWeaponModel.weaponType == WeaponType.Magic ? Color.magenta : Color.yellow;
+        Color projectileColor = currentWeaponData.weaponType == WeaponType.Magic ? Color.magenta : Color.yellow;
         Material mat = new(Shader.Find("Standard"))
         {
             color = projectileColor

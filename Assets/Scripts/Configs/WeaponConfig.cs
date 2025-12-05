@@ -12,7 +12,7 @@ public class WeaponConfig : MonoBehaviour
 {
     public static WeaponConfig Instance { get; private set; }
     
-    private Dictionary<string, WeaponModel> weaponRegistry;
+    private Dictionary<string, WeaponData> weaponRegistry;
     
     void Awake()
     {
@@ -27,10 +27,10 @@ public class WeaponConfig : MonoBehaviour
     
     private void InitializeWeaponRegistry()
     {
-        weaponRegistry = new Dictionary<string, WeaponModel>
+        weaponRegistry = new Dictionary<string, WeaponData>
         {
             // MELEE - Fast swing, normal damage
-            { "Sword", new WeaponModel
+            { "Sword", new WeaponData
             {
                 weaponName = "Iron Sword",
                 weaponType = WeaponType.Melee,
@@ -42,7 +42,7 @@ public class WeaponConfig : MonoBehaviour
             }},
             
             // HEAVY - Slow swing, high damage, larger area
-            { "Axe", new WeaponModel
+            { "Axe", new WeaponData
             {
                 weaponName = "Battle Axe",
                 weaponType = WeaponType.Charge,
@@ -54,7 +54,7 @@ public class WeaponConfig : MonoBehaviour
             }},
 
             // RANGED - Projectile, medium damage
-            { "Bow", new WeaponModel
+            { "Bow", new WeaponData
             {
                 weaponName = "Hunter's Bow",
                 weaponType = WeaponType.Ranged,
@@ -67,7 +67,7 @@ public class WeaponConfig : MonoBehaviour
             }},
             
             // MAGIC - Projectile, high damage, slow speed
-            { "Staff", new WeaponModel
+            { "Staff", new WeaponData
             {
                 weaponName = "Fireball Staff",
                 weaponType = WeaponType.Magic,
@@ -84,24 +84,24 @@ public class WeaponConfig : MonoBehaviour
         Debug.Log($"WeaponConfig: Initialized {weaponRegistry.Count} weapons");
     }
     
-    public WeaponModel GetWeaponModel(string weaponKey)
+    public WeaponData GetWeaponData(string weaponKey)
     {
-        if (weaponRegistry.TryGetValue(weaponKey, out WeaponModel data)) return data;
+        if (weaponRegistry.TryGetValue(weaponKey, out WeaponData data)) return data;
         
         Debug.LogWarning($"Weapon '{weaponKey}' not found in database");
         return null;
     }
     
-    public WeaponModel GetRandomWeapon()
+    public WeaponData GetRandomWeapon()
     {
         var keys = new List<string>(weaponRegistry.Keys);
         string randomKey = keys[Random.Range(0, keys.Count)];
-        return GetWeaponModel(randomKey);
+        return GetWeaponData(randomKey);
     }
     
     public GameObject SpawnWeaponPickup(string weaponKey, Vector3 position)
     {
-        WeaponModel data = GetWeaponModel(weaponKey);
+        WeaponData data = GetWeaponData(weaponKey);
         if (data == null) return null;
         
         GameObject pickup = new($"WeaponPickup_{data.weaponName}");
@@ -124,6 +124,9 @@ public class WeaponConfig : MonoBehaviour
         SphereCollider collider = pickup.AddComponent<SphereCollider>();
         collider.isTrigger = true;
         collider.radius = 0.5f;
+        
+        WeaponController pickupComponent = pickup.AddComponent<WeaponController>();
+        pickupComponent.weaponKey = weaponKey;
         
         return pickup;
     }
