@@ -185,7 +185,7 @@ public class PlayerController : MonoBehaviour
         attackDirection.y = 0;
         attackDirection.Normalize();
         
-        if (weaponManager != null && weaponManager.currentWeaponData != null)
+        if (weaponManager != null && weaponManager.currentWeaponModel != null)
         {
             weaponManager.Attack(transform.position + Vector3.up, attackDirection);
         }

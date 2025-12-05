@@ -34,7 +34,7 @@ public class WeaponController : MonoBehaviour
             PlayerController player = other.GetComponent<PlayerController>();
             if (player != null && player.weaponManager != null)
             {
-                WeaponData weaponData = WeaponConfig.Instance.GetWeaponData(weaponKey);
+                WeaponModel weaponData = WeaponConfig.Instance.GetWeaponModel(weaponKey);
                 if (weaponData != null)
                 {
                     player.weaponManager.PickupWeapon(weaponData);
