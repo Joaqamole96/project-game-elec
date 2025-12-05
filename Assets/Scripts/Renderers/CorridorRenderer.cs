@@ -6,10 +6,6 @@ using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
 
-/// <summary>
-/// Renders corridors as stretched segments (like rooms) instead of tile-by-tile
-/// Assumes straight corridors between rooms (no L-shapes)
-/// </summary>
 public class CorridorRenderer
 {
     private GameObject _floorPrefab;
@@ -22,15 +18,10 @@ public class CorridorRenderer
     
     private void LoadPrefabs()
     {
-        _floorPrefab = Resources.Load<GameObject>("Layout/pf_Floor");
-        _wallPrefab = Resources.Load<GameObject>("Layout/pf_Wall");
-        if (_floorPrefab == null) Debug.LogError("CorridorRenderer: pf_Floor not found!");
-        if (_wallPrefab == null) Debug.LogError("CorridorRenderer: pf_Wall not found!");
+        _floorPrefab = ResourceService.LoadFloorPrefab();
+        _wallPrefab = ResourceService.LoadWallPrefab();
     }
     
-    /// <summary>
-    /// Renders all corridors in the level using stretched prefabs
-    /// </summary>
     public void RenderCorridors(LevelModel layout, List<RoomModel> rooms, Transform parent, string biome)
     {
         if (layout?.Corridors == null || rooms == null)
@@ -38,8 +29,8 @@ public class CorridorRenderer
             Debug.LogWarning("CorridorRenderer: Invalid layout or rooms");
             return;
         }
-        Material floorMat = LoadBiomeMaterial(biome, "Floor");
-        Material wallMat = LoadBiomeMaterial(biome, "Wall");
+        Material floorMat = ResourceService.LoadFloorMaterial(biome);
+        Material wallMat = ResourceService.LoadWallMaterial(biome);
         // Get pure corridor tiles (not in any room)
         HashSet<Vector2Int> corridorTiles = GetPureCorridorTiles(layout, rooms);
         if (corridorTiles.Count == 0)
@@ -228,18 +219,6 @@ public class CorridorRenderer
     // ==========================================
     // UTILITY
     // ==========================================
-    
-    private Material LoadBiomeMaterial(string biome, string type)
-    {
-        string path = $"Layout/{biome}/{type}Material";
-        Material mat = Resources.Load<Material>(path);
-        if (mat == null)
-        {
-            Debug.LogWarning($"CorridorRenderer: Material not found at {path}");
-            mat = new Material(Shader.Find("Standard"));
-        }
-        return mat;
-    }
     
     private void ApplyMaterial(GameObject obj, Material material)
     {
