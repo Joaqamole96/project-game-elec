@@ -1,13 +1,10 @@
 // ================================================== //
-// Scripts/Models/ItemModel.cs - Refactored Item System
+// Scripts/Models/ItemModel.cs (PHYSICS FIX)
 // ================================================== //
+// Replace the base ItemModel class with this version:
 
 using UnityEngine;
 
-/// <summary>
-/// Base class for all pickupable items in the game world
-/// Items are physical GameObjects that can be dropped by enemies or purchased from shops
-/// </summary>
 [RequireComponent(typeof(Collider))]
 public abstract class ItemModel : MonoBehaviour
 {
@@ -21,33 +18,71 @@ public abstract class ItemModel : MonoBehaviour
     public Color glowColor = Color.white;
     
     [Header("Gameplay")]
-    public int value = 10; // Sell/buy price
+    public int value = 10;
     public bool autoPickup = true;
     
     [Header("Effects")]
     public GameObject pickupEffectPrefab;
     public AudioClip pickupSound;
     
+    [Header("Physics")]
+    private Rigidbody rb;
+    private Collider itemCollider;
+    private bool isBeingPickedUp = false;
+    private bool hasLanded = false;
+    
     private Renderer itemRenderer;
     private Material glowMaterial;
-    private bool isBeingPickedUp = false;
+    private float bobTimer = 0f;
     
     protected virtual void Start()
     {
+        SetupPhysics();
         SetupVisuals();
         SetupCollider();
     }
     
     protected virtual void Update()
     {
-        // Gentle rotation for visual appeal
-        transform.Rotate(Vector3.up, 45f * Time.deltaTime);
+        // Only bob after landing
+        if (hasLanded)
+        {
+            bobTimer += Time.deltaTime;
+            
+            // Gentle rotation
+            transform.Rotate(Vector3.up, 45f * Time.deltaTime);
+            
+            // Gentle bobbing
+            if (rb != null && rb.IsSleeping())
+            {
+                float bob = Mathf.Sin(bobTimer * 2f) * 0.05f;
+                Vector3 pos = transform.position;
+                pos.y += bob * Time.deltaTime;
+                transform.position = pos;
+            }
+        }
+    }
+    
+    private void SetupPhysics()
+    {
+        rb = GetComponent<Rigidbody>();
+        if (rb == null)
+        {
+            rb = gameObject.AddComponent<Rigidbody>();
+        }
         
-        // Gentle bobbing motion
-        float bob = Mathf.Sin(Time.time * 2f) * 0.1f;
-        Vector3 pos = transform.position;
-        pos.y = transform.position.y + bob * Time.deltaTime;
-        transform.position = pos;
+        // CRITICAL: Proper physics settings to prevent phasing
+        rb.mass = 0.5f;
+        rb.drag = 1f;
+        rb.angularDrag = 3f;
+        rb.useGravity = true;
+        rb.interpolation = RigidbodyInterpolation.Interpolate;
+        rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
+        
+        // Freeze rotation to prevent rolling
+        rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
+        
+        Debug.Log($"ItemModel: Physics setup complete for {itemName}");
     }
     
     private void SetupVisuals()
@@ -55,7 +90,6 @@ public abstract class ItemModel : MonoBehaviour
         itemRenderer = GetComponentInChildren<Renderer>();
         if (itemRenderer != null)
         {
-            // Create glowing material
             glowMaterial = new Material(Shader.Find("Standard"));
             glowMaterial.color = glowColor;
             glowMaterial.EnableKeyword("_EMISSION");
@@ -66,22 +100,54 @@ public abstract class ItemModel : MonoBehaviour
     
     private void SetupCollider()
     {
-        Collider col = GetComponent<Collider>();
-        if (col != null)
+        itemCollider = GetComponent<Collider>();
+        if (itemCollider == null)
         {
-            col.isTrigger = true;
+            // Create appropriate collider based on primitive type
+            if (GetComponent<MeshFilter>() != null)
+            {
+                BoxCollider box = gameObject.AddComponent<BoxCollider>();
+                itemCollider = box;
+            }
+            else
+            {
+                SphereCollider sphere = gameObject.AddComponent<SphereCollider>();
+                sphere.radius = 0.5f;
+                itemCollider = sphere;
+            }
         }
-        else
+        
+        // CRITICAL: Collider is NOT trigger while falling
+        // It becomes trigger only after landing
+        itemCollider.isTrigger = false;
+        
+        Debug.Log($"ItemModel: Collider setup - Type: {itemCollider.GetType().Name}, IsTrigger: {itemCollider.isTrigger}");
+    }
+    
+    void OnCollisionEnter(Collision collision)
+    {
+        if (!hasLanded)
         {
-            SphereCollider sphere = gameObject.AddComponent<SphereCollider>();
-            sphere.isTrigger = true;
-            sphere.radius = 0.5f;
+            Debug.Log($"ItemModel: {itemName} landed on {collision.gameObject.name}");
+            hasLanded = true;
+            
+            // Wait a moment, then convert to trigger for pickup
+            Invoke(nameof(ConvertToTrigger), 0.5f);
+        }
+    }
+    
+    private void ConvertToTrigger()
+    {
+        if (itemCollider != null)
+        {
+            itemCollider.isTrigger = true;
+            Debug.Log($"ItemModel: {itemName} converted to trigger, ready for pickup");
         }
     }
     
     protected virtual void OnTriggerEnter(Collider other)
     {
-        if (isBeingPickedUp) return;
+        if (isBeingPickedUp || !hasLanded) return;
         
         if (other.CompareTag("Player") && autoPickup)
         {
@@ -100,114 +166,34 @@ public abstract class ItemModel : MonoBehaviour
         
         Debug.Log($"Picked up: {itemName}");
         
-        // Apply item effect
         ApplyEffect(player);
         
-        // Spawn pickup effect
         if (pickupEffectPrefab != null)
         {
             Instantiate(pickupEffectPrefab, transform.position, Quaternion.identity);
         }
         
-        // Play sound
         if (pickupSound != null)
         {
             AudioSource.PlayClipAtPoint(pickupSound, transform.position);
         }
         
-        // Destroy item
         Destroy(gameObject);
     }
     
-    /// <summary>
-    /// Override this to implement specific item effects
-    /// </summary>
     protected abstract void ApplyEffect(PlayerController player);
-    
-    /// <summary>
-    /// Get item description for UI tooltips
-    /// </summary>
     public abstract string GetDescription();
+    
+    void OnDrawGizmos()
+    {
+        Gizmos.color = hasLanded ? Color.green : Color.yellow;
+        Gizmos.DrawWireSphere(transform.position, 0.5f);
+    }
 }
 
 // ================================================== //
 // CONSUMABLE ITEMS
 // ================================================== //
-
-/// <summary>
-/// Small health potion - restores 30 HP
-/// </summary>
-public class SmallHealthPotion : ItemModel
-{
-    public int healAmount = 30;
-    
-    protected override void ApplyEffect(PlayerController player)
-    {
-        player.Heal(healAmount);
-        Debug.Log($"Restored {healAmount} HP");
-    }
-    
-    public override string GetDescription()
-    {
-        return $"Restores {healAmount} HP";
-    }
-}
-
-/// <summary>
-/// Medium health potion - restores 50 HP
-/// </summary>
-public class MediumHealthPotion : ItemModel
-{
-    public int healAmount = 50;
-    
-    protected override void ApplyEffect(PlayerController player)
-    {
-        player.Heal(healAmount);
-        Debug.Log($"Restored {healAmount} HP");
-    }
-    
-    public override string GetDescription()
-    {
-        return $"Restores {healAmount} HP";
-    }
-}
-
-/// <summary>
-/// Large health potion - restores 100 HP
-/// </summary>
-public class LargeHealthPotion : ItemModel
-{
-    public int healAmount = 100;
-    
-    protected override void ApplyEffect(PlayerController player)
-    {
-        player.Heal(healAmount);
-        Debug.Log($"Restored {healAmount} HP");
-    }
-    
-    public override string GetDescription()
-    {
-        return $"Restores {healAmount} HP";
-    }
-}
-
-/// <summary>
-/// Max health potion - fully restores HP
-/// </summary>
-public class MaxHealthPotion : ItemModel
-{
-    protected override void ApplyEffect(PlayerController player)
-    {
-        int healAmount = player.maxHealth - player.CurrentHealth;
-        player.Heal(healAmount);
-        Debug.Log("Fully restored HP!");
-    }
-    
-    public override string GetDescription()
-    {
-        return "Fully restores HP";
-    }
-}
 
 /// <summary>
 /// Speed boost potion - temporary speed increase

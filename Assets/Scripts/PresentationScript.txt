@@ -1,0 +1,167 @@
+Video Demo Script: Procedural Dungeon Generation System
+
+--------------------------------------------------
+
+    VISUAL: Title Card - "Dungeon Frontier: Procedural Dungeon Generation Using Algorithms"
+    MUSIC: Upbeat, game-dev inspired track starts, fades to background
+
+--------------------------------------------------
+Introduction
+--------------------------------------------------
+
+PERSON 1: Hello, and welcome to our demonstration of a fully procedural dungeon generation system, built for a roguelike game.
+
+PERSON 2: Every time you hit "generate," this system creates a completely unique, navigable, and strategically laid-out dungeon from scratch.
+
+PERSON 3: It uses a layered approach, combining Binary Space Partitioning, Minimum Spanning Trees, and intelligent room assignment to guarantee playability.
+
+JOAQUIN: And we’re here to walk you through the entire pipeline—from the first algorithmic split to the final rendered scene. Let's begin.
+
+    VISUAL: Quick montage of different dungeons, then settle on a wireframe view of an empty floor grid.
+
+--------------------------------------------------
+Section 1: Binary Space Partitioning (BSP)
+--------------------------------------------------
+
+PERSON 1: Our first challenge: creating a balanced spatial layout. We start with a single empty rectangle.
+
+    VISUAL: A large rectangle fills the screen.
+
+PERSON 1: We use Binary Space Partitioning. The algorithm recursively splits this space. If a partition is wider than our maximum size, we split it vertically. If it's taller, we split horizontally.
+
+    VISUAL: The rectangle splits vertically into two smaller rectangles.
+
+PERSON 1: We randomize the split point to avoid perfect symmetry, creating natural variety in partition shapes.
+
+    VISUAL: Animation shows 4-5 levels of recursive splits, creating a tree structure.
+
+PERSON 1: This continues until every partition falls within our target size range, giving us a tree of defined spaces that will become our room areas.
+
+    VISUAL: Final partition tree diagram.
+
+--------------------------------------------------
+Section 2: Room Generation
+--------------------------------------------------
+
+PERSON 1: Now we carve rooms into these partitions. A room doesn't fill its entire partition—we add random padding on all sides.
+
+    VISUAL: A single partition highlights. A smaller room rectangle appears inside it, showing inset margins.
+
+PERSON 1: This creates organic, non-grid-aligned room sizes and positions. We validate each room to ensure it meets minimum playable dimensions.
+
+    VISUAL: Multiple rooms appear in different partitions, all slightly different sizes and positions.
+
+PERSON 1: Finally, we analyze which rooms are neighbors by checking for shared edges. This adjacency data is crucial for our next step.
+
+    VISUAL: Lines briefly flash between adjacent rooms to show connections.
+
+--------------------------------------------------
+Section 3: Minimum Spanning Tree & Corridors
+--------------------------------------------------
+
+PERSON 2: We have rooms, but they're isolated islands. Our next task is to connect them intelligently.
+
+    VISUAL: All possible corridor connections between neighboring rooms light up, creating a dense web.
+
+PERSON 2: Connecting every neighbor would create a confusing maze. Instead, we use a Minimum Spanning Tree algorithm.
+
+    VISUAL: The dense web of corridors simplifies as the MST algorithm selects paths.
+
+PERSON 2: The MST selects the shortest possible set of corridors that still connects every room, avoiding redundant cycles. This creates clear, navigable layouts.
+
+    VISUAL: Final corridor network remains—minimal but fully connected.
+
+PERSON 2: Each corridor is rendered as an L-shaped path. We place doors intelligently on room perimeters, creating either straight hallways or clean corners.
+
+    VISUAL: Close-up of an L-shaped corridor being drawn between two rooms.
+
+--------------------------------------------------
+Section 4: Room Assignment & Progression
+--------------------------------------------------
+
+PERSON 2: Now we assign purpose to these connected spaces. Using graph analysis, we strategically place special rooms.
+
+    VISUAL: All rooms are neutral. One room on the edge highlights as the entrance.
+
+PERSON 2: We place the entrance at a peripheral room with few connections. Then, using breadth-first search, we calculate each room's distance from this entrance.
+
+    VISUAL: Numbers appear on rooms showing their distance from the entrance.
+
+PERSON 2: The farthest room becomes the exit. Special rooms—shops, treasure rooms, boss arenas—are placed at strategic distances to create meaningful progression.
+
+    VISUAL: Rooms change color based on type: green entrance, red exit, gold treasure, blue shop.
+
+--------------------------------------------------
+Section 5: Geometry & Rendering
+--------------------------------------------------
+
+PERSON 3: With our layout finalized, we build the 3D world. For performance, we don't render individual tiles.
+
+    VISUAL: Wireframe view switches to textured. Room floors appear as solid, stretched quads.
+
+PERSON 3: Each room floor is a single optimized mesh. Walls are generated dynamically by scanning room perimeters and determining needed wall types.
+
+    VISUAL: Walls rise around rooms. Different wall types (north, south, corners) highlight as they're placed.
+
+PERSON 3: Doors are carved out where corridors meet rooms. Finally, we bake a unified NavMesh across all walkable surfaces for enemy pathfinding.
+
+    VISUAL: Doors appear. Blue NavMesh visualization floods across floors and corridors.
+
+--------------------------------------------------
+Section 6: Biome System
+--------------------------------------------------
+
+PERSON 3: To enhance variety, we implemented a biome system that changes based on floor level.
+
+    VISUAL: The dungeon's materials swap from stone to grass to ice.
+
+PERSON 3: Floors 1-5 might be grassy ruins, 6-10 a stone dungeon, 11-15 dark caves. This changes visuals, props, and lighting while keeping the same layout rules.
+
+    VISUAL: Side-by-side comparison of the same room layout in three different biomes.
+
+--------------------------------------------------
+Section 7: Live Generation Demo
+--------------------------------------------------
+
+JOAQUIN: Let's see the system in action.
+
+    VISUAL: Switch to Unity Editor view with the GameDirector component visible.
+
+JOAQUIN: As you can see, we have a unique layout but the same playability guarantees. Parameters are also configured by the system in real-time.
+
+--------------------------------------------------
+Section 8: Technical Architecture
+--------------------------------------------------
+
+JOAQUIN: This flexibility comes from clean architecture. We separate generation logic, data models, rendering, and services.
+
+    VISUAL: Architecture diagram showing LevelGenerator, RoomModel, MSTService, LayoutRenderer interaction.
+
+JOAQUIN: This makes the system testable, extensible, and ready for features like save/load or multiplayer synchronization.
+
+    VISUAL: Code snippets showing the clean separation between generation logic and rendering.
+
+--------------------------------------------------
+Section 9: Challenges & Solutions
+--------------------------------------------------
+
+JOAQUIN: We faced significant challenges during development. Rooms sometimes disconnected during generation.
+
+    VISUAL: "Before" image showing a dungeon with an isolated room.
+
+JOAQUIN: Our solution was implementing the MST algorithm to guarantee connectivity. We also added validation for door placement and optimized rendering for large dungeons.
+
+    VISUAL: "After" image showing fully connected dungeon, plus performance metrics showing generation under 500ms.
+
+--------------------------------------------------
+Conclusion
+--------------------------------------------------
+
+JOAQUIN: In summary, this system creates endless, playable dungeon variety through a robust algorithmic pipeline.
+
+    VISUAL: Final montage showing many different dungeons from different seeds and biomes.
+
+All Presenters (Together): Thank you for watching!
+
+    VISUAL: Final slide with project name, team names, and GitHub link.
+    MUSIC: Fades out.

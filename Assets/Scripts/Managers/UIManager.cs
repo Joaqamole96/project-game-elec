@@ -309,35 +309,90 @@ public class UIManager : MonoBehaviour
     
     public void TogglePauseMenu()
     {
-        if (pauseUI == null) return;
+        if (pauseUI == null)
+        {
+            Debug.LogWarning("UIManager: pauseUI prefab not assigned");
+            return;
+        }
         
         if (pauseUIInstance == null)
         {
             pauseUIInstance = Instantiate(pauseUI, mainCanvas.transform);
             pauseUIInstance.name = "PauseModal";
             
-            // Setup button listeners
+            // CRITICAL: Setup buttons IMMEDIATELY after instantiation
             SetupPauseMenuButtons();
+            
+            Debug.Log("UIManager: Pause menu instantiated and buttons setup");
         }
         
         bool isActive = !pauseUIInstance.activeSelf;
         pauseUIInstance.SetActive(isActive);
         
-        // Pause/unpause game
         Time.timeScale = isActive ? 0f : 1f;
         Cursor.lockState = isActive ? CursorLockMode.None : CursorLockMode.Locked;
         Cursor.visible = isActive;
+        
+        Debug.Log($"UIManager: Pause menu toggled - Active: {isActive}");
     }
     
     private void SetupPauseMenuButtons()
     {
-        Button resumeBtn = FindComponentInChildren<Button>(pauseUIInstance, "ResumeButton");
-        Button settingsBtn = FindComponentInChildren<Button>(pauseUIInstance, "SettingsButton");
-        Button quitBtn = FindComponentInChildren<Button>(pauseUIInstance, "ExitButton");
+        if (pauseUIInstance == null)
+        {
+            Debug.LogError("UIManager: Cannot setup pause buttons - instance is null");
+            return;
+        }
         
-        if (resumeBtn != null) resumeBtn.onClick.AddListener(TogglePauseMenu);
-        if (settingsBtn != null) settingsBtn.onClick.AddListener(ShowSettingsModal);
-        if (quitBtn != null) quitBtn.onClick.AddListener(QuitGame);
+        // Find buttons with multiple possible names
+        Button resumeBtn = FindButtonInChildren(pauseUIInstance, "ResumeButton", "Resume", "ContinueButton");
+        Button settingsBtn = FindButtonInChildren(pauseUIInstance, "SettingsButton", "Settings", "OptionsButton");
+        Button quitBtn = FindButtonInChildren(pauseUIInstance, "ExitButton", "Quit", "MainMenuButton");
+        
+        // Setup Resume button
+        if (resumeBtn != null)
+        {
+            resumeBtn.onClick.RemoveAllListeners();
+            resumeBtn.onClick.AddListener(() => {
+                Debug.Log("UIManager: Resume clicked");
+                TogglePauseMenu();
+            });
+            Debug.Log("UIManager: Resume button connected");
+        }
+        else
+        {
+            Debug.LogWarning("UIManager: Resume button not found");
+        }
+        
+        // Setup Settings button
+        if (settingsBtn != null)
+        {
+            settingsBtn.onClick.RemoveAllListeners();
+            settingsBtn.onClick.AddListener(() => {
+                Debug.Log("UIManager: Settings clicked");
+                ShowSettingsModal();
+            });
+            Debug.Log("UIManager: Settings button connected");
+        }
+        else
+        {
+            Debug.LogWarning("UIManager: Settings button not found");
+        }
+        
+        // Setup Quit button
+        if (quitBtn != null)
+        {
+            quitBtn.onClick.RemoveAllListeners();
+            quitBtn.onClick.AddListener(() => {
+                Debug.Log("UIManager: Quit clicked");
+                QuitGame();
+            });
+            Debug.Log("UIManager: Quit button connected");
+        }
+        else
+        {
+            Debug.LogWarning("UIManager: Quit button not found");
+        }
     }
     
     // ==========================================
@@ -346,61 +401,143 @@ public class UIManager : MonoBehaviour
     
     private void ShowSettingsModal()
     {
-        if (settingsUI == null) return;
+        if (settingsUI == null)
+        {
+            Debug.LogWarning("UIManager: settingsUI prefab not assigned");
+            return;
+        }
         
         if (settingsModal == null)
         {
             settingsModal = Instantiate(settingsUI, mainCanvas.transform);
             settingsModal.name = "SettingsModal";
             
+            // CRITICAL: Setup controls IMMEDIATELY
             SetupSettingsControls();
+            
+            Debug.Log("UIManager: Settings modal instantiated and controls setup");
         }
         
         // Hide pause menu, show settings
-        if (pauseUIInstance != null) pauseUIInstance.SetActive(false);
+        if (pauseUIInstance != null)
+        {
+            pauseUIInstance.SetActive(false);
+        }
         settingsModal.SetActive(true);
+        
+        Debug.Log("UIManager: Settings modal shown");
     }
     
     private void SetupSettingsControls()
     {
-        // Music slider
-        Slider musicSlider = FindComponentInChildren<Slider>(settingsModal, "MusicSlider");
+        if (settingsModal == null)
+        {
+            Debug.LogError("UIManager: Cannot setup settings - modal is null");
+            return;
+        }
+        
+        // Find sliders with multiple possible names
+        Slider musicSlider = FindSliderInChildren(settingsModal, "MusicSlider", "Music", "MusicVolume");
+        Slider sfxSlider = FindSliderInChildren(settingsModal, "SFXSlider", "SFX", "SoundEffects");
+        Slider sensitivitySlider = FindSliderInChildren(settingsModal, "SensitivitySlider", "Sensitivity", "CameraSensitivity");
+        
+        // Setup Music slider
         if (musicSlider != null)
         {
+            musicSlider.onValueChanged.RemoveAllListeners();
             musicSlider.onValueChanged.AddListener((value) => {
+                Debug.Log($"UIManager: Music volume changed to {value}");
                 AudioManager audioManager = GameDirector.Instance?.audioManager;
-                if (audioManager != null) audioManager.musicVolume = value;
+                if (audioManager != null)
+                {
+                    audioManager.musicVolume = value;
+                }
             });
+            
+            // Set initial value
+            AudioManager audio = GameDirector.Instance?.audioManager;
+            if (audio != null)
+            {
+                musicSlider.value = audio.musicVolume;
+            }
+            
+            Debug.Log("UIManager: Music slider connected");
+        }
+        else
+        {
+            Debug.LogWarning("UIManager: Music slider not found");
         }
         
-        // SFX slider
-        Slider sfxSlider = FindComponentInChildren<Slider>(settingsModal, "SFXSlider");
+        // Setup SFX slider
         if (sfxSlider != null)
         {
+            sfxSlider.onValueChanged.RemoveAllListeners();
             sfxSlider.onValueChanged.AddListener((value) => {
+                Debug.Log($"UIManager: SFX volume changed to {value}");
                 AudioManager audioManager = GameDirector.Instance?.audioManager;
-                if (audioManager != null) audioManager.sfxVolume = value;
+                if (audioManager != null)
+                {
+                    audioManager.sfxVolume = value;
+                }
             });
+            
+            AudioManager audio = GameDirector.Instance?.audioManager;
+            if (audio != null)
+            {
+                sfxSlider.value = audio.sfxVolume;
+            }
+            
+            Debug.Log("UIManager: SFX slider connected");
+        }
+        else
+        {
+            Debug.LogWarning("UIManager: SFX slider not found");
         }
         
-        // Camera sensitivity
-        Slider sensitivitySlider = FindComponentInChildren<Slider>(settingsModal, "SensitivitySlider");
+        // Setup Sensitivity slider
         if (sensitivitySlider != null)
         {
+            sensitivitySlider.onValueChanged.RemoveAllListeners();
             sensitivitySlider.onValueChanged.AddListener((value) => {
+                Debug.Log($"UIManager: Sensitivity changed to {value}");
                 CameraController cam = Camera.main?.GetComponent<CameraController>();
-                if (cam != null) cam.rotationSpeed = value * 5f;
+                if (cam != null)
+                {
+                    cam.rotationSpeed = value * 5f;
+                }
             });
+            
+            CameraController cam = Camera.main?.GetComponent<CameraController>();
+            if (cam != null)
+            {
+                sensitivitySlider.value = cam.rotationSpeed / 5f;
+            }
+            
+            Debug.Log("UIManager: Sensitivity slider connected");
+        }
+        else
+        {
+            Debug.LogWarning("UIManager: Sensitivity slider not found");
         }
         
-        // Back button
-        Button backBtn = FindComponentInChildren<Button>(settingsModal, "BackButton");
+        // Find and setup Back button
+        Button backBtn = FindButtonInChildren(settingsModal, "BackButton", "Back", "CloseButton");
         if (backBtn != null)
         {
+            backBtn.onClick.RemoveAllListeners();
             backBtn.onClick.AddListener(() => {
+                Debug.Log("UIManager: Back from settings clicked");
                 settingsModal.SetActive(false);
-                if (pauseUIInstance != null) pauseUIInstance.SetActive(true);
+                if (pauseUIInstance != null)
+                {
+                    pauseUIInstance.SetActive(true);
+                }
             });
+            Debug.Log("UIManager: Back button connected");
+        }
+        else
+        {
+            Debug.LogWarning("UIManager: Back button not found in settings");
         }
     }
     
@@ -626,11 +763,91 @@ public class UIManager : MonoBehaviour
         #else
         Application.Quit();
         #endif
+        
+        Debug.Log("UIManager: Quitting game");
     }
     
     // ==========================================
     // HELPER METHODS
     // ==========================================
+
+    private Button FindButtonInChildren(GameObject parent, params string[] possibleNames)
+    {
+        if (parent == null) return null;
+        
+        // Try direct children first
+        foreach (string name in possibleNames)
+        {
+            Transform child = parent.transform.Find(name);
+            if (child != null)
+            {
+                Button btn = child.GetComponent<Button>();
+                if (btn != null)
+                {
+                    Debug.Log($"UIManager: Found button '{name}' in direct children");
+                    return btn;
+                }
+            }
+        }
+        
+        // Deep search
+        Button[] allButtons = parent.GetComponentsInChildren<Button>(true);
+        Debug.Log($"UIManager: Found {allButtons.Length} buttons in hierarchy");
+        
+        foreach (Button btn in allButtons)
+        {
+            foreach (string name in possibleNames)
+            {
+                if (btn.gameObject.name.IndexOf(name, System.StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    Debug.Log($"UIManager: Found button matching '{name}': {btn.gameObject.name}");
+                    return btn;
+                }
+            }
+        }
+        
+        Debug.LogWarning($"UIManager: Button not found. Searched for: {string.Join(", ", possibleNames)}");
+        return null;
+    }
+
+    private Slider FindSliderInChildren(GameObject parent, params string[] possibleNames)
+    {
+        if (parent == null) return null;
+        
+        // Try direct children first
+        foreach (string name in possibleNames)
+        {
+            Transform child = parent.transform.Find(name);
+            if (child != null)
+            {
+                Slider slider = child.GetComponent<Slider>();
+                if (slider != null)
+                {
+                    Debug.Log($"UIManager: Found slider '{name}' in direct children");
+                    return slider;
+                }
+            }
+        }
+        
+        // Deep search
+        Slider[] allSliders = parent.GetComponentsInChildren<Slider>(true);
+        Debug.Log($"UIManager: Found {allSliders.Length} sliders in hierarchy");
+        
+        foreach (Slider slider in allSliders)
+        {
+            foreach (string name in possibleNames)
+            {
+                if (slider.gameObject.name.IndexOf(name, System.StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    Debug.Log($"UIManager: Found slider matching '{name}': {slider.gameObject.name}");
+                    return slider;
+                }
+            }
+        }
+        
+        Debug.LogWarning($"UIManager: Slider not found. Searched for: {string.Join(", ", possibleNames)}");
+        return null;
+    }
     
     private T FindComponentInChildren<T>(GameObject parent, string childName) where T : Component
     {

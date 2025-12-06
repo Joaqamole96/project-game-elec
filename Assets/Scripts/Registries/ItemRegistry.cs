@@ -184,12 +184,12 @@ public static class ItemRegistry
         }
         
         // Add component based on heal amount
-        if (healAmount <= 30 && prefab.GetComponent<SmallHealthPotion>() == null)
-            prefab.AddComponent<SmallHealthPotion>().healAmount = healAmount;
-        else if (healAmount <= 50 && prefab.GetComponent<MediumHealthPotion>() == null)
-            prefab.AddComponent<MediumHealthPotion>().healAmount = healAmount;
-        else if (healAmount <= 100 && prefab.GetComponent<LargeHealthPotion>() == null)
-            prefab.AddComponent<LargeHealthPotion>().healAmount = healAmount;
+        if (healAmount <= 30 && prefab.GetComponent<HealthPotionModel>() == null)
+            prefab.AddComponent<HealthPotionModel>().healAmount = healAmount;
+        else if (healAmount <= 50 && prefab.GetComponent<HealthPotionModel>() == null)
+            prefab.AddComponent<HealthPotionModel>().healAmount = healAmount;
+        else if (healAmount <= 100 && prefab.GetComponent<HealthPotionModel>() == null)
+            prefab.AddComponent<HealthPotionModel>().healAmount = healAmount;
         
         return prefab;
     }
@@ -203,9 +203,9 @@ public static class ItemRegistry
             prefab = ResourceService.CreateHealthPotionPrefab(999, new Color(1f, 0.8f, 0.2f));
         }
         
-        if (prefab.GetComponent<MaxHealthPotion>() == null)
+        if (prefab.GetComponent<HealthPotionModel>() == null)
         {
-            prefab.AddComponent<MaxHealthPotion>();
+            prefab.AddComponent<HealthPotionModel>().healAmount = 100;
         }
         
         return prefab;

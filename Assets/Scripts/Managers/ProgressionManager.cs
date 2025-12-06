@@ -1,5 +1,5 @@
 // ================================================== //
-// ProgressionManager - FIXED VERSION
+// ProgressionManager - FIXED Floor Progression
 // ================================================== //
 
 using UnityEngine;
@@ -38,7 +38,6 @@ public class ProgressionManager : MonoBehaviour
     
     void Start()
     {
-        // Spawn portal after delay
         StartCoroutine(SpawnExitPortalDelayed());
     }
     
@@ -47,10 +46,6 @@ public class ProgressionManager : MonoBehaviour
         yield return new WaitForSeconds(2f);
         SpawnExitPortal();
     }
-    
-    // ==========================================
-    // PORTAL MANAGEMENT
-    // ==========================================
     
     private void SpawnExitPortal()
     {
@@ -61,7 +56,6 @@ public class ProgressionManager : MonoBehaviour
             return;
         }
         
-        // Find exit room
         RoomModel exitRoom = layoutManager.CurrentLayout.Rooms.Find(r => r.Type == RoomType.Exit);
         if (exitRoom == null)
         {
@@ -69,30 +63,22 @@ public class ProgressionManager : MonoBehaviour
             return;
         }
         
-        // Check if portal already exists
         if (currentExitPortal != null)
         {
             Debug.Log("ProgressionManager: Exit portal already exists");
             return;
         }
         
-        // Spawn at exit room center
         Vector2Int centerTile = exitRoom.Center;
         Vector3 portalPosition = new Vector3(centerTile.x + 0.5f, 1f, centerTile.y + 0.5f);
         
-        // Load portal prefab
-        GameObject portalPrefab = exitPortalPrefab;
-        if (portalPrefab == null)
-        {
-            portalPrefab = ResourceService.LoadExitPrefab();
-        }
+        GameObject portalPrefab = exitPortalPrefab ?? ResourceService.LoadExitPrefab();
         
         if (portalPrefab != null)
         {
             currentExitPortal = Instantiate(portalPrefab, portalPosition, Quaternion.identity);
             currentExitPortal.name = "ExitPortal";
             
-            // Ensure ExitController exists
             ExitController controller = currentExitPortal.GetComponent<ExitController>();
             if (controller == null)
             {
@@ -103,9 +89,6 @@ public class ProgressionManager : MonoBehaviour
         }
         else
         {
-            Debug.LogError("ProgressionManager: No exit portal prefab available!");
-            
-            // Create fallback portal
             CreateFallbackPortal(portalPosition);
         }
     }
@@ -117,7 +100,6 @@ public class ProgressionManager : MonoBehaviour
         portal.transform.position = position;
         portal.transform.localScale = new Vector3(2f, 0.5f, 2f);
         
-        // Visual
         Renderer renderer = portal.GetComponent<Renderer>();
         Material mat = new Material(Shader.Find("Standard"));
         mat.color = Color.cyan;
@@ -125,21 +107,15 @@ public class ProgressionManager : MonoBehaviour
         mat.SetColor("_EmissionColor", Color.cyan * 2f);
         renderer.material = mat;
         
-        // Collider
         Collider col = portal.GetComponent<Collider>();
         col.isTrigger = true;
         
-        // Controller
         portal.AddComponent<ExitController>();
         
         currentExitPortal = portal;
         
         Debug.Log("ProgressionManager: Created fallback exit portal");
     }
-    
-    // ==========================================
-    // FLOOR TRANSITION
-    // ==========================================
     
     public void OnPlayerEnterExitPortal()
     {
@@ -161,19 +137,27 @@ public class ProgressionManager : MonoBehaviour
     private IEnumerator TransitionToNextFloor()
     {
         Debug.Log("=== FLOOR TRANSITION STARTED ===");
+        Debug.Log($"Current floor before transition: {currentFloor}");
         
-        // Show loading (optional)
         yield return new WaitForSeconds(0.5f);
         
         // Clear current floor
         ClearCurrentFloor();
         yield return new WaitForSeconds(0.5f);
         
-        // Increment floor
+        // CRITICAL: Increment floor BEFORE generating new layout
         currentFloor++;
         totalFloorsCleared++;
         
-        Debug.Log($"=== NOW ON FLOOR {currentFloor} ===");
+        Debug.Log($"=== TRANSITIONING TO FLOOR {currentFloor} ===");
+        
+        // CRITICAL: Update LevelConfig BEFORE generating
+        LayoutManager layoutManager = GameDirector.Instance?.layoutManager;
+        if (layoutManager != null && layoutManager.LevelConfig != null)
+        {
+            layoutManager.LevelConfig.FloorLevel = currentFloor;
+            Debug.Log($"Updated LevelConfig.FloorLevel to {currentFloor}");
+        }
         
         // Save progress
         if (SaveManager.Instance != null)
@@ -204,38 +188,31 @@ public class ProgressionManager : MonoBehaviour
         yield return new WaitForSeconds(1f);
         SpawnExitPortal();
         
-        Debug.Log("=== FLOOR TRANSITION COMPLETE ===");
+        Debug.Log($"=== FLOOR TRANSITION COMPLETE - NOW ON FLOOR {currentFloor} ===");
     }
     
     private void ClearCurrentFloor()
     {
         Debug.Log("ProgressionManager: Clearing current floor...");
         
-        // Destroy portal
         if (currentExitPortal != null)
         {
             Destroy(currentExitPortal);
             currentExitPortal = null;
         }
         
-        // Clear enemies
         EntityManager entityManager = GameDirector.Instance?.entityManager;
         if (entityManager != null)
         {
             entityManager.ClearAllEnemies();
         }
         
-        // Clear layout
         LayoutManager layoutManager = GameDirector.Instance?.layoutManager;
         if (layoutManager != null)
         {
             layoutManager.ClearRendering();
         }
     }
-    
-    // ==========================================
-    // DIFFICULTY SCALING
-    // ==========================================
     
     public int GetScaledEnemyHealth(int baseHealth)
     {
