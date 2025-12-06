@@ -108,7 +108,7 @@ public class TreasureController : MonoBehaviour
         Debug.Log("Chest opened!");
         
         // Optional: Destroy chest after some time
-        // Destroy(gameObject, 3f);
+        Destroy(gameObject, 3f);
     }
     
     private void GivePowerReward(PlayerController player)

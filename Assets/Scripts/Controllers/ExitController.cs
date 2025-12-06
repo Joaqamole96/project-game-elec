@@ -134,7 +134,7 @@ public class ExitController : MonoBehaviour
         }
         else
         {
-            Debug.LogError("ExitController: ProgressionManager not found! Creating one...");
+            Debug.LogWarning("ExitController: ProgressionManager not found! Creating one...");
             
             // Create ProgressionManager if it doesn't exist
             GameObject managerObj = new GameObject("ProgressionManager");
