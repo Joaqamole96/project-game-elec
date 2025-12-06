@@ -19,6 +19,7 @@ public class UIManager : MonoBehaviour
     public GameObject gameOverUI;
     public GameObject damageUI;
     public GameObject tooltipUI;
+    public GameObject crosshairUI;
     
     [Header("Active UI Instances")]
     private GameObject HUDUIInstance;
@@ -33,6 +34,10 @@ public class UIManager : MonoBehaviour
     private Slider healthBar;
     private TextMeshProUGUI healthText;
     private MobileInputController inputManager;
+
+    [Header("Crosshair")]
+    private GameObject crosshairUIInstance;
+    private CrosshairController crosshairController;
     
     private Canvas mainCanvas;
     private PlayerController player;
@@ -62,6 +67,7 @@ public class UIManager : MonoBehaviour
         InitializePrefabs();
         InitializePlayerInterface();
         InitializeMobileControls();
+        InitializeCrosshair(); // NEW
         
         // Load modal prefabs (don't instantiate yet)
         LoadModalPrefabs();
@@ -124,26 +130,11 @@ public class UIManager : MonoBehaviour
 
     private void InitializePrefabs()
     {
-        if (HUDUI == null)
-        {
-            HUDUI = ResourceService.LoadHUDUI();
-        }
-
-        if (mobileControlsUI == null)
-        {
-            mobileControlsUI = ResourceService.LoadMobileControlsUI();
-        }
-
-        if (shopUI == null)
-        {
-            shopUI = ResourceService.LoadShopUI();
-        }
-        
-        // Load damage popup if not assigned
-        if (damageUI == null)
-        {
-            damageUI = Resources.Load<GameObject>("UI/popup_Damage");
-        }
+        if (HUDUI == null)  HUDUI = ResourceService.LoadHUDUI();
+        if (mobileControlsUI == null) mobileControlsUI = ResourceService.LoadMobileControlsUI();
+        if (shopUI == null) shopUI = ResourceService.LoadShopUI();
+        if (crosshairUI == null) crosshairUI = ResourceService.LoadCrosshairUI();
+        if (damageUI == null) damageUI = Resources.Load<GameObject>("UI/popup_Damage");
     }
     
     // ==========================================
@@ -219,6 +210,40 @@ public class UIManager : MonoBehaviour
             {
                 inputManager = mobileControlsUIInstance.AddComponent<MobileInputController>();
             }
+        }
+    }
+    
+    // ==========================================
+    // CROSSHAIR UI
+    // ==========================================
+
+    private void InitializeCrosshair()
+    {
+        if (crosshairUI != null)
+        {
+            crosshairUIInstance = Instantiate(crosshairUI, mainCanvas.transform);
+            crosshairUIInstance.name = "Crosshair";
+            
+            // Get controller component
+            crosshairController = crosshairUIInstance.GetComponent<CrosshairController>();
+            if (crosshairController == null)
+            {
+                crosshairController = crosshairUIInstance.AddComponent<CrosshairController>();
+            }
+            
+            Debug.Log("UIManager: Crosshair initialized");
+        }
+        else
+        {
+            Debug.LogWarning("UIManager: No crosshair UI prefab found");
+        }
+    }
+
+    public void FlashCrosshair()
+    {
+        if (crosshairController != null)
+        {
+            crosshairController.Flash();
         }
     }
     

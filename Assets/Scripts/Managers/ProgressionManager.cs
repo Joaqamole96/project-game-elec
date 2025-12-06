@@ -1,13 +1,10 @@
-// -------------------------------------------------- //
-// Scripts/Managers/ProgressionManager.cs
-// -------------------------------------------------- //
+// ================================================== //
+// ProgressionManager - FIXED VERSION
+// ================================================== //
 
 using UnityEngine;
 using System.Collections;
 
-/// <summary>
-/// Manages progression between floors and scaling difficulty
-/// </summary>
 public class ProgressionManager : MonoBehaviour
 {
     [Header("Current Progress")]
@@ -15,9 +12,9 @@ public class ProgressionManager : MonoBehaviour
     public int totalFloorsCleared = 0;
     
     [Header("Difficulty Scaling")]
-    public float enemyHealthScaling = 1.1f; // +10% per floor
-    public float enemyDamageScaling = 1.05f; // +5% per floor
-    public int goldRewardScaling = 10; // +10 gold per floor
+    public float enemyHealthScaling = 1.1f;
+    public float enemyDamageScaling = 1.05f;
+    public int goldRewardScaling = 10;
     
     [Header("Exit Portal")]
     public GameObject exitPortalPrefab;
@@ -25,13 +22,13 @@ public class ProgressionManager : MonoBehaviour
     
     public static ProgressionManager Instance { get; private set; }
     
-    // ------------------------- //
-    
     void Awake()
     {
         if (Instance == null)
         {
             Instance = this;
+            DontDestroyOnLoad(gameObject);
+            Debug.Log("ProgressionManager: Instance created");
         }
         else
         {
@@ -41,26 +38,26 @@ public class ProgressionManager : MonoBehaviour
     
     void Start()
     {
-        // Spawn exit portal after level generation
+        // Spawn portal after delay
         StartCoroutine(SpawnExitPortalDelayed());
     }
     
     private IEnumerator SpawnExitPortalDelayed()
     {
-        yield return new WaitForSeconds(1f);
+        yield return new WaitForSeconds(2f);
         SpawnExitPortal();
     }
     
-    // ------------------------- //
+    // ==========================================
     // PORTAL MANAGEMENT
-    // ------------------------- //
+    // ==========================================
     
     private void SpawnExitPortal()
     {
         LayoutManager layoutManager = GameDirector.Instance?.layoutManager;
         if (layoutManager == null || layoutManager.CurrentLayout == null)
         {
-            Debug.LogWarning("FloorProgression: Cannot spawn exit portal - no layout");
+            Debug.LogWarning("ProgressionManager: Cannot spawn portal - no layout");
             return;
         }
         
@@ -68,15 +65,22 @@ public class ProgressionManager : MonoBehaviour
         RoomModel exitRoom = layoutManager.CurrentLayout.Rooms.Find(r => r.Type == RoomType.Exit);
         if (exitRoom == null)
         {
-            Debug.LogWarning("FloorProgression: No exit room found");
+            Debug.LogWarning("ProgressionManager: No exit room found");
             return;
         }
         
-        // Spawn portal at exit room center
-        Vector2Int centerTile = exitRoom.Center;
-        Vector3 portalPosition = new(centerTile.x + 0.5f, 1f, centerTile.y + 0.5f);
+        // Check if portal already exists
+        if (currentExitPortal != null)
+        {
+            Debug.Log("ProgressionManager: Exit portal already exists");
+            return;
+        }
         
-        // Load or create portal
+        // Spawn at exit room center
+        Vector2Int centerTile = exitRoom.Center;
+        Vector3 portalPosition = new Vector3(centerTile.x + 0.5f, 1f, centerTile.y + 0.5f);
+        
+        // Load portal prefab
         GameObject portalPrefab = exitPortalPrefab;
         if (portalPrefab == null)
         {
@@ -86,39 +90,79 @@ public class ProgressionManager : MonoBehaviour
         if (portalPrefab != null)
         {
             currentExitPortal = Instantiate(portalPrefab, portalPosition, Quaternion.identity);
-            currentExitPortal.name = "ExitController";
+            currentExitPortal.name = "ExitPortal";
             
-            // Add portal trigger
-            if (!currentExitPortal.GetComponent<ExitController>())
+            // Ensure ExitController exists
+            ExitController controller = currentExitPortal.GetComponent<ExitController>();
+            if (controller == null)
             {
-                currentExitPortal.AddComponent<ExitController>();
+                controller = currentExitPortal.AddComponent<ExitController>();
             }
             
-            Debug.Log($"FloorProgression: Exit portal spawned at {portalPosition}");
+            Debug.Log($"ProgressionManager: Exit portal spawned at {portalPosition}");
         }
         else
         {
-            Debug.LogWarning("FloorProgression: No exit portal prefab available");
+            Debug.LogError("ProgressionManager: No exit portal prefab available!");
+            
+            // Create fallback portal
+            CreateFallbackPortal(portalPosition);
         }
     }
     
-    // ------------------------- //
+    private void CreateFallbackPortal(Vector3 position)
+    {
+        GameObject portal = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+        portal.name = "ExitPortal_Fallback";
+        portal.transform.position = position;
+        portal.transform.localScale = new Vector3(2f, 0.5f, 2f);
+        
+        // Visual
+        Renderer renderer = portal.GetComponent<Renderer>();
+        Material mat = new Material(Shader.Find("Standard"));
+        mat.color = Color.cyan;
+        mat.EnableKeyword("_EMISSION");
+        mat.SetColor("_EmissionColor", Color.cyan * 2f);
+        renderer.material = mat;
+        
+        // Collider
+        Collider col = portal.GetComponent<Collider>();
+        col.isTrigger = true;
+        
+        // Controller
+        portal.AddComponent<ExitController>();
+        
+        currentExitPortal = portal;
+        
+        Debug.Log("ProgressionManager: Created fallback exit portal");
+    }
+    
+    // ==========================================
     // FLOOR TRANSITION
-    // ------------------------- //
+    // ==========================================
     
     public void OnPlayerEnterExitPortal()
     {
-        Debug.Log($"FloorProgression: Player entered exit portal on floor {currentFloor}");
+        Debug.Log($"ProgressionManager: Player entered exit portal on floor {currentFloor}");
+        
+        if (currentExitPortal != null)
+        {
+            ExitController controller = currentExitPortal.GetComponent<ExitController>();
+            if (controller != null && !controller.isActive)
+            {
+                Debug.Log("ProgressionManager: Portal is inactive, ignoring");
+                return;
+            }
+        }
         
         StartCoroutine(TransitionToNextFloor());
     }
     
     private IEnumerator TransitionToNextFloor()
     {
-        // Show transition effect
-        Debug.Log("=== TRANSITIONING TO NEXT FLOOR ===");
+        Debug.Log("=== FLOOR TRANSITION STARTED ===");
         
-        // TODO: Show loading screen
+        // Show loading (optional)
         yield return new WaitForSeconds(0.5f);
         
         // Clear current floor
@@ -131,11 +175,25 @@ public class ProgressionManager : MonoBehaviour
         
         Debug.Log($"=== NOW ON FLOOR {currentFloor} ===");
         
+        // Save progress
+        if (SaveManager.Instance != null)
+        {
+            SaveManager.Instance.OnFloorCompleted();
+        }
+        
         // Generate next floor
-        GameDirector.Instance?.NextFloor();
+        if (GameDirector.Instance != null)
+        {
+            GameDirector.Instance.NextFloor();
+        }
+        else
+        {
+            Debug.LogError("ProgressionManager: GameDirector not found!");
+        }
         
         yield return new WaitForSeconds(1f);
-
+        
+        // Respawn player
         EntityManager entityManager = GameDirector.Instance?.entityManager;
         if (entityManager != null)
         {
@@ -143,22 +201,24 @@ public class ProgressionManager : MonoBehaviour
         }
         
         // Spawn new portal
+        yield return new WaitForSeconds(1f);
         SpawnExitPortal();
         
-        // TODO: Hide loading screen
+        Debug.Log("=== FLOOR TRANSITION COMPLETE ===");
     }
     
     private void ClearCurrentFloor()
     {
-        Debug.Log("FloorProgression: Clearing current floor...");
+        Debug.Log("ProgressionManager: Clearing current floor...");
         
-        // Destroy exit portal
+        // Destroy portal
         if (currentExitPortal != null)
         {
             Destroy(currentExitPortal);
+            currentExitPortal = null;
         }
         
-        // Clear all enemies
+        // Clear enemies
         EntityManager entityManager = GameDirector.Instance?.entityManager;
         if (entityManager != null)
         {
@@ -173,53 +233,24 @@ public class ProgressionManager : MonoBehaviour
         }
     }
     
-    // ------------------------- //
+    // ==========================================
     // DIFFICULTY SCALING
-    // ------------------------- //
+    // ==========================================
     
     public int GetScaledEnemyHealth(int baseHealth)
     {
-        float scaledHealth = baseHealth * Mathf.Pow(enemyHealthScaling, currentFloor - 1);
-        return Mathf.RoundToInt(scaledHealth);
+        float scaled = baseHealth * Mathf.Pow(enemyHealthScaling, currentFloor - 1);
+        return Mathf.RoundToInt(scaled);
     }
     
     public int GetScaledEnemyDamage(int baseDamage)
     {
-        float scaledDamage = baseDamage * Mathf.Pow(enemyDamageScaling, currentFloor - 1);
-        return Mathf.RoundToInt(scaledDamage);
+        float scaled = baseDamage * Mathf.Pow(enemyDamageScaling, currentFloor - 1);
+        return Mathf.RoundToInt(scaled);
     }
     
     public int GetScaledGoldReward(int baseReward)
     {
         return baseReward + (goldRewardScaling * (currentFloor - 1));
     }
-    
-    // ------------------------- //
-    // SAVE/LOAD
-    // ------------------------- //
-    
-    public void SaveProgress()
-    {
-        PlayerPrefs.SetInt("CurrentFloor", currentFloor);
-        PlayerPrefs.SetInt("TotalFloorsCleared", totalFloorsCleared);
-        PlayerPrefs.Save();
-        Debug.Log($"FloorProgression: Progress saved (Floor {currentFloor})");
-    }
-    
-    public void LoadProgress()
-    {
-        currentFloor = PlayerPrefs.GetInt("CurrentFloor", 1);
-        totalFloorsCleared = PlayerPrefs.GetInt("TotalFloorsCleared", 0);
-        Debug.Log($"FloorProgression: Progress loaded (Floor {currentFloor})");
-    }
-    
-    public void ResetProgress()
-    {
-        currentFloor = 1;
-        totalFloorsCleared = 0;
-        PlayerPrefs.DeleteKey("CurrentFloor");
-        PlayerPrefs.DeleteKey("TotalFloorsCleared");
-        Debug.Log("FloorProgression: Progress reset");
-    }
 }
-

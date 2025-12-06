@@ -282,13 +282,6 @@ public class EntityManager : MonoBehaviour
                 
             case RoomType.Boss:
                 return SpawnBossRoomEntities(room);
-                
-            case RoomType.Shop:
-                return SpawnShopKeeper(room);
-                
-            case RoomType.Treasure:
-                return SpawnTreasureChest(room);
-                
             default:
                 return 0;
         }
@@ -369,72 +362,6 @@ public class EntityManager : MonoBehaviour
         Debug.Log($"Boss room spawner created with reward: {spawnerComponent.guaranteedPower}");
         
         return 1;
-    }
-    
-    private int SpawnShopKeeper(RoomModel room)
-    {
-        Vector2Int centerTile = room.Center;
-        Vector3 shopPosition = new(centerTile.x + 0.5f, spawnHeight, centerTile.y + 0.5f);
-        
-        // Create shop object
-        GameObject shop = new("Shop");
-        shop.transform.position = shopPosition;
-        
-        // Visual (placeholder)
-        GameObject visual = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-        visual.transform.SetParent(shop.transform);
-        visual.transform.localPosition = Vector3.zero;
-        visual.transform.localScale = new Vector3(2f, 1f, 2f);
-        
-        Renderer renderer = visual.GetComponent<Renderer>();
-        Material mat = new(Shader.Find("Standard"))
-        {
-            color = Color.blue
-        };
-        renderer.material = mat;
-        
-        // Add trigger collider
-        SphereCollider trigger = shop.AddComponent<SphereCollider>();
-        trigger.isTrigger = true;
-        trigger.radius = 3f;
-        
-        // Add shop controller
-        shop.AddComponent<ShopController>();
-        
-        Debug.Log($"Shop spawned in room {room.ID}");
-        
-        return 0; // Not an enemy
-    }
-    
-    private int SpawnTreasureChest(RoomModel room)
-    {
-        Vector2Int centerTile = room.Center;
-        Vector3 chestPosition = new(centerTile.x + 0.5f, spawnHeight, centerTile.y + 0.5f);
-        
-        // Create chest object
-        GameObject chest = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        chest.transform.position = chestPosition;
-        chest.transform.localScale = new Vector3(1f, 0.8f, 0.7f);
-        chest.name = "TreasureChest";
-        
-        Renderer renderer = chest.GetComponent<Renderer>();
-        Material mat = new(Shader.Find("Standard"))
-        {
-            color = new Color(0.8f, 0.6f, 0.2f) // Gold color
-        };
-        renderer.material = mat;
-        
-        // Make trigger
-        Collider collider = chest.GetComponent<Collider>();
-        collider.isTrigger = true;
-        
-        // Add treasure controller
-        TreasureChestController treasureController = chest.AddComponent<TreasureChestController>();
-        treasureController.treasureType = TreasureChestController.TreasureType.Random;
-        
-        Debug.Log($"Treasure chest spawned in room {room.ID}");
-        
-        return 0; // Not an enemy
     }
     
     private List<GameObject> GetBiomeEnemyPrefabs(string biome)

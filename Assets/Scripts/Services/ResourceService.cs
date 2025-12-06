@@ -1,5 +1,5 @@
 // -------------------------------------------------- //
-// Scripts/Services/ResourceService.cs
+// Scripts/Services/ResourceService.cs (UPDATED)
 // -------------------------------------------------- //
 
 using UnityEngine;
@@ -10,14 +10,17 @@ public static class ResourceService
     // Cache to avoid repeated Resources.Load calls
     private static readonly Dictionary<string, GameObject> _prefabCache = new();
     private static readonly Dictionary<string, Material> _materialCache = new();
+    
     // Biome constants
     public const string BIOME_GRASSLANDS = "Grasslands";
     public const string BIOME_DUNGEON = "Dungeon";
     public const string BIOME_CAVES = "Caves";
+    
     // Component categories (biome-specific)
     private const string CATEGORY_LAYOUT = "Layout";
     private const string CATEGORY_PROPS = "Props";
     private const string CATEGORY_ENEMIES = "Enemies";
+    
     // Component categories (biome-independent)
     private const string CATEGORY_LANDMARKS = "Landmarks";
     private const string CATEGORY_PLAYERS = "Players";
@@ -114,7 +117,6 @@ public static class ResourceService
     // LAYOUT MATERIALS
     // ------------------------- //
     
-    
     public static Material LoadFloorMaterial(string biome)
         => LoadMaterial("mat_Floor", CATEGORY_LAYOUT, biome);
     
@@ -157,7 +159,7 @@ public static class ResourceService
         => LoadPrefab("pf_TankEnemy", CATEGORY_ENEMIES, biome);
     
     // ------------------------- //
-    // LANDMARK PREFABS
+    // LANDMARK PREFABS (UPDATED)
     // ------------------------- //
 
     public static GameObject LoadLandmarkPrefab(RoomType roomType)
@@ -211,12 +213,140 @@ public static class ResourceService
     
     public static GameObject LoadHealthPotionPrefab()
         => LoadPrefab("pf_HealthPotion", CATEGORY_ITEMS);
+
+    public static GameObject LoadSmallHealthPotionPrefab()
+        => LoadPrefab("pf_SmallHealthPotion", CATEGORY_ITEMS);
+
+    public static GameObject LoadMediumHealthPotionPrefab()
+        => LoadPrefab("pf_MediumHealthPotion", CATEGORY_ITEMS);
+
+    public static GameObject LoadLargeHealthPotionPrefab()
+        => LoadPrefab("pf_LargeHealthPotion", CATEGORY_ITEMS);
+
+    public static GameObject LoadMaxHealthPotionPrefab()
+        => LoadPrefab("pf_MaxHealthPotion", CATEGORY_ITEMS);
+
+    public static GameObject LoadSpeedPotionPrefab()
+        => LoadPrefab("pf_SpeedPotion", CATEGORY_ITEMS);
+
+    public static GameObject LoadDamagePotionPrefab()
+        => LoadPrefab("pf_DamagePotion", CATEGORY_ITEMS);
+
+    public static GameObject LoadInvincibilityPotionPrefab()
+        => LoadPrefab("pf_InvincibilityPotion", CATEGORY_ITEMS);
+
+    public static GameObject LoadSmallGoldPrefab()
+        => LoadPrefab("pf_SmallGold", CATEGORY_ITEMS);
+
+    public static GameObject LoadLargeGoldPrefab()
+        => LoadPrefab("pf_LargeGold", CATEGORY_ITEMS);
+
+    public static GameObject LoadPowerPickupPrefab()
+        => LoadPrefab("pf_PowerPickup", CATEGORY_ITEMS);
+
+    // ------------------------- //
+    // ITEM PREFAB CREATION HELPERS
+    // ------------------------- //
+
+    /// <summary>
+    /// Creates a fallback health potion prefab with physics
+    /// </summary>
+    public static GameObject CreateHealthPotionPrefab(int healAmount, Color color)
+    {
+        GameObject prefab = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+        prefab.name = $"HealthPotion_{healAmount}";
+        prefab.transform.localScale = new Vector3(0.3f, 0.5f, 0.3f);
+        
+        // Setup physics
+        Rigidbody rb = prefab.AddComponent<Rigidbody>();
+        rb.mass = 0.5f;
+        rb.drag = 2f; // Prevent rolling
+        rb.angularDrag = 5f; // Prevent rolling
+        rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
+        
+        // Setup collider
+        CapsuleCollider col = prefab.GetComponent<CapsuleCollider>();
+        col.isTrigger = true; // Trigger for pickup, but has physics
+        
+        // Visual setup
+        SetupItemVisuals(prefab, color);
+        
+        return prefab;
+    }
+
+    /// <summary>
+    /// Creates a fallback gold coin prefab with physics
+    /// </summary>
+    public static GameObject CreateSmallGoldPrefab(int amount, Color color)
+    {
+        GameObject prefab = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        prefab.name = $"SmallGold_{amount}";
+        prefab.transform.localScale = Vector3.one * 0.3f;
+        
+        // Setup physics
+        Rigidbody rb = prefab.AddComponent<Rigidbody>();
+        rb.mass = 0.2f;
+        rb.drag = 2f;
+        rb.angularDrag = 5f;
+        rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
+        
+        // Setup collider
+        SphereCollider col = prefab.GetComponent<SphereCollider>();
+        col.isTrigger = true;
+        
+        // Visual setup
+        SetupItemVisuals(prefab, color);
+        
+        return prefab;
+    }
+
+    /// <summary>
+    /// Creates a fallback gold pile prefab with physics
+    /// </summary>
+    public static GameObject CreateLargeGoldPrefab(int amount, Color color)
+    {
+        GameObject prefab = GameObject.CreatePrimitive(PrimitiveType.Cube);
+        prefab.name = $"LargeGold_{amount}";
+        prefab.transform.localScale = new Vector3(0.5f, 0.3f, 0.5f);
+        
+        // Setup physics
+        Rigidbody rb = prefab.AddComponent<Rigidbody>();
+        rb.mass = 0.8f;
+        rb.drag = 3f;
+        rb.angularDrag = 10f;
+        rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationZ;
+        
+        // Setup collider
+        BoxCollider col = prefab.GetComponent<BoxCollider>();
+        col.isTrigger = true;
+        
+        // Visual setup
+        SetupItemVisuals(prefab, color);
+        
+        return prefab;
+    }
+
+    /// <summary>
+    /// Sets up visual properties for item prefabs
+    /// </summary>
+    private static void SetupItemVisuals(GameObject prefab, Color color)
+    {
+        Renderer renderer = prefab.GetComponent<Renderer>();
+        if (renderer != null)
+        {
+            Material mat = new Material(Shader.Find("Standard"));
+            mat.color = color;
+            mat.EnableKeyword("_EMISSION");
+            mat.SetColor("_EmissionColor", color * 1.5f);
+            renderer.material = mat;
+        }
+    }
     
     // ------------------------- //
     // WEAPON PREFABS
     // ------------------------- //
     
-        public static GameObject LoadSwordPrefab()
+    public static GameObject LoadSwordPrefab()
         => LoadPrefab("pf_Sword", CATEGORY_WEAPONS);
     
     public static GameObject LoadBowPrefab()
@@ -232,7 +362,7 @@ public static class ResourceService
         => LoadPrefab("pf_Projectile", CATEGORY_WEAPONS);
     
     // ------------------------- //
-    // UI PREFABS
+    // UI PREFABS (UPDATED)
     // ------------------------- //
     
     public static GameObject LoadHUDUI()
@@ -243,6 +373,9 @@ public static class ResourceService
     
     public static GameObject LoadShopUI()
         => LoadPrefab("ui_Shop", CATEGORY_UI);
+    
+    public static GameObject LoadCrosshairUI()
+        => LoadPrefab("ui_Crosshair", CATEGORY_UI);
     
     // ------------------------- //
     // BATCH LOADING METHODS

@@ -321,65 +321,6 @@ public class InvincibilityPotion : ItemModel
 }
 
 // ================================================== //
-// CURRENCY ITEMS
-// ================================================== //
-
-/// <summary>
-/// Gold coin - adds gold to player inventory
-/// </summary>
-public class GoldCoin : ItemModel
-{
-    public int goldAmount = 10;
-    
-    protected override void ApplyEffect(PlayerController player)
-    {
-        if (player.inventory != null)
-        {
-            // Apply gold multiplier from powers
-            int finalAmount = goldAmount;
-            if (player.powerManager != null)
-            {
-                finalAmount = player.powerManager.ModifyGoldGained(goldAmount);
-            }
-            
-            player.inventory.AddGold(finalAmount);
-        }
-    }
-    
-    public override string GetDescription()
-    {
-        return $"{goldAmount} Gold";
-    }
-}
-
-/// <summary>
-/// Gold pile - larger gold drop
-/// </summary>
-public class GoldPile : ItemModel
-{
-    public int goldAmount = 50;
-    
-    protected override void ApplyEffect(PlayerController player)
-    {
-        if (player.inventory != null)
-        {
-            int finalAmount = goldAmount;
-            if (player.powerManager != null)
-            {
-                finalAmount = player.powerManager.ModifyGoldGained(goldAmount);
-            }
-            
-            player.inventory.AddGold(finalAmount);
-        }
-    }
-    
-    public override string GetDescription()
-    {
-        return $"{goldAmount} Gold";
-    }
-}
-
-// ================================================== //
 // POWER ITEMS
 // ================================================== //
 

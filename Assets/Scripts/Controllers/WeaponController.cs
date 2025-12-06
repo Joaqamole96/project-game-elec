@@ -35,7 +35,7 @@ public class WeaponController : MonoBehaviour
         }
         
         // Start with default weapon
-        WeaponModel starterWeapon = WeaponConfig.Instance.GetWeaponModel("Bow");
+        WeaponModel starterWeapon = WeaponConfig.Instance.GetRandomWeapon();
         if (starterWeapon != null)
         {
             EquipWeapon(starterWeapon);
@@ -158,47 +158,13 @@ public class WeaponController : MonoBehaviour
     // RANGED ATTACK (Bow, Staff)
     // ==========================================
     
-    // private void PerformRangedAttack(Vector3 direction, int damage, float speed)
-    // {
-    //     // Load projectile prefab and create an instance
-    //     GameObject projectilePrefab = ResourceService.LoadProjectilePrefab();
-    //     if (projectilePrefab == null)
-    //     {
-    //         Debug.LogError("Failed to load projectile prefab!");
-    //         return;
-    //     }
-        
-    //     // Create a new instance/copy of the projectile prefab
-    //     GameObject projectile = Instantiate(projectilePrefab);
-        
-    //     // Setup physics
-    //     if (!projectile.TryGetComponent<Rigidbody>(out var rb))
-    //     {
-    //         rb = projectile.AddComponent<Rigidbody>();
-    //         rb.useGravity = false;
-    //         rb.collisionDetectionMode = CollisionDetectionMode.Continuous;
-    //     }
-    //     rb.velocity = direction * speed;
-        
-    //     // Setup damage
-    //     if (!projectile.TryGetComponent<ProjectileController>(out var projController))
-    //     {
-    //         projController = projectile.AddComponent<ProjectileController>();
-    //     }
-    //     projController.damage = damage;
-    //     projController.owner = player.gameObject;
-    //     projController.isPlayerProjectile = true;
-        
-    //     // Auto-destroy
-    //     Destroy(projectile, 5f);
-        
-    //     Debug.Log($"Ranged attack: damage={damage}, speed={speed}");
-    // }
-    
     private void PerformRangedAttack(Vector3 position, Vector3 direction, int damage, float speed)
     {
+        // FIXED: Spawn at eye level (camera position), not above
+        Vector3 spawnPosition = mainCamera != null ? mainCamera.transform.position : position;
+        
         // Create projectile
-        GameObject projectile = CreateProjectile(position, direction);
+        GameObject projectile = CreateProjectile(spawnPosition, direction);
         
         // Setup physics
         Rigidbody rb = projectile.GetComponent<Rigidbody>();
@@ -220,16 +186,23 @@ public class WeaponController : MonoBehaviour
         projController.owner = player.gameObject;
         projController.isPlayerProjectile = true;
         
+        // Flash crosshair
+        if (UIManager.Instance != null)
+        {
+            UIManager.Instance.FlashCrosshair();
+        }
+        
         // Auto-destroy
         Destroy(projectile, 5f);
         
-        Debug.Log($"Ranged attack: damage={damage}, speed={speed}");
+        Debug.Log($"Ranged attack: damage={damage}, speed={speed}, spawn={spawnPosition}");
     }
 
     private GameObject CreateProjectile(Vector3 position, Vector3 direction)
     {
         GameObject projectile = GameObject.CreatePrimitive(PrimitiveType.Sphere);
         projectile.transform.position = position;
+        projectile.transform.position = new(position.x, position.y - 0.5f, position.z);
         projectile.transform.localScale = Vector3.one * 0.3f;
         projectile.name = "Projectile";
         

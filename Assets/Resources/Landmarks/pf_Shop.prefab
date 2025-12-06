@@ -258,6 +258,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3b02060704996974db3c06ef85ee497c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  availableItems: []
-  shopDisplay: {fileID: 0}
+  itemSpawnPoint: {fileID: 8306213701755165209}
+  itemSpawnRadius: 2
   isPlayerNearby: 0

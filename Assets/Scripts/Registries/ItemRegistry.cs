@@ -133,12 +133,12 @@ public static class ItemRegistry
             
             // CURRENCY
             {
-                "gold_coin", new ItemDefinition
+                "small_gold", new ItemDefinition
                 {
-                    itemID = "gold_coin",
-                    itemName = "Gold Coin",
+                    itemID = "small_gold",
+                    itemName = "Pile of Gold",
                     itemType = ItemType.Currency,
-                    prefab = CreateGoldCoinPrefab(10),
+                    prefab = CreateSmallGoldPrefab(10),
                     baseValue = 10,
                     dropWeight = 15f,
                     description = "10 Gold"
@@ -150,7 +150,7 @@ public static class ItemRegistry
                     itemID = "gold_pile",
                     itemName = "Gold Pile",
                     itemType = ItemType.Currency,
-                    prefab = CreateGoldPilePrefab(50),
+                    prefab = CreateLargeGoldPrefab(50),
                     baseValue = 50,
                     dropWeight = 3f,
                     description = "50 Gold"
@@ -164,87 +164,141 @@ public static class ItemRegistry
     // ==========================================
     // PREFAB CREATION HELPERS
     // ==========================================
-    
+
     private static GameObject CreateHealthPotionPrefab(int healAmount, Color color)
     {
-        GameObject prefab = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-        prefab.name = $"HealthPotion_{healAmount}";
-        prefab.transform.localScale = new Vector3(0.3f, 0.5f, 0.3f);
+        // Try to load from ResourceService first
+        GameObject prefab = null;
+        
+        if (healAmount <= 30)
+            prefab = ResourceService.LoadSmallHealthPotionPrefab();
+        else if (healAmount <= 50)
+            prefab = ResourceService.LoadMediumHealthPotionPrefab();
+        else if (healAmount <= 100)
+            prefab = ResourceService.LoadLargeHealthPotionPrefab();
+        
+        // Fallback: Create simple prefab
+        if (prefab == null)
+        {
+            prefab = ResourceService.CreateHealthPotionPrefab(healAmount, color);
+        }
         
         // Add component based on heal amount
-        if (healAmount <= 30)
+        if (healAmount <= 30 && prefab.GetComponent<SmallHealthPotion>() == null)
             prefab.AddComponent<SmallHealthPotion>().healAmount = healAmount;
-        else if (healAmount <= 50)
+        else if (healAmount <= 50 && prefab.GetComponent<MediumHealthPotion>() == null)
             prefab.AddComponent<MediumHealthPotion>().healAmount = healAmount;
-        else
+        else if (healAmount <= 100 && prefab.GetComponent<LargeHealthPotion>() == null)
             prefab.AddComponent<LargeHealthPotion>().healAmount = healAmount;
-        
-        // Visual setup
-        SetupItemVisuals(prefab, color);
         
         return prefab;
     }
     
     private static GameObject CreateMaxHealthPotionPrefab()
     {
-        GameObject prefab = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-        prefab.name = "MaxHealthPotion";
-        prefab.transform.localScale = new Vector3(0.4f, 0.6f, 0.4f);
-        prefab.AddComponent<MaxHealthPotion>();
-        SetupItemVisuals(prefab, new Color(1f, 0.8f, 0.2f)); // Golden
+        GameObject prefab = ResourceService.LoadMaxHealthPotionPrefab();
+        
+        if (prefab == null)
+        {
+            prefab = ResourceService.CreateHealthPotionPrefab(999, new Color(1f, 0.8f, 0.2f));
+        }
+        
+        if (prefab.GetComponent<MaxHealthPotion>() == null)
+        {
+            prefab.AddComponent<MaxHealthPotion>();
+        }
+        
         return prefab;
     }
     
     private static GameObject CreateSpeedPotionPrefab()
     {
-        GameObject prefab = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-        prefab.name = "SpeedPotion";
-        prefab.transform.localScale = new Vector3(0.3f, 0.5f, 0.3f);
-        prefab.AddComponent<SpeedBoostPotion>();
-        SetupItemVisuals(prefab, new Color(0.2f, 1f, 0.2f)); // Green
+        GameObject prefab = ResourceService.LoadSpeedPotionPrefab();
+        
+        if (prefab == null)
+        {
+            prefab = ResourceService.CreateHealthPotionPrefab(0, new Color(0.2f, 1f, 0.2f));
+        }
+        
+        if (prefab.GetComponent<SpeedBoostPotion>() == null)
+        {
+            prefab.AddComponent<SpeedBoostPotion>();
+        }
+        
         return prefab;
     }
-    
+
     private static GameObject CreateDamagePotionPrefab()
     {
-        GameObject prefab = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-        prefab.name = "DamagePotion";
-        prefab.transform.localScale = new Vector3(0.3f, 0.5f, 0.3f);
-        prefab.AddComponent<DamageBoostPotion>();
-        SetupItemVisuals(prefab, new Color(1f, 0.5f, 0.2f)); // Orange
+        GameObject prefab = ResourceService.LoadDamagePotionPrefab();
+        
+        if (prefab == null)
+        {
+            prefab = ResourceService.CreateHealthPotionPrefab(0, new Color(1f, 0.5f, 0.2f));
+        }
+        
+        if (prefab.GetComponent<DamageBoostPotion>() == null)
+        {
+            prefab.AddComponent<DamageBoostPotion>();
+        }
+        
         return prefab;
     }
-    
+
     private static GameObject CreateInvincibilityPotionPrefab()
     {
-        GameObject prefab = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-        prefab.name = "InvincibilityPotion";
-        prefab.transform.localScale = new Vector3(0.3f, 0.5f, 0.3f);
-        prefab.AddComponent<InvincibilityPotion>();
-        SetupItemVisuals(prefab, new Color(1f, 1f, 0.2f)); // Yellow
+        GameObject prefab = ResourceService.LoadInvincibilityPotionPrefab();
+        
+        if (prefab == null)
+        {
+            prefab = ResourceService.CreateHealthPotionPrefab(0, new Color(1f, 1f, 0.2f));
+        }
+        
+        if (prefab.GetComponent<InvincibilityPotion>() == null)
+        {
+            prefab.AddComponent<InvincibilityPotion>();
+        }
+        
         return prefab;
     }
-    
-    private static GameObject CreateGoldCoinPrefab(int amount)
+
+    private static GameObject CreateSmallGoldPrefab(int amount)
     {
-        GameObject prefab = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-        prefab.name = $"GoldCoin_{amount}";
-        prefab.transform.localScale = Vector3.one * 0.3f;
-        prefab.AddComponent<GoldCoin>().goldAmount = amount;
-        SetupItemVisuals(prefab, new Color(1f, 0.84f, 0f)); // Gold
+        GameObject prefab = ResourceService.LoadSmallGoldPrefab();
+        
+        if (prefab == null)
+        {
+            prefab = ResourceService.CreateSmallGoldPrefab(amount, new Color(1f, 0.84f, 0f));
+        }
+        
+        if (prefab.GetComponent<GoldItemModel>() == null)
+        {
+            prefab.AddComponent<GoldItemModel>().goldAmount = amount;
+        }
+        
         return prefab;
     }
-    
-    private static GameObject CreateGoldPilePrefab(int amount)
+
+    private static GameObject CreateLargeGoldPrefab(int amount)
     {
-        GameObject prefab = GameObject.CreatePrimitive(PrimitiveType.Cube);
-        prefab.name = $"GoldPile_{amount}";
-        prefab.transform.localScale = new Vector3(0.5f, 0.3f, 0.5f);
-        prefab.AddComponent<GoldPile>().goldAmount = amount;
-        SetupItemVisuals(prefab, new Color(1f, 0.84f, 0f)); // Gold
+        GameObject prefab = ResourceService.LoadLargeGoldPrefab();
+        
+        if (prefab == null)
+        {
+            prefab = ResourceService.CreateLargeGoldPrefab(amount, new Color(1f, 0.84f, 0f));
+        }
+        
+        if (prefab.GetComponent<GoldItemModel>() == null)
+        {
+            prefab.AddComponent<GoldItemModel>().goldAmount = amount;
+        }
+        
         return prefab;
     }
-    
+
+    /// <summary>
+    /// Sets up visual properties for item prefabs
+    /// </summary>
     private static void SetupItemVisuals(GameObject prefab, Color color)
     {
         Renderer renderer = prefab.GetComponent<Renderer>();
@@ -255,13 +309,6 @@ public static class ItemRegistry
             mat.EnableKeyword("_EMISSION");
             mat.SetColor("_EmissionColor", color * 1.5f);
             renderer.material = mat;
-        }
-        
-        // Ensure trigger collider
-        Collider collider = prefab.GetComponent<Collider>();
-        if (collider != null)
-        {
-            collider.isTrigger = true;
         }
     }
     
@@ -327,7 +374,7 @@ public static class ItemRegistry
         }
         
         // Fallback to gold coin
-        return "gold_coin";
+        return "small_gold";
     }
     
     /// <summary>
@@ -374,7 +421,7 @@ public static class ItemRegistry
             }
         }
         
-        return "gold_coin";
+        return "small_gold";
     }
     
     /// <summary>
@@ -459,14 +506,28 @@ public static class ItemRegistry
             return null;
         }
         
-        GameObject instance = Object.Instantiate(item.prefab, position, Quaternion.identity);
+        // Spawn slightly above ground for physics drop
+        Vector3 spawnPos = position + Vector3.up * 0.5f;
+        GameObject instance = Object.Instantiate(item.prefab, spawnPos, Quaternion.identity);
         instance.name = item.itemName;
+        
+        // Add slight random force for variety
+        Rigidbody rb = instance.GetComponent<Rigidbody>();
+        if (rb != null)
+        {
+            Vector3 randomForce = new Vector3(
+                Random.Range(-1f, 1f),
+                Random.Range(1f, 2f),
+                Random.Range(-1f, 1f)
+            );
+            rb.AddForce(randomForce, ForceMode.Impulse);
+        }
         
         return instance;
     }
     
     /// <summary>
-    /// Spawn random item drop from enemy
+    /// Spawn random item drop from enemy with physics
     /// </summary>
     public static GameObject SpawnEnemyDrop(Vector3 position, string enemyType, int floorLevel)
     {
@@ -478,8 +539,3 @@ public static class ItemRegistry
         return SpawnItem(itemID, position);
     }
 }
-
-// ==========================================
-// EXPANDED ITEM TYPE ENUM
-// ==========================================
-

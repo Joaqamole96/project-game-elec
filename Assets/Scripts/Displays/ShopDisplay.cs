@@ -1,5 +1,5 @@
 // ================================================== //
-// Scripts/Display/ShopDisplay.cs
+// Scripts/Display/ShopDisplay.cs (COMPLETE REWRITE)
 // ================================================== //
 
 using UnityEngine;
@@ -8,8 +8,7 @@ using TMPro;
 using System.Collections.Generic;
 
 /// <summary>
-/// UI display for shop interface
-/// Shows available items and handles purchase UI
+/// UI display for shop interface - FIXED VERSION
 /// </summary>
 public class ShopDisplay : MonoBehaviour
 {
@@ -21,48 +20,53 @@ public class ShopDisplay : MonoBehaviour
     public TextMeshProUGUI shopTitleText;
     public Button closeButton;
     
-    [Header("Item Card Template")]
-    public TextMeshProUGUI itemNameText;
-    public TextMeshProUGUI itemPriceText;
-    public TextMeshProUGUI itemDescriptionText;
-    public Image itemIconImage;
-    public Button purchaseButton;
-    
     private ShopController currentShop;
     private PlayerController player;
     
     void Start()
     {
+        player = PlayerController.Instance;
+        
+        // Setup close button
         if (closeButton != null)
         {
+            closeButton.onClick.RemoveAllListeners();
             closeButton.onClick.AddListener(CloseShop);
+            Debug.Log("ShopDisplay: Close button listener added");
+        }
+        else
+        {
+            Debug.LogWarning("ShopDisplay: Close button not assigned!");
         }
         
+        // Start hidden
         if (shopPanel != null)
         {
             shopPanel.SetActive(false);
         }
         
-        player = PlayerController.Instance;
-        
         // Load item card prefab if not assigned
         if (itemCardPrefab == null)
         {
             itemCardPrefab = Resources.Load<GameObject>("UI/comp_ShopItem");
+            if (itemCardPrefab == null)
+            {
+                Debug.LogWarning("ShopDisplay: Item card prefab not found, will create fallback");
+            }
         }
     }
     
     void Update()
     {
-        // Close shop with ESC
-        if (shopPanel != null && shopPanel.activeSelf && Input.GetKeyDown(KeyCode.Escape))
-        {
-            CloseShop();
-        }
-        
-        // Update gold display in real-time
+        // ESC to close
         if (shopPanel != null && shopPanel.activeSelf)
         {
+            if (Input.GetKeyDown(KeyCode.Escape))
+            {
+                CloseShop();
+            }
+            
+            // Update gold display continuously
             UpdateGoldDisplay();
         }
     }
@@ -73,17 +77,35 @@ public class ShopDisplay : MonoBehaviour
     
     public void OpenShop(ShopController shop)
     {
-        if (shop == null || player == null)
+        if (shop == null)
         {
-            Debug.LogWarning("Cannot open shop - invalid shop or player");
+            Debug.LogError("ShopDisplay: Cannot open - shop is null");
             return;
+        }
+        
+        if (player == null)
+        {
+            player = PlayerController.Instance;
+            if (player == null)
+            {
+                Debug.LogError("ShopDisplay: Cannot open - player not found");
+                return;
+            }
         }
         
         currentShop = shop;
         
+        Debug.Log("ShopDisplay: Opening shop");
+        
+        // Show panel
         if (shopPanel != null)
         {
             shopPanel.SetActive(true);
+        }
+        else
+        {
+            Debug.LogError("ShopDisplay: shopPanel is null!");
+            return;
         }
         
         // Pause game
@@ -91,20 +113,23 @@ public class ShopDisplay : MonoBehaviour
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
         
-        // Update shop title
+        // Set title
         if (shopTitleText != null)
         {
             shopTitleText.text = "SHOP";
         }
         
+        // Update UI
         UpdateGoldDisplay();
         PopulateShopItems();
         
-        Debug.Log("Shop opened");
+        Debug.Log("ShopDisplay: Shop opened successfully");
     }
     
     public void CloseShop()
     {
+        Debug.Log("ShopDisplay: Closing shop");
+        
         if (shopPanel != null)
         {
             shopPanel.SetActive(false);
@@ -115,10 +140,11 @@ public class ShopDisplay : MonoBehaviour
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
         
-        currentShop?.CloseShop();
+        if (currentShop != null)
+        {
+            currentShop.CloseShop();
+        }
         currentShop = null;
-        
-        Debug.Log("Shop closed");
     }
     
     // ==========================================
@@ -127,9 +153,15 @@ public class ShopDisplay : MonoBehaviour
     
     private void PopulateShopItems()
     {
-        if (itemsContainer == null || currentShop == null)
+        if (itemsContainer == null)
         {
-            Debug.LogWarning("Cannot populate shop items - missing container or shop");
+            Debug.LogError("ShopDisplay: itemsContainer is null!");
+            return;
+        }
+        
+        if (currentShop == null)
+        {
+            Debug.LogError("ShopDisplay: currentShop is null!");
             return;
         }
         
@@ -139,73 +171,100 @@ public class ShopDisplay : MonoBehaviour
             Destroy(child.gameObject);
         }
         
-        // Get shop inventory
+        // Get inventory
         List<string> inventory = currentShop.GetShopInventory();
         
+        Debug.Log($"ShopDisplay: Populating {inventory.Count} items");
+        
         // Create item cards
+        int successCount = 0;
         foreach (string itemID in inventory)
         {
-            CreateItemCard(itemID);
+            if (CreateItemCard(itemID))
+            {
+                successCount++;
+            }
         }
         
-        Debug.Log($"Populated shop with {inventory.Count} items");
+        Debug.Log($"ShopDisplay: Created {successCount}/{inventory.Count} item cards");
     }
     
-    private void CreateItemCard(string itemID)
+    private bool CreateItemCard(string itemID)
     {
         // Get item data
         var itemDef = ItemRegistry.GetItem(itemID);
         if (itemDef == null)
         {
-            Debug.LogWarning($"Item definition not found for '{itemID}'");
-            return;
+            Debug.LogWarning($"ShopDisplay: Item '{itemID}' not found in registry");
+            return false;
         }
         
         // Create card
-        GameObject card;
-        if (itemCardPrefab != null)
+        GameObject card = CreateCard();
+        if (card == null)
         {
-            card = Instantiate(itemCardPrefab, itemsContainer);
-        }
-        else
-        {
-            // Fallback: create simple card
-            card = CreateFallbackItemCard();
+            Debug.LogError("ShopDisplay: Failed to create card");
+            return false;
         }
         
         card.name = $"ItemCard_{itemID}";
         
-        // Setup card
-        SetupItemCard(card, itemID, itemDef);
+        // Setup card with item data
+        return SetupItemCard(card, itemID, itemDef);
     }
     
-    private void SetupItemCard(GameObject card, string itemID, ItemRegistry.ItemDefinition itemDef)
+    private GameObject CreateCard()
+    {
+        if (itemCardPrefab != null)
+        {
+            return Instantiate(itemCardPrefab, itemsContainer);
+        }
+        else
+        {
+            // Fallback: Create simple card
+            return CreateFallbackItemCard();
+        }
+    }
+    
+    private bool SetupItemCard(GameObject card, string itemID, ItemRegistry.ItemDefinition itemDef)
     {
         // Get price
         int price = currentShop.GetItemPrice(itemID);
         bool canAfford = currentShop.CanAfford(itemID);
         
-        // Find components in card
-        var nameText = card.transform.Find("ItemName")?.GetComponent<TextMeshProUGUI>();
-        var priceText = card.transform.Find("Price")?.GetComponent<TextMeshProUGUI>();
-        var descText = card.transform.Find("Description")?.GetComponent<TextMeshProUGUI>();
-        var icon = card.transform.Find("Icon")?.GetComponent<Image>();
-        var buyButton = card.transform.Find("BuyButton")?.GetComponent<Button>();
+        // Find UI components
+        TextMeshProUGUI nameText = FindTextInChildren(card, "ItemName", "Name");
+        TextMeshProUGUI priceText = FindTextInChildren(card, "Price", "PriceText");
+        TextMeshProUGUI descText = FindTextInChildren(card, "Description", "DescText");
+        Image icon = FindImageInChildren(card, "Icon");
+        Button buyButton = FindButtonInChildren(card, "BuyButton", "Button");
         
-        // If components not found, try getting them directly from card
-        if (buyButton == null)
+        // Set text values
+        if (nameText != null)
         {
-            buyButton = card.GetComponent<Button>();
+            nameText.text = itemDef.itemName;
+            Debug.Log($"Set name: {itemDef.itemName}");
+        }
+        else
+        {
+            Debug.LogWarning($"Name text not found for {itemID}");
         }
         
-        // Set text
-        if (nameText != null) nameText.text = itemDef.itemName;
         if (priceText != null)
         {
-            priceText.text = $"{price} Gold";
+            priceText.text = $"{price}G";
             priceText.color = canAfford ? Color.white : Color.red;
+            Debug.Log($"Set price: {price}G");
         }
-        if (descText != null) descText.text = itemDef.description;
+        else
+        {
+            Debug.LogWarning($"Price text not found for {itemID}");
+        }
+        
+        if (descText != null)
+        {
+            descText.text = itemDef.description;
+        }
         
         // Set icon color
         if (icon != null)
@@ -213,34 +272,146 @@ public class ShopDisplay : MonoBehaviour
             icon.color = GetItemTypeColor(itemDef.itemType);
         }
         
-        // Setup purchase button
+        // Setup button
         if (buyButton != null)
         {
             buyButton.interactable = canAfford;
             buyButton.onClick.RemoveAllListeners();
             buyButton.onClick.AddListener(() => OnPurchaseClicked(itemID));
+            Debug.Log($"Button setup for {itemID}");
         }
         else
         {
-            Debug.LogWarning($"No button found on item card for {itemID}");
+            Debug.LogWarning($"Buy button not found for {itemID}");
         }
+        
+        return true;
     }
     
     private GameObject CreateFallbackItemCard()
     {
         GameObject card = new GameObject("ItemCard_Fallback");
+        card.transform.SetParent(itemsContainer, false);
         
-        // Add image background
+        // Add layout
+        RectTransform rect = card.AddComponent<RectTransform>();
+        rect.sizeDelta = new Vector2(300, 100);
+        
+        // Background
         Image bg = card.AddComponent<Image>();
         bg.color = new Color(0.2f, 0.2f, 0.2f, 0.9f);
         
-        RectTransform rect = card.GetComponent<RectTransform>();
-        rect.sizeDelta = new Vector2(200, 100);
+        // Name text
+        GameObject nameObj = new GameObject("ItemName");
+        nameObj.transform.SetParent(card.transform, false);
+        TextMeshProUGUI nameText = nameObj.AddComponent<TextMeshProUGUI>();
+        nameText.fontSize = 24;
+        nameText.alignment = TextAlignmentOptions.Center;
+        RectTransform nameRect = nameObj.GetComponent<RectTransform>();
+        nameRect.anchorMin = new Vector2(0, 0.6f);
+        nameRect.anchorMax = new Vector2(1, 1);
+        nameRect.offsetMin = Vector2.zero;
+        nameRect.offsetMax = Vector2.zero;
         
-        // Add button
-        Button button = card.AddComponent<Button>();
+        // Price text
+        GameObject priceObj = new GameObject("Price");
+        priceObj.transform.SetParent(card.transform, false);
+        TextMeshProUGUI priceText = priceObj.AddComponent<TextMeshProUGUI>();
+        priceText.fontSize = 20;
+        priceText.alignment = TextAlignmentOptions.Center;
+        RectTransform priceRect = priceObj.GetComponent<RectTransform>();
+        priceRect.anchorMin = new Vector2(0, 0.3f);
+        priceRect.anchorMax = new Vector2(1, 0.6f);
+        priceRect.offsetMin = Vector2.zero;
+        priceRect.offsetMax = Vector2.zero;
+        
+        // Button
+        GameObject btnObj = new GameObject("BuyButton");
+        btnObj.transform.SetParent(card.transform, false);
+        Button btn = btnObj.AddComponent<Button>();
+        Image btnImg = btnObj.AddComponent<Image>();
+        btnImg.color = new Color(0.3f, 0.6f, 0.3f);
+        RectTransform btnRect = btnObj.GetComponent<RectTransform>();
+        btnRect.anchorMin = new Vector2(0.2f, 0);
+        btnRect.anchorMax = new Vector2(0.8f, 0.3f);
+        btnRect.offsetMin = Vector2.zero;
+        btnRect.offsetMax = Vector2.zero;
+        
+        // Button text
+        GameObject btnTextObj = new GameObject("Text");
+        btnTextObj.transform.SetParent(btnObj.transform, false);
+        TextMeshProUGUI btnText = btnTextObj.AddComponent<TextMeshProUGUI>();
+        btnText.text = "BUY";
+        btnText.alignment = TextAlignmentOptions.Center;
+        btnText.fontSize = 18;
+        RectTransform btnTextRect = btnTextObj.GetComponent<RectTransform>();
+        btnTextRect.anchorMin = Vector2.zero;
+        btnTextRect.anchorMax = Vector2.one;
+        btnTextRect.offsetMin = Vector2.zero;
+        btnTextRect.offsetMax = Vector2.zero;
         
         return card;
+    }
+    
+    // ==========================================
+    // HELPER METHODS
+    // ==========================================
+    
+    private TextMeshProUGUI FindTextInChildren(GameObject parent, params string[] possibleNames)
+    {
+        foreach (string name in possibleNames)
+        {
+            Transform child = parent.transform.Find(name);
+            if (child != null)
+            {
+                TextMeshProUGUI text = child.GetComponent<TextMeshProUGUI>();
+                if (text != null) return text;
+            }
+        }
+        
+        // Deep search
+        TextMeshProUGUI[] allText = parent.GetComponentsInChildren<TextMeshProUGUI>();
+        foreach (var text in allText)
+        {
+            foreach (string name in possibleNames)
+            {
+                if (text.gameObject.name.Contains(name))
+                {
+                    return text;
+                }
+            }
+        }
+        
+        return null;
+    }
+    
+    private Image FindImageInChildren(GameObject parent, string name)
+    {
+        Transform child = parent.transform.Find(name);
+        if (child != null)
+        {
+            return child.GetComponent<Image>();
+        }
+        return null;
+    }
+    
+    private Button FindButtonInChildren(GameObject parent, params string[] possibleNames)
+    {
+        foreach (string name in possibleNames)
+        {
+            Transform child = parent.transform.Find(name);
+            if (child != null)
+            {
+                Button btn = child.GetComponent<Button>();
+                if (btn != null) return btn;
+            }
+        }
+        
+        // Check parent itself
+        Button parentBtn = parent.GetComponent<Button>();
+        if (parentBtn != null) return parentBtn;
+        
+        return null;
     }
     
     private Color GetItemTypeColor(ItemType itemType)
@@ -262,26 +433,28 @@ public class ShopDisplay : MonoBehaviour
     {
         if (currentShop == null)
         {
-            Debug.LogWarning("Cannot purchase - no active shop");
+            Debug.LogWarning("ShopDisplay: Cannot purchase - no active shop");
             return;
         }
+        
+        Debug.Log($"ShopDisplay: Attempting to purchase {itemID}");
         
         bool success = currentShop.PurchaseItem(itemID);
         
         if (success)
         {
-            Debug.Log($"Purchased item: {itemID}");
+            Debug.Log($"ShopDisplay: Successfully purchased {itemID}");
             
             // Refresh display
             UpdateGoldDisplay();
-            PopulateShopItems(); // Refresh to update affordability
+            PopulateShopItems();
             
-            // Play purchase sound
+            // Play sound
             PlayPurchaseSound();
         }
         else
         {
-            Debug.Log("Purchase failed");
+            Debug.Log("ShopDisplay: Purchase failed");
             PlayErrorSound();
         }
     }
@@ -296,13 +469,11 @@ public class ShopDisplay : MonoBehaviour
     
     private void PlayPurchaseSound()
     {
-        // TODO: Play purchase success sound
         Debug.Log("*Purchase sound*");
     }
     
     private void PlayErrorSound()
     {
-        // TODO: Play error sound
         Debug.Log("*Error sound*");
     }
 }
