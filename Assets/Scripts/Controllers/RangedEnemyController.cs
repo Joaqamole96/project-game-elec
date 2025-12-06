@@ -120,19 +120,6 @@ public class RangedEnemyController : EnemyController
     
     protected override void DropLoot()
     {
-        int goldAmount = Random.Range(10, 18);
-        
-        GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
-        if (playerObj != null && playerObj.TryGetComponent<PlayerController>(out var pc))
-        {
-            if (pc.inventory != null)
-            {
-                if (pc.powerManager != null)
-                {
-                    goldAmount = pc.powerManager.ModifyGoldGained(goldAmount);
-                }
-                pc.inventory.AddGold(goldAmount);
-            }
-        }
+        base.DropLoot(); // Use ItemRegistry system
     }
 }

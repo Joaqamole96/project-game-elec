@@ -4,10 +4,11 @@
 
 public enum DoorState { Open, Closed, Locked, Broken }
 
-public enum ItemType 
-{ 
-    Consumable, 
-    Equipment 
+public enum ItemType
+{
+    Consumable,      // Potions, food, etc.
+    Currency,        // Gold, gems, etc.
+    Equipment,       // Weapons, armor (future)
 }
 
 public enum PowerType

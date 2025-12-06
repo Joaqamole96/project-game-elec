@@ -158,23 +158,26 @@ public class BossController : EnemyController
     
     protected override void DropLoot()
     {
-        // Bosses drop 100-200 gold
-        int goldAmount = Random.Range(100, 200);
+        int floorLevel = GetCurrentFloorLevel();
         
-        GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
-        if (playerObj != null && playerObj.TryGetComponent<PlayerController>(out var pc))
+        // Bosses drop multiple items
+        for (int i = 0; i < 3; i++)
         {
-            if (pc.inventory != null)
+            Vector3 dropPos = transform.position + Vector3.up + (Random.insideUnitSphere * 2f);
+            GameObject droppedItem = ItemRegistry.SpawnEnemyDrop(
+                dropPos, 
+                "Boss", 
+                floorLevel
+            );
+            
+            if (droppedItem != null)
             {
-                if (pc.powerManager != null)
-                {
-                    goldAmount = pc.powerManager.ModifyGoldGained(goldAmount);
-                }
-                pc.inventory.AddGold(goldAmount);
+                Debug.Log($"Boss dropped: {droppedItem.name}");
             }
         }
         
-        Debug.Log($"Boss dropped {goldAmount} gold!");
+        // Bosses also drop guaranteed power (existing power drop logic)
+        // Keep the existing power drop code from BossSpawner
     }
     
     // ------------------------- //

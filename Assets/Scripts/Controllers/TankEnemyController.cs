@@ -87,20 +87,7 @@ public class TankEnemyController : EnemyController
     
     protected override void DropLoot()
     {
-        int goldAmount = Random.Range(15, 30);
-        
-        GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
-        if (playerObj != null && playerObj.TryGetComponent<PlayerController>(out var pc))
-        {
-            if (pc.inventory != null)
-            {
-                if (pc.powerManager != null)
-                {
-                    goldAmount = pc.powerManager.ModifyGoldGained(goldAmount);
-                }
-                pc.inventory.AddGold(goldAmount);
-            }
-        }
+        base.DropLoot(); // Use ItemRegistry system
     }
     
     void OnDrawGizmosSelected()

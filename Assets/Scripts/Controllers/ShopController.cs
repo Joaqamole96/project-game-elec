@@ -1,148 +1,236 @@
 // ================================================== //
-// Scripts/Controllers/ShopController
+// FILE 1: ShopController.cs - Refactored
 // ================================================== //
 
 using UnityEngine;
 using System.Collections.Generic;
 using System.Collections;
 
+/// <summary>
+/// Shop controller that manages shop inventory and item purchases
+/// Items are physical world objects that drop near the shop when purchased
+/// </summary>
 public class ShopController : MonoBehaviour
 {
+    [Header("Shop Settings")]
+    public Transform itemSpawnPoint; // Where items appear when purchased
+    public float itemSpawnRadius = 2f;
+    
     [Header("Shop Inventory")]
-    public List<ShopItem> availableItems = new();
+    private List<string> shopInventory = new List<string>();
+    private Dictionary<string, int> itemPrices = new Dictionary<string, int>();
     
-    [Header("UI")]
-    public ShopDisplay shopDisplay;
+    [Header("State")]
     public bool isPlayerNearby = false;
-    
     private PlayerController player;
     
-    [System.Serializable]
-    public class ShopItem
-    {
-        public string itemName;
-        public int price;
-        public ShopItemType itemType;
-        public PowerType powerType; // If power
-        public GameObject weaponPrefab; // If weapon
-        public int healAmount; // If potion
-    }
-    
-    public enum ShopItemType
-    {
-        HealthPotion,
-        ManaPotion,
-        Weapon,
-        PowerModel
-    }
+    [Header("UI")]
+    private ShopDisplay shopDisplay;
     
     void Start()
     {
         GenerateShopInventory();
+        
+        // Set spawn point if not assigned
+        if (itemSpawnPoint == null)
+        {
+            itemSpawnPoint = transform;
+        }
     }
     
     void Update()
     {
+        // Open shop with E key
         if (isPlayerNearby && Input.GetKeyDown(KeyCode.E))
         {
             OpenShop();
         }
     }
     
+    // ==========================================
+    // INVENTORY GENERATION
+    // ==========================================
+    
     private void GenerateShopInventory()
     {
-        availableItems.Clear();
+        shopInventory.Clear();
+        itemPrices.Clear();
         
-        // Always stock health potions
-        availableItems.Add(new ShopItem
+        // Get current floor level
+        int floorLevel = GetCurrentFloorLevel();
+        
+        // Generate inventory from ItemRegistry
+        shopInventory = ItemRegistry.GenerateShopInventory(floorLevel, 6);
+        
+        // Calculate prices
+        foreach (string itemID in shopInventory)
         {
-            itemName = "Health Potion",
-            price = 50,
-            itemType = ShopItemType.HealthPotion,
-            healAmount = 50
-        });
+            int price = ItemRegistry.GetShopPrice(itemID);
+            itemPrices[itemID] = price;
+        }
         
-        availableItems.Add(new ShopItem
-        {
-            itemName = "Large Health Potion",
-            price = 100,
-            itemType = ShopItemType.HealthPotion,
-            healAmount = 100
-        });
-        
-        // Random power
-        PowerType randomPower = (PowerType)Random.Range(0, System.Enum.GetValues(typeof(PowerType)).Length);
-        PowerModel powerPreview = new(randomPower);
-        availableItems.Add(new ShopItem
-        {
-            itemName = powerPreview.powerName,
-            price = 200,
-            itemType = ShopItemType.PowerModel,
-            powerType = randomPower
-        });
-        
-        Debug.Log($"Shop generated with {availableItems.Count} items");
+        Debug.Log($"Shop generated with {shopInventory.Count} items for floor {floorLevel}");
     }
+    
+    private int GetCurrentFloorLevel()
+    {
+        LayoutManager layoutManager = GameDirector.Instance?.layoutManager;
+        if (layoutManager != null && layoutManager.LevelConfig != null)
+        {
+            return layoutManager.LevelConfig.FloorLevel;
+        }
+        return 1;
+    }
+    
+    // ==========================================
+    // SHOP INTERACTION
+    // ==========================================
     
     private void OpenShop()
     {
-        if (shopDisplay != null)
+        if (UIManager.Instance != null)
         {
-            shopDisplay.OpenShop(this);
+            UIManager.Instance.ShowShopDisplay(this);
         }
         else
         {
-            // Fallback to debug menu
-            Debug.Log("=== SHOP MENU ===");
-            for (int i = 0; i < availableItems.Count; i++)
-            {
-                ShopItem item = availableItems[i];
-                Debug.Log($"{i + 1}. {item.itemName} - {item.price} Gold");
-            }
-            Debug.Log("=================");
+            Debug.LogWarning("UIManager not found - cannot open shop UI");
         }
     }
     
-    public bool BuyItem(int itemIndex)
+    public void CloseShop()
     {
-        if (itemIndex < 0 || itemIndex >= availableItems.Count) return false;
-        if (player == null || player.inventory == null) return false;
+        isPlayerNearby = false;
+        player = null;
+    }
+    
+    // ==========================================
+    // PURCHASE SYSTEM
+    // ==========================================
+    
+    /// <summary>
+    /// Attempt to purchase item - spawns item in world if successful
+    /// </summary>
+    public bool PurchaseItem(string itemID)
+    {
+        if (player == null || player.inventory == null)
+        {
+            Debug.LogWarning("Cannot purchase - player not found");
+            return false;
+        }
         
-        ShopItem item = availableItems[itemIndex];
+        // Check if item is in stock
+        if (!shopInventory.Contains(itemID))
+        {
+            Debug.LogWarning($"Item '{itemID}' not in shop inventory");
+            return false;
+        }
         
-        // Check if player has enough gold
-        if (player.inventory.gold < item.price)
+        // Get price
+        if (!itemPrices.TryGetValue(itemID, out int price))
+        {
+            Debug.LogWarning($"No price set for item '{itemID}'");
+            return false;
+        }
+        
+        // Check if player can afford
+        if (player.inventory.gold < price)
         {
             Debug.Log("Not enough gold!");
             return false;
         }
         
         // Process purchase
-        player.inventory.SpendGold(item.price);
+        player.inventory.SpendGold(price);
         
-        switch (item.itemType)
-        {
-            case ShopItemType.HealthPotion:
-                player.Heal(item.healAmount);
-                Debug.Log($"Bought and used {item.itemName}");
-                break;
-                
-            case ShopItemType.PowerModel:
-                if (player.powerManager != null)
-                {
-                    player.powerManager.AddPower(item.powerType);
-                    Debug.Log($"Bought power: {item.itemName}");
-                }
-                break;
-                
-            case ShopItemType.Weapon:
-                // TODO: Add weapon to player
-                Debug.Log($"Bought weapon: {item.itemName}");
-                break;
-        }
+        // Spawn item in world near shop
+        SpawnPurchasedItem(itemID);
+        
+        Debug.Log($"Purchased {itemID} for {price} gold");
         
         return true;
     }
+    
+    /// <summary>
+    /// Spawn purchased item in world for player to pick up
+    /// </summary>
+    private void SpawnPurchasedItem(string itemID)
+    {
+        // Calculate spawn position
+        Vector3 spawnPos = GetItemSpawnPosition();
+        
+        // Spawn item using ItemRegistry
+        GameObject item = ItemRegistry.SpawnItem(itemID, spawnPos);
+        
+        if (item != null)
+        {
+            Debug.Log($"Item '{itemID}' spawned at {spawnPos}");
+            
+            // Visual feedback - spawn with a pop effect
+            PlayPurchaseEffect(spawnPos);
+        }
+        else
+        {
+            Debug.LogError($"Failed to spawn item '{itemID}'");
+        }
+    }
+    
+    private Vector3 GetItemSpawnPosition()
+    {
+        // Random position around spawn point
+        Vector2 randomCircle = Random.insideUnitCircle * itemSpawnRadius;
+        Vector3 offset = new Vector3(randomCircle.x, 0.5f, randomCircle.y);
+        
+        return itemSpawnPoint.position + offset;
+    }
+    
+    private void PlayPurchaseEffect(Vector3 position)
+    {
+        // Create simple particle effect
+        GameObject effect = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+        effect.transform.position = position;
+        effect.transform.localScale = Vector3.one * 0.5f;
+        
+        Renderer renderer = effect.GetComponent<Renderer>();
+        Material mat = new Material(Shader.Find("Standard"));
+        mat.color = Color.yellow;
+        mat.EnableKeyword("_EMISSION");
+        mat.SetColor("_EmissionColor", Color.yellow * 2f);
+        renderer.material = mat;
+        
+        Object.Destroy(effect.GetComponent<Collider>());
+        Object.Destroy(effect, 0.5f);
+    }
+    
+    // ==========================================
+    // PUBLIC API FOR UI
+    // ==========================================
+    
+    public List<string> GetShopInventory()
+    {
+        return new List<string>(shopInventory);
+    }
+    
+    public int GetItemPrice(string itemID)
+    {
+        if (itemPrices.TryGetValue(itemID, out int price))
+        {
+            return price;
+        }
+        return 0;
+    }
+    
+    public bool CanAfford(string itemID)
+    {
+        if (player == null || player.inventory == null) return false;
+        
+        int price = GetItemPrice(itemID);
+        return player.inventory.gold >= price;
+    }
+    
+    // ==========================================
+    // TRIGGER DETECTION
+    // ==========================================
     
     void OnTriggerEnter(Collider other)
     {
@@ -150,8 +238,14 @@ public class ShopController : MonoBehaviour
         {
             isPlayerNearby = true;
             player = other.GetComponent<PlayerController>();
+            
             Debug.Log("Press E to open shop");
-            UIManager.Instance?.ShowShopDisplay(this);
+            
+            // Show shop prompt
+            if (UIManager.Instance != null)
+            {
+                UIManager.Instance.ShowTooltip("Press E to shop", Input.mousePosition);
+            }
         }
     }
     
@@ -161,6 +255,12 @@ public class ShopController : MonoBehaviour
         {
             isPlayerNearby = false;
             player = null;
+            
+            // Hide tooltip
+            if (UIManager.Instance != null)
+            {
+                UIManager.Instance.HideTooltip();
+            }
         }
     }
 }
@@ -306,55 +406,6 @@ public class BossSpawner : MonoBehaviour
         {
             // Enable exit portal
             Debug.Log("Exit portal unlocked!");
-        }
-    }
-}
-
-// ================================================== //
-// FILE 4: PowerPickup.cs
-// ================================================== //
-
-// using UnityEngine;
-
-public class PowerPickup : MonoBehaviour
-{
-    public PowerType powerType;
-    
-    void Start()
-    {
-        // Ensure has trigger collider
-        Collider collider = GetComponent<Collider>();
-        if (collider != null)
-        {
-            collider.isTrigger = true;
-        }
-        
-        // Rotate for visual effect
-        StartCoroutine(RotatePickup());
-    }
-    
-    private System.Collections.IEnumerator RotatePickup()
-    {
-        while (true)
-        {
-            transform.Rotate(Vector3.up, 90f * Time.deltaTime);
-            yield return null;
-        }
-    }
-    
-    void OnTriggerEnter(Collider other)
-    {
-        if (other.CompareTag("Player"))
-        {
-            PlayerController player = other.GetComponent<PlayerController>();
-            if (player != null && player.powerManager != null)
-            {
-                if (player.powerManager.AddPower(powerType))
-                {
-                    Debug.Log($"Picked up power: {powerType}");
-                    Destroy(gameObject);
-                }
-            }
         }
     }
 }

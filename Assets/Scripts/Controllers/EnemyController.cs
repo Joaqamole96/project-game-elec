@@ -253,22 +253,37 @@ public class EnemyController : MonoBehaviour
     
     protected virtual void DropLoot()
     {
-        int goldAmount = Random.Range(5, 15);
+        // Get current floor level for drop table scaling
+        int floorLevel = GetCurrentFloorLevel();
         
-        GameObject playerObj = GameObject.FindGameObjectWithTag("Player");
-        if (playerObj != null && playerObj.TryGetComponent<PlayerController>(out var pc))
+        // Determine enemy type for drop table
+        string enemyType = this.GetType().Name;
+        
+        // Spawn item drop from ItemRegistry
+        GameObject droppedItem = ItemRegistry.SpawnEnemyDrop(
+            transform.position + Vector3.up, 
+            enemyType, 
+            floorLevel
+        );
+        
+        if (droppedItem != null)
         {
-            if (pc.inventory != null)
-            {
-                // Apply gold power modifier
-                if (pc.powerManager != null)
-                {
-                    goldAmount = pc.powerManager.ModifyGoldGained(goldAmount);
-                }
-                
-                pc.inventory.AddGold(goldAmount);
-            }
+            Debug.Log($"{enemyType} dropped: {droppedItem.name}");
         }
+        else
+        {
+            Debug.Log($"{enemyType} dropped nothing");
+        }
+    }
+
+    protected int GetCurrentFloorLevel()
+    {
+        LayoutManager layoutManager = GameDirector.Instance?.layoutManager;
+        if (layoutManager != null && layoutManager.LevelConfig != null)
+        {
+            return layoutManager.LevelConfig.FloorLevel;
+        }
+        return 1;
     }
     
     // ------------------------- //
