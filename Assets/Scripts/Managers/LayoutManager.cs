@@ -387,8 +387,8 @@ public class LayoutManager : MonoBehaviour
 
     private void RenderEnvironment(LevelModel layout)
     {
-        if (EnableCeiling) RenderCeiling(layout);
-        if (EnableVoid) RenderVoidPlane(layout);
+        // if (EnableCeiling) RenderCeiling(layout);
+        // if (EnableVoid) RenderVoidPlane(layout);
     }
 
     private void RenderCeiling(LevelModel layout)

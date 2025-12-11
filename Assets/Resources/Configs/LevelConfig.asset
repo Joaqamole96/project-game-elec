@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: LevelConfig
   m_EditorClassIdentifier: 
   Seed: 0
-  FloorLevel: 5
-  Width: 120
+  FloorLevel: 6
+  Width: 130
   Height: 130
   FloorGrowth: 10
   MinFloorSize: 100
